@@ -419,7 +419,8 @@ class OrgTest(TembaTest):
             'editors': [self.editor.id],
             'administrators': [self.admin.id],
             'surveyors': [self.surveyor.id],
-            'surveyor_password': None
+            'surveyor_password': None,
+            'nlu_api_config': '{}'
         }
 
         response = self.client.post(update_url, post_data)
