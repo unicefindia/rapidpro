@@ -60,6 +60,7 @@ class BaseConsumer(object):
             print(err)
             return None
 
+
 class BothubConsumer(BaseConsumer):
     """
     Bothub consumer
