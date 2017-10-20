@@ -50,14 +50,11 @@ class BaseConsumer(object):
         Abstract funciton to get entities
         """
 
-    def _request(self, base_url, data=None, headers=None, method='GET'):
+    def _request(self, base_url, data=None, headers=None):
         try:
-            if method == 'POST':
-                return requests.post(base_url, data=data, headers=headers)
-            else:
-                return requests.get(base_url, params=data, headers=headers)
-        except requests.exceptions.RequestException as err:
-            print(err)
+            return requests.get(base_url, params=data, headers=headers)
+        except Exception as e:
+            print e
             return None
 
 
@@ -75,6 +72,9 @@ class BothubConsumer(BaseConsumer):
             'msg': msg
         }
         response = self._request(predict_url, data=data, headers=self.get_headers())
+        if not response:
+            return None, 0, None
+
         predict = json.loads(response.content)
 
         answer = predict.get('answer', None)
@@ -114,7 +114,11 @@ class WitConsumer(BaseConsumer):
             'n': 1
         }
         response = self._request(predict_url, data=data, headers=self.get_headers())
+        if not response:
+            return None, 0, None
+
         predict = json.loads(response.content)
+
         entities = predict.get('entities', None)
         if entities:
             intents = entities.get('intent', None)

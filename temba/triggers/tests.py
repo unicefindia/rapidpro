@@ -1036,6 +1036,11 @@ class TriggerTest(TembaTest):
             self.assertEquals(response.status_code, 302)
 
             with patch('requests.get') as mock_get:
+                mock_get.side_effect = Exception('Fail request')
+                Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "i want chinese food")
+                self.assertEquals(0, flow.runs.all().count())
+
+            with patch('requests.get') as mock_get:
                 mock_return_bothub = """
                 {
                     "bot_uuid": "53c800c6-9e90-4ede-b3b8-723596bd8b2e",
