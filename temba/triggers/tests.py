@@ -978,6 +978,11 @@ class TriggerTest(TembaTest):
         self.assertEquals(trigger_nlu.pk, trigger.pk)
 
         with patch('requests.get') as mock_get:
+            mock_get.side_effect = Exception('Fail request')
+            Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "i want chinese food")
+            self.assertEquals(0, flow.runs.all().count())
+
+        with patch('requests.get') as mock_get:
             mock_return_wit = '{"msg_id":"0GhmeqSm6P3Wkz0P0","_text":"greet","entities":{"intent":[{"confidence":%s,"value":"greet"}]}}'
             mock_get.return_value = MockResponse(200, mock_return_wit % '0.35233400021608')
             Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "Hello")
