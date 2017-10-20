@@ -54,7 +54,7 @@ class BaseConsumer(object):
         try:
             return requests.get(base_url, params=data, headers=headers)
         except Exception as e:
-            print e
+            print(e)
             return None
 
 
