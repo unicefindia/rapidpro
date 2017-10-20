@@ -1013,9 +1013,14 @@ class TriggerTest(TembaTest):
         payload = dict(api_name=NLU_BOTHUB_TAG, api_key='BOTHUB_KEY', disconnect='false')
         self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
         self.org.refresh_from_db()
+
         with patch('requests.get') as mock_get:
             mock_get.return_value = MockResponse(200, '[{"slug": "bot-slug-16", "uuid": "3c15fefc-58cc-4fcb-a29f-38dc8b1ef76f"}, \
                                                         {"slug": "bot-slug-15", "uuid": "53c800c6-9e90-4ede-b3b8-723596bd8b2e"}]')
+
+            response = self.client.get(reverse('triggers.trigger_create'))
+            self.assertContains(response, "NLU")
+
             response = self.client.get(trigger_url)
             self.assertEquals(response.status_code, 200)
             post_data = dict(flow=flow.pk, intents='greet', accurancy=75, bots='53c800c6-9e90-4ede-b3b8-723596bd8b2e')
