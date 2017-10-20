@@ -465,9 +465,6 @@ class Trigger(SmartModel):
 
     @classmethod
     def catch_nlu_triggers(cls, entity, trigger_type):
-        if not entity:
-            return False
-
         triggers = Trigger.get_triggers_of_type(entity.org, trigger_type)
 
         for trigger in triggers:

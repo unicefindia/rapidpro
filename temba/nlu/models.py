@@ -31,10 +31,14 @@ class BaseConsumer(object):
         return self.name
 
     def list_bots(self):
-        pass
+        """
+        Abstract funciton to list bots
+        """
 
     def predict(self, msg, bot):
-        pass
+        """
+        Abstract funciton to predict
+        """
 
     def get_headers(self):
         return {
@@ -42,7 +46,9 @@ class BaseConsumer(object):
         }
 
     def get_entities(self, entities):
-        pass
+        """
+        Abstract funciton to get entities
+        """
 
     def _request(self, base_url, data=None, headers=None, method='GET'):
         try:
@@ -50,9 +56,9 @@ class BaseConsumer(object):
                 return requests.post(base_url, data=data, headers=headers)
             else:
                 return requests.get(base_url, params=data, headers=headers)
-        except:
-            pass
-
+        except requests.exceptions.RequestException as err:
+            print(err)
+            return None
 
 class BothubConsumer(BaseConsumer):
     """

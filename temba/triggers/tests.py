@@ -985,6 +985,11 @@ class TriggerTest(TembaTest):
             Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "Hello")
             self.assertEquals(1, flow.runs.all().count())
 
+        payload = dict(disconnect='true')
+        self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
+        self.org.refresh_from_db()
+        self.assertEquals(Trigger.get_triggers_of_type(self.org, Trigger.TYPE_NLU_API).first(), None)
+
     def test_catch_nlu_trigger_bothub(self):
         self.login(self.admin)
         trigger_nlu = Trigger.get_triggers_of_type(self.org, Trigger.TYPE_NLU_API).first()
@@ -1053,6 +1058,11 @@ class TriggerTest(TembaTest):
                 mock_get.return_value = MockResponse(200, mock_return_bothub % '0.6948301844545473')
                 Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "i want chinese food")
                 self.assertEquals(1, flow.runs.all().count())
+
+        payload = dict(disconnect='true')
+        self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
+        self.org.refresh_from_db()
+        self.assertEquals(Trigger.get_triggers_of_type(self.org, Trigger.TYPE_NLU_API).first(), None)
 
     def test_update(self):
         self.login(self.admin)
