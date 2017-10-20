@@ -387,11 +387,6 @@ class NluApiTriggerForm(GroupBasedTriggerForm):
         elif org.nlu_api_config_json().get(NLU_API_NAME, None) == NLU_BOTHUB_TAG:
             self.fields['bots'].choices = self.get_bots_by_org(org)
 
-    def get_existing_triggers(self, cleaned_data):
-        existing = super(NluApiTriggerForm, self).get_existing_triggers(cleaned_data)
-        existing = existing.filter(keyword=None, trigger_type=Trigger.TYPE_NLU_API)
-        return existing
-
     def get_bots_by_org(self, org):
         """
         This function will return all data bots of specific token organization (NLU Api Token)
