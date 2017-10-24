@@ -943,20 +943,20 @@ class TriggerTest(TembaTest):
         self.assertFalse(trigger_nlu)
 
         Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "Hi")
-        self.assertEquals(1, Msg.objects.all().count())
-        self.assertEquals(0, flow.runs.all().count())
+        self.assertEqual(1, Msg.objects.all().count())
+        self.assertEqual(0, flow.runs.all().count())
 
         trigger_url = reverse("triggers.trigger_nlu_api")
 
         response = self.client.get(trigger_url)
-        self.assertEquals(response.status_code, 302)
+        self.assertEqual(response.status_code, 302)
 
         payload = dict(api_name=NLU_WIT_AI_TAG, api_key='WIT_BOT_KEY', disconnect='false')
         self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
         self.org.refresh_from_db()
 
         response = self.client.get(trigger_url)
-        self.assertEquals(response.status_code, 200)
+        self.assertEqual(response.status_code, 200)
         group = self.create_group("Trigger Group", [])
         post_data = dict(flow=flow.pk, intents='restaurant_search,goodbye,greet',
                          accurancy=65, bots=self.org.nlu_api_config_json().get(NLU_API_KEY), groups=[group.pk])
@@ -964,38 +964,38 @@ class TriggerTest(TembaTest):
         response = self.client.post(trigger_url, post_data)
         trigger = Trigger.objects.all().order_by('-pk')[0]
 
-        self.assertEquals(trigger.trigger_type, Trigger.TYPE_NLU_API)
-        self.assertEquals(trigger.flow.pk, flow.pk)
+        self.assertEqual(trigger.trigger_type, Trigger.TYPE_NLU_API)
+        self.assertEqual(trigger.flow.pk, flow.pk)
         get_nlu_data = trigger.get_nlu_data()
-        self.assertEquals(get_nlu_data['intents'], 'restaurant_search,goodbye,greet')
-        self.assertEquals(get_nlu_data['intents_replaced'], 'restaurant_search, goodbye, greet')
-        self.assertEquals(get_nlu_data['intents_splited'], ['restaurant_search', 'goodbye', 'greet'])
-        self.assertEquals(get_nlu_data['accurancy'], 65)
-        self.assertEquals(get_nlu_data['bot'], self.org.nlu_api_config_json().get(NLU_API_KEY))
+        self.assertEqual(get_nlu_data['intents'], 'restaurant_search,goodbye,greet')
+        self.assertEqual(get_nlu_data['intents_replaced'], 'restaurant_search, goodbye, greet')
+        self.assertEqual(get_nlu_data['intents_splited'], ['restaurant_search', 'goodbye', 'greet'])
+        self.assertEqual(get_nlu_data['accurancy'], 65)
+        self.assertEqual(get_nlu_data['bot'], self.org.nlu_api_config_json().get(NLU_API_KEY))
 
         trigger_nlu = Trigger.get_triggers_of_type(self.org, Trigger.TYPE_NLU_API).first()
 
-        self.assertEquals(trigger_nlu.pk, trigger.pk)
+        self.assertEqual(trigger_nlu.pk, trigger.pk)
 
         with patch('requests.get') as mock_get:
             mock_get.side_effect = Exception('Fail request')
             Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "i want chinese food")
-            self.assertEquals(0, flow.runs.all().count())
+            self.assertEqual(0, flow.runs.all().count())
 
         with patch('requests.get') as mock_get:
             mock_return_wit = '{"msg_id":"0GhmeqSm6P3Wkz0P0","_text":"greet","entities":{"intent":[{"confidence":%s,"value":"greet"}]}}'
             mock_get.return_value = MockResponse(200, mock_return_wit % '0.35233400021608')
             Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "Hello")
-            self.assertEquals(0, flow.runs.all().count())
+            self.assertEqual(0, flow.runs.all().count())
 
             mock_get.return_value = MockResponse(200, mock_return_wit % '0.65233400021608')
             Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "Hello")
-            self.assertEquals(1, flow.runs.all().count())
+            self.assertEqual(1, flow.runs.all().count())
 
         payload = dict(disconnect='true')
         self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
         self.org.refresh_from_db()
-        self.assertEquals(Trigger.get_triggers_of_type(self.org, Trigger.TYPE_NLU_API).first(), None)
+        self.assertEqual(Trigger.get_triggers_of_type(self.org, Trigger.TYPE_NLU_API).first(), None)
 
     def test_catch_nlu_trigger_bothub(self):
         self.login(self.admin)
@@ -1007,13 +1007,13 @@ class TriggerTest(TembaTest):
         self.assertFalse(trigger_nlu)
 
         Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "Hi")
-        self.assertEquals(1, Msg.objects.all().count())
-        self.assertEquals(0, flow.runs.all().count())
+        self.assertEqual(1, Msg.objects.all().count())
+        self.assertEqual(0, flow.runs.all().count())
 
         trigger_url = reverse("triggers.trigger_nlu_api")
 
         response = self.client.get(trigger_url)
-        self.assertEquals(response.status_code, 302)
+        self.assertEqual(response.status_code, 302)
 
         payload = dict(api_name=NLU_BOTHUB_TAG, api_key='BOTHUB_KEY', disconnect='false')
         self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
@@ -1027,7 +1027,7 @@ class TriggerTest(TembaTest):
             self.assertContains(response, "NLU")
 
             response = self.client.get(trigger_url)
-            self.assertEquals(response.status_code, 200)
+            self.assertEqual(response.status_code, 200)
             post_data = dict(flow=flow.pk, intents='greet', accurancy=75, bots='53c800c6-9e90-4ede-b3b8-723596bd8b2e')
             response = self.client.post(trigger_url, post_data)
 
@@ -1038,12 +1038,12 @@ class TriggerTest(TembaTest):
 
             post_data = dict(flow=flow.pk, intents='restaurant_search,goodbye,greet', accurancy=65, bots='53c800c6-9e90-4ede-b3b8-723596bd8b2e')
             response = self.client.post(update_url, post_data)
-            self.assertEquals(response.status_code, 302)
+            self.assertEqual(response.status_code, 302)
 
             with patch('requests.get') as mock_get:
                 mock_get.side_effect = Exception('Fail request')
                 Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "i want chinese food")
-                self.assertEquals(0, flow.runs.all().count())
+                self.assertEqual(0, flow.runs.all().count())
 
             with patch('requests.get') as mock_get:
                 mock_return_bothub = """
@@ -1079,16 +1079,16 @@ class TriggerTest(TembaTest):
                 """
                 mock_get.return_value = MockResponse(200, mock_return_bothub % '0.35233400021608')
                 Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "i want chinese food")
-                self.assertEquals(0, flow.runs.all().count())
+                self.assertEqual(0, flow.runs.all().count())
 
                 mock_get.return_value = MockResponse(200, mock_return_bothub % '0.6948301844545473')
                 Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "i want chinese food")
-                self.assertEquals(1, flow.runs.all().count())
+                self.assertEqual(1, flow.runs.all().count())
 
         payload = dict(disconnect='true')
         self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
         self.org.refresh_from_db()
-        self.assertEquals(Trigger.get_triggers_of_type(self.org, Trigger.TYPE_NLU_API).first(), None)
+        self.assertEqual(Trigger.get_triggers_of_type(self.org, Trigger.TYPE_NLU_API).first(), None)
 
     def test_update(self):
         self.login(self.admin)
