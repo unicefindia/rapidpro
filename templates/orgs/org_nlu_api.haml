@@ -58,13 +58,6 @@
   :javascript
     $(document).ready(function() {
       select2div('#id_api_name');
-      $('#id_api_name').change(() => {
-        if($('#id_api_name').val() == 'WIT'){
-          $('.field_api_key').eq(1).hide()
-        }else{
-          $('.field_api_key').eq(1).show()
-        }
-      })
     });
     function confirmNluApiDisconnect() {
       removalConfirmation("disconnect-nlu-api", "Disconnect");
