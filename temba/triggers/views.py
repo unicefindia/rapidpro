@@ -22,7 +22,7 @@ from temba.schedules.views import BaseScheduleForm
 from temba.channels.models import Channel
 from temba.flows.models import Flow
 from temba.msgs.views import ModalMixin
-from temba.nlu.models import NLU_API_NAME, NLU_WIT_AI_TAG, NLU_BOTHUB_TAG, NluApiConsumer
+from temba.nlu.models import NLU_API_NAME, NLU_API_KEY, NLU_BOTHUB_TAG, NluApiConsumer
 from temba.utils import analytics, on_transaction_commit
 from temba.utils.views import BaseActionForm
 from .models import Trigger
@@ -374,18 +374,14 @@ class NluApiTriggerForm(GroupBasedTriggerForm):
                               help_text=_("The intents that will trigger this flow"))
     accurancy = forms.IntegerField(max_value=100, min_value=0, required=True, label=_("Accurancy Value"),
                                    help_text=_("The minimum accuracy value between 0 and 100"))
-    bots = forms.ChoiceField((), label=_("Bot Intepreter"), required=True,
-                             help_text=_("Bot that will intepreter words and return intents"))
 
     def __init__(self, user, *args, **kwargs):
         org = user.get_org()
         flows = Flow.objects.filter(org=org, is_active=True, is_archived=False, flow_type__in=[Flow.FLOW])
         super(NluApiTriggerForm, self).__init__(user, flows, *args, **kwargs)
-        if org.nlu_api_config_json().get(NLU_API_NAME, None) == NLU_WIT_AI_TAG:
-            self.fields['bots'] = forms.CharField(max_length=255, required=True, label=_("Wit.AI Application Key"),
-                                                  help_text=_("The key to identify you wit application "))
-        elif org.nlu_api_config_json().get(NLU_API_NAME, None) == NLU_BOTHUB_TAG:
-            self.fields['bots'].choices = self.get_bots_by_org(org)
+        if org.nlu_api_config_json().get(NLU_API_NAME, None) == NLU_BOTHUB_TAG:
+            self.fields['bots'] = forms.ChoiceField(self.get_bots_by_org(org), label=_("Bot Intepreter"), required=True,
+                                                    help_text=_("Bot that will intepreter words and return intents"))
 
     def get_bots_by_org(self, org):
         """
@@ -400,7 +396,7 @@ class NluApiTriggerForm(GroupBasedTriggerForm):
         pass
 
     class Meta(BaseTriggerForm.Meta):
-        fields = ('flow', 'groups', 'bots', 'intents', 'accurancy')
+        fields = ('flow', 'groups', 'intents', 'accurancy')
 
 
 class TriggerActionForm(BaseActionForm):
@@ -472,7 +468,7 @@ class TriggerCRUDL(SmartCRUDL):
             add_section('trigger-catchall', 'triggers.trigger_catchall', 'icon-bubble')
 
             api_name, api_key = self.org.get_nlu_api_credentials()
-            if api_name:
+            if api_name and api_key:
                 add_section('trigger-nlu-api', 'triggers.trigger_nlu_api', 'icon-robot-nlu')
 
     class Update(ModalMixin, OrgMixin, SmartUpdateView):
@@ -964,6 +960,9 @@ class TriggerCRUDL(SmartCRUDL):
             user = self.request.user
             org = user.get_org()
             groups = form.cleaned_data['groups']
+
+            if not form.cleaned_data.get('bots', None):
+                form.cleaned_data['bots'] = org.nlu_api_config_json().get(NLU_API_KEY, None)
 
             nlu_data = {
                 'bot': form.cleaned_data['bots'],

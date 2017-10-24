@@ -470,11 +470,9 @@ class Trigger(SmartModel):
         for trigger in triggers:
 
             nlu_org_config = entity.org.nlu_api_config_json()
-            nlu_api_key = nlu_org_config.get(NLU_API_KEY)
             nlu_data = trigger.get_nlu_data()
-            if not nlu_api_key:
-                nlu_api_key = nlu_data.get('bot')
-            consumer = NluApiConsumer.factory(nlu_org_config.get(NLU_API_NAME), nlu_api_key)
+
+            consumer = NluApiConsumer.factory(nlu_org_config.get(NLU_API_NAME), nlu_org_config.get(NLU_API_KEY))
 
             if consumer:
                 intent, accurancy, entities = consumer.predict(entity, nlu_data.get('bot'))
