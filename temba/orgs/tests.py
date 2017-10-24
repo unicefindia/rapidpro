@@ -1472,8 +1472,8 @@ class OrgTest(TembaTest):
         self.assertNotContains(response, "Missing data: API Key. Please check them again and retry.")
 
         self.org.refresh_from_db()
-        self.assertEqual((NLU_WIT_AI_TAG, None), self.org.get_nlu_api_credentials())
-        self.assertEqual({NLU_API_NAME: NLU_WIT_AI_TAG}, self.org.nlu_api_config_json())
+        self.assertEqual((NLU_WIT_AI_TAG, 'WIT_BOT_KEY'), self.org.get_nlu_api_credentials())
+        self.assertEqual({NLU_API_NAME: NLU_WIT_AI_TAG, NLU_API_KEY: 'WIT_BOT_KEY'}, self.org.nlu_api_config_json())
 
         # Wit.AI test disconnect
         payload.update(disconnect='true')
