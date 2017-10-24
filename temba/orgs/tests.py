@@ -1458,11 +1458,15 @@ class OrgTest(TembaTest):
 
         # Wit.AI test connect
         payload = dict(disconnect='false')
-
         response = self.client.post(nlu_api_url, payload, follow=True)
         self.assertContains(response, "Missing data: API Name. Please check them again and retry.")
-        payload.update(dict(api_name=NLU_WIT_AI_TAG))
 
+        payload.update(dict(api_name=NLU_WIT_AI_TAG))
+        response = self.client.post(nlu_api_url, payload, follow=True)
+        self.assertNotContains(response, "Missing data: API Name. Please check them again and retry.")
+        self.assertContains(response, "Missing data: API Key. Please check them again and retry.")
+
+        payload.update(dict(api_key='WIT_BOT_KEY'))
         response = self.client.post(nlu_api_url, payload, follow=True)
         self.assertNotContains(response, "Missing data: API Name. Please check them again and retry.")
         self.assertNotContains(response, "Missing data: API Key. Please check them again and retry.")

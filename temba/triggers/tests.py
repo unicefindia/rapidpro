@@ -16,7 +16,7 @@ from temba.contacts.models import TEL_SCHEME, Contact
 from temba.flows.models import Flow, ActionSet, FlowRun
 from temba.orgs.models import Language
 from temba.msgs.models import Msg, INCOMING
-from temba.nlu.models import NLU_WIT_AI_TAG, NLU_BOTHUB_TAG
+from temba.nlu.models import NLU_API_KEY, NLU_WIT_AI_TAG, NLU_BOTHUB_TAG
 from temba.schedules.models import Schedule
 from temba.tests import TembaTest, MockResponse
 from .models import Trigger
@@ -951,7 +951,7 @@ class TriggerTest(TembaTest):
         response = self.client.get(trigger_url)
         self.assertEquals(response.status_code, 302)
 
-        payload = dict(api_name=NLU_WIT_AI_TAG, disconnect='false')
+        payload = dict(api_name=NLU_WIT_AI_TAG, api_key='WIT_BOT_KEY', disconnect='false')
         self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
         self.org.refresh_from_db()
 
@@ -959,7 +959,7 @@ class TriggerTest(TembaTest):
         self.assertEquals(response.status_code, 200)
         group = self.create_group("Trigger Group", [])
         post_data = dict(flow=flow.pk, intents='restaurant_search,goodbye,greet',
-                         accurancy=65, bots='BOT_KEY', groups=[group.pk])
+                         accurancy=65, bots=self.org.nlu_api_config_json().get(NLU_API_KEY), groups=[group.pk])
 
         response = self.client.post(trigger_url, post_data)
         trigger = Trigger.objects.all().order_by('-pk')[0]
@@ -971,7 +971,7 @@ class TriggerTest(TembaTest):
         self.assertEquals(get_nlu_data['intents_replaced'], 'restaurant_search, goodbye, greet')
         self.assertEquals(get_nlu_data['intents_splited'], ['restaurant_search', 'goodbye', 'greet'])
         self.assertEquals(get_nlu_data['accurancy'], 65)
-        self.assertEquals(get_nlu_data['bot'], 'BOT_KEY')
+        self.assertEquals(get_nlu_data['bot'], self.org.nlu_api_config_json().get(NLU_API_KEY))
 
         trigger_nlu = Trigger.get_triggers_of_type(self.org, Trigger.TYPE_NLU_API).first()
 
