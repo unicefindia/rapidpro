@@ -21,8 +21,8 @@ class NluTest(TembaTest):
             ]
             """)
             self.assertEqual(consumer.list_bots(),
-                              (('e5bf3007-2629-44e3-8cbe-4505ecb130e2', 'bot-slug-16'),
-                               ('53c800c6-9e90-4ede-b3b8-723596bd8b2e', 'bot-slug-15')))
+                             (('e5bf3007-2629-44e3-8cbe-4505ecb130e2', 'bot-slug-16'),
+                              ('53c800c6-9e90-4ede-b3b8-723596bd8b2e', 'bot-slug-15')))
 
         with patch('requests.get') as mock_get:
             mock_get.return_value = MockResponse(200, """
