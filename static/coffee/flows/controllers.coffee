@@ -1205,6 +1205,9 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
     # trim off any excess groups
     formData.randomBuckets.splice(formData.buckets)
 
+  $scope.loadBotIntents = (bot) ->
+    $scope.botIntents = Flow.loadBotIntents
+
   $scope.hasRules = () ->
     if $scope.formData.rulesetConfig
       return $scope.formData.rulesetConfig.type in Flow.supportsRules
@@ -1297,6 +1300,11 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
       return
 
     categoryName = $scope.getDefaultCategory(rule)
+    if rule._config.type == 'wait_for_intent'
+      $scope.listBotsIntents = Flow.getBotsIntents()
+    else
+      if rule.test.hasOwnProperty('bot')
+        delete rule.test.bot
 
     if rule.category
       rule.category._base = categoryName

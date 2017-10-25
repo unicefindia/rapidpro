@@ -533,6 +533,7 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
         { type: 'true', name: 'Other', verbose_name:'contains anything', operands: 0, filter: NONE }
         { type: 'timeout', name:'Timeout', verbose_name:'timeout', operands:0, filter: NONE }
         { type: 'interrupted_status', name:'Interrupted', verbose_name:'interrupted status', operands:0, filter: NONE }
+        { type: 'wait_for_intent', name:'Wait for intent', verbose_name:'has intent', operands:3, filter: ALL_TEXT }
       ]
 
       @opNames =
@@ -1364,6 +1365,37 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
       @checkTerminal(actionset)
       @markDirty()
 
+    # Nlu services communications
+    getBotsIntents: () ->
+      return [
+          {
+            id: "id1",
+            name: "intent 1",
+            bot_id: "bot_1",
+            bot_name: "bot 1"
+          },
+          {
+            id: "id1",
+            name: "intent 2",
+            bot_id: "bot_1",
+            bot_name: "bot 1"
+          },
+          {
+            id: "id1",
+            name: "intent 1",
+            bot_id: "bot_2",
+            bot_name: "bot 2"
+          }
+          {
+            id: "id2",
+            name: "intent 2",
+            bot_id: "bot_2",
+            bot_name: "bot 2"
+          },
+        ]
+
+    checkUserHasNlu: () ->
+      return true
 ]
 
 ModalController = ($scope, $modalInstance, type, title, body, hideCancel=false, details=null, ok=null) ->
