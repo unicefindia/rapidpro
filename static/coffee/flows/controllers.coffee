@@ -1300,7 +1300,7 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
       return
 
     categoryName = $scope.getDefaultCategory(rule)
-    if rule._config.type == 'wait_for_intent'
+    if rule._config.type == 'has_intent'
       $scope.listBotsIntents = Flow.getBotsIntents()
     else
       if rule.test.hasOwnProperty('bot')
@@ -1358,6 +1358,8 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
       categoryName = "phone"
     else if op == "has_email"
       categoryName = "email"
+    else if op == "has_intent"
+      categoryName = "has_intent"
     else if op == "regex"
       categoryName = "matches"
     else if op == "date"
