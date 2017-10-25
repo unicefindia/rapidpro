@@ -5887,6 +5887,7 @@ class Test(object):
                 DateTest.TYPE: DateTest,
                 HasDistrictTest.TYPE: HasDistrictTest,
                 HasEmailTest.TYPE: HasEmailTest,
+                HasIntentTest.TYPE: HasIntentTest,
                 HasStateTest.TYPE: HasStateTest,
                 HasWardTest.TYPE: HasWardTest,
                 InGroupTest.TYPE: InGroupTest,
@@ -6289,6 +6290,37 @@ class HasEmailTest(Test):
 
         return 0, None
 
+
+class HasIntentTest(Test):
+    """
+    {
+        "op": "has_intent",
+        "test": {
+            "bot": {
+                "bot_id": "bot_1",
+                "bot_name": "bot 1",
+                "id": "id1",
+                "name": "intent 2"
+            }
+        }
+    }
+    """
+    TEST = 'test'
+    TYPE = 'has_intent'
+
+    def __init__(self, test):
+        self.test = test
+
+    @classmethod
+    def from_json(cls, org, json):
+        return cls(json[cls.TEST])
+
+    def as_json(self):
+        json = dict(type=HasIntentTest.TYPE, test=self.test)
+        return json
+
+    def evaluate(self, text, bot_id):
+        pass
 
 class ContainsAnyTest(ContainsTest):
     """
