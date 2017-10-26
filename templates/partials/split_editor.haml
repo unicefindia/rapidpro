@@ -210,7 +210,7 @@
               .operation{ng-if:"rule._config.operands == 0"}
 
               .operation{ng-if:'rule._config.operands == 3 && rule._config.type == "has_intent"'}
-                %select{ng-options:"botIntent as botIntent.name group by botIntent.bot_name for botIntent in listBotsIntents ", ng-model:"rule.test._base.bot", ng-change:"updateCategory(rule)", ng-if:"listBotsIntents", style:"height:34px;width:159px", select2:""}
+                %select{ng-options:"botIntent as botIntent.name group by botIntent.bot_name for botIntent in listBotsIntents", ng-model:"rule.test._base.intent", ng-change:"updateCategory(rule)", ng-if:"listBotsIntents", style:"height:34px;width:159px", select2:""}
 
               .categorize
                 -trans "categorize as"

@@ -1137,6 +1137,9 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
   flow = Flow.flow
 
   $scope.flowFields = Flow.getFlowFields(ruleset)
+  if Flow.checkUserHasNlu()
+    $scope.listBotsIntents = Flow.getBotsIntents()
+
   $scope.fieldIndexOptions = [{text:'first', id: 0},
                               {text:'second', id: 1},
                               {text:'third', id: 2},
@@ -1259,8 +1262,14 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
         if rule._config.localized
           rule.test._base = rule.test.test[Flow.flow.base_language]
         else
-          rule.test =
-            _base: rule.test.test
+          if rule.test.type == 'has_intent'
+            index = $scope.listBotsIntents.map((x) -> return x.uuid ).indexOf(rule.test.test.intent.uuid)
+            rule.test =
+              _base: rule.test.test
+            rule.test._base.intent = $scope.listBotsIntents[index]
+          else
+            rule.test =
+              _base: rule.test.test
 
     # and finally the category name
     rule.category._base = rule.category[Flow.flow.base_language]
@@ -1300,11 +1309,9 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
       return
 
     categoryName = $scope.getDefaultCategory(rule)
-    if rule._config.type == 'has_intent'
-      $scope.listBotsIntents = Flow.getBotsIntents()
-    else
-      if rule.test.hasOwnProperty('bot')
-        delete rule.test.bot
+    if not rule._config.type == 'has_intent'
+      if rule.test.hasOwnProperty('intent')
+        delete rule.test.intent
 
     if rule.category
       rule.category._base = categoryName
@@ -1332,7 +1339,7 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
   $scope.getDefaultCategory = (rule) ->
 
     categoryName = ''
-    if rule.test and rule.test._base
+    if rule.test and rule.test._base and rule._config.type != 'has_intent'
       categoryName = rule.test._base.strip()
 
     op = rule._config.type

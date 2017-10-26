@@ -1369,25 +1369,25 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
     getBotsIntents: () ->
       return [
           {
-            id: "id1",
+            uuid: "intent uuid1",
             name: "intent 1",
             bot_id: "bot_1",
             bot_name: "bot 1"
           },
           {
-            id: "id1",
+            uuid: "intent uuid2",
             name: "intent 2",
             bot_id: "bot_1",
             bot_name: "bot 1"
           },
           {
-            id: "id1",
+            uuid: "intent uuid3",
             name: "intent 1",
             bot_id: "bot_2",
             bot_name: "bot 2"
           }
           {
-            id: "id2",
+            uuid: "intent uuid4",
             name: "intent 2",
             bot_id: "bot_2",
             bot_name: "bot 2"
