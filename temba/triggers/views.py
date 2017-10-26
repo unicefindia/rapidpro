@@ -387,8 +387,7 @@ class NluApiTriggerForm(GroupBasedTriggerForm):
         """
         This function will return all data bots of specific token organization (NLU Api Token)
         """
-        api_name, api_key = org.get_nlu_api_credentials()
-        consumer = NluApiConsumer.factory(api_name, api_key)
+        consumer = NluApiConsumer.factory(org)
 
         return consumer.list_bots()
 

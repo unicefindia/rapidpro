@@ -139,8 +139,9 @@ class NluApiConsumer(object):
     This consumer will check which api will be called.
     """
     @staticmethod
-    def factory(nlu_type, auth):
-        if nlu_type == NLU_BOTHUB_TAG:
-            return BothubConsumer(auth, nlu_type)
-        if nlu_type == NLU_WIT_AI_TAG:
-            return WitConsumer(auth, nlu_type)
+    def factory(org):
+        api_name, api_key = org.get_nlu_api_credentials()
+        if api_name == NLU_BOTHUB_TAG:
+            return BothubConsumer(api_key, api_name)
+        if api_name == NLU_WIT_AI_TAG:
+            return WitConsumer(api_key, api_name)

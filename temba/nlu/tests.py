@@ -3,13 +3,19 @@ from __future__ import unicode_literals
 from mock import patch
 from temba.tests import TembaTest, MockResponse
 from .models import NluApiConsumer, NLU_BOTHUB_TAG, NLU_WIT_AI_TAG
+from django.core.urlresolvers import reverse
 
 import six
 
 
 class NluTest(TembaTest):
     def test_nlu_api_bothub_consumer(self):
-        consumer = NluApiConsumer.factory(NLU_BOTHUB_TAG, 'BOT_KEY_STRING')
+        self.login(self.admin)
+        payload = dict(api_name=NLU_BOTHUB_TAG, api_key='BOT_KEY_STRING', disconnect='false')
+        response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
+        self.org.refresh_from_db()
+
+        consumer = NluApiConsumer.factory(self.org)
         self.assertEqual(six.text_type(consumer), 'BotHub Consumer')
         self.assertEqual(consumer.get_headers(), {'Authorization': 'Bearer BOT_KEY_STRING'})
 
@@ -80,7 +86,12 @@ class NluTest(TembaTest):
             self.assertEqual(entities.get('location'), 'center')
 
     def test_nlu_api_wit_consumer(self):
-        consumer = NluApiConsumer.factory(NLU_WIT_AI_TAG, 'SPECIFIC_BOT_KEY')
+        self.login(self.admin)
+        payload = dict(api_name=NLU_WIT_AI_TAG, api_key='BOT_KEY_STRING', disconnect='false')
+        response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
+        self.org.refresh_from_db()
+
+        consumer = NluApiConsumer.factory(self.org)
         self.assertEqual(six.text_type(consumer), 'Wit.AI Consumer')
 
         with patch('requests.get') as mock_get:
