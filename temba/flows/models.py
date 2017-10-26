@@ -36,6 +36,7 @@ from temba.channels.models import Channel, ChannelSession
 from temba.locations.models import AdminBoundary
 from temba.msgs.models import Broadcast, Msg, FLOW, INBOX, INCOMING, QUEUED, FAILED, INITIALIZING, HANDLED, Label
 from temba.msgs.models import PENDING, DELIVERED, USSD as MSG_TYPE_USSD, OUTGOING
+from temba.nlu.models import NluApiConsumer
 from temba.orgs.models import Org, Language, UNREAD_FLOW_MSGS, CURRENT_EXPORT_VERSION
 from temba.utils import get_datetime_format, str_to_datetime, datetime_to_str, analytics, json_date_to_datetime
 from temba.utils import chunk_list, on_transaction_commit
@@ -6319,8 +6320,9 @@ class HasIntentTest(Test):
         json = dict(type=HasIntentTest.TYPE, test=self.test)
         return json
 
-    def evaluate(self, text, bot_id):
-        pass
+    def evaluate(self, run, sms, context, text):
+        consuemr = NluApiConsumer.factory(sms.org)
+
 
 class ContainsAnyTest(ContainsTest):
     """
