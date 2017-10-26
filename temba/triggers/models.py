@@ -15,7 +15,7 @@ from temba.contacts.models import Contact, ContactGroup
 from temba.flows.models import Flow, FlowRun, FlowStart
 from temba.ivr.models import IVRCall
 from temba.msgs.models import Msg
-from temba.nlu.models import NluApiConsumer, NLU_API_NAME, NLU_API_KEY
+from temba.nlu.models import NluApiConsumer
 from temba.orgs.models import Org
 from temba_expressions.utils import tokenize
 
@@ -468,11 +468,9 @@ class Trigger(SmartModel):
         triggers = Trigger.get_triggers_of_type(entity.org, trigger_type)
 
         for trigger in triggers:
-
-            nlu_org_config = entity.org.nlu_api_config_json()
             nlu_data = trigger.get_nlu_data()
 
-            consumer = NluApiConsumer.factory(nlu_org_config.get(NLU_API_NAME), nlu_org_config.get(NLU_API_KEY))
+            consumer = NluApiConsumer.factory(entity.org)
 
             if consumer:
                 intent, accurancy, entities = consumer.predict(entity, nlu_data.get('bot'))

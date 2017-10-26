@@ -3,15 +3,21 @@ from __future__ import unicode_literals
 from mock import patch
 from temba.tests import TembaTest, MockResponse
 from .models import NluApiConsumer, NLU_BOTHUB_TAG, NLU_WIT_AI_TAG
+from django.core.urlresolvers import reverse
 
 import six
 
 
 class NluTest(TembaTest):
     def test_nlu_api_bothub_consumer(self):
-        consumer = NluApiConsumer.factory(NLU_BOTHUB_TAG, 'BOT_KEY_STRING')
-        self.assertEquals(six.text_type(consumer), 'BotHub Consumer')
-        self.assertEquals(consumer.get_headers(), {'Authorization': 'Bearer BOT_KEY_STRING'})
+        self.login(self.admin)
+        payload = dict(api_name=NLU_BOTHUB_TAG, api_key='BOT_KEY_STRING', disconnect='false')
+        self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
+        self.org.refresh_from_db()
+
+        consumer = NluApiConsumer.factory(self.org)
+        self.assertEqual(six.text_type(consumer), 'BotHub Consumer')
+        self.assertEqual(consumer.get_headers(), {'Authorization': 'Bearer BOT_KEY_STRING'})
 
         with patch('requests.get') as mock_get:
             mock_get.return_value = MockResponse(200, """
@@ -20,9 +26,9 @@ class NluTest(TembaTest):
                 {"slug": "bot-slug-15", "uuid": "53c800c6-9e90-4ede-b3b8-723596bd8b2e"}
             ]
             """)
-            self.assertEquals(consumer.list_bots(),
-                              (('e5bf3007-2629-44e3-8cbe-4505ecb130e2', 'bot-slug-16'),
-                               ('53c800c6-9e90-4ede-b3b8-723596bd8b2e', 'bot-slug-15')))
+            self.assertEqual(consumer.list_bots(),
+                             (('e5bf3007-2629-44e3-8cbe-4505ecb130e2', 'bot-slug-16'),
+                              ('53c800c6-9e90-4ede-b3b8-723596bd8b2e', 'bot-slug-15')))
 
         with patch('requests.get') as mock_get:
             mock_get.return_value = MockResponse(200, """
@@ -73,15 +79,20 @@ class NluTest(TembaTest):
             """)
             intent, accurancy, entities = consumer.predict("I am looking for a Mexican restaurant in the center of town",
                                                            "e5bf3007-2629-44e3-8cbe-4505ecb130e2")
-            self.assertEquals(intent, 'restaurant_search')
-            self.assertEquals(accurancy, 0.731929302865667)
-            self.assertEquals(type(entities), dict)
-            self.assertEquals(entities.get('cuisine'), 'Mexican')
-            self.assertEquals(entities.get('location'), 'center')
+            self.assertEqual(intent, 'restaurant_search')
+            self.assertEqual(accurancy, 0.731929302865667)
+            self.assertEqual(type(entities), dict)
+            self.assertEqual(entities.get('cuisine'), 'Mexican')
+            self.assertEqual(entities.get('location'), 'center')
 
     def test_nlu_api_wit_consumer(self):
-        consumer = NluApiConsumer.factory(NLU_WIT_AI_TAG, 'SPECIFIC_BOT_KEY')
-        self.assertEquals(six.text_type(consumer), 'Wit.AI Consumer')
+        self.login(self.admin)
+        payload = dict(api_name=NLU_WIT_AI_TAG, api_key='BOT_KEY_STRING', disconnect='false')
+        self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
+        self.org.refresh_from_db()
+
+        consumer = NluApiConsumer.factory(self.org)
+        self.assertEqual(six.text_type(consumer), 'Wit.AI Consumer')
 
         with patch('requests.get') as mock_get:
             mock_get.return_value = MockResponse(200, """
@@ -114,8 +125,8 @@ class NluTest(TembaTest):
             """)
             intent, accurancy, entities = consumer.predict("Eu quero um exame com um ortopedista",
                                                            None)
-            self.assertEquals(intent, 'atendimento')
-            self.assertEquals(accurancy, 0.89605580369856)
-            self.assertEquals(type(entities), dict)
-            self.assertEquals(entities.get('exames'), 'exame')
-            self.assertEquals(entities.get('medico'), 'ortopedista')
+            self.assertEqual(intent, 'atendimento')
+            self.assertEqual(accurancy, 0.89605580369856)
+            self.assertEqual(type(entities), dict)
+            self.assertEqual(entities.get('exames'), 'exame')
+            self.assertEqual(entities.get('medico'), 'ortopedista')

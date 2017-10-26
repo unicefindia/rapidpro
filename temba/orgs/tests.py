@@ -1411,8 +1411,8 @@ class OrgTest(TembaTest):
 
         self.org.refresh_from_db()
 
-        self.assertEquals((None, None), self.org.get_nlu_api_credentials())
-        self.assertEquals(dict(), self.org.nlu_api_config_json())
+        self.assertEqual((None, None), self.org.get_nlu_api_credentials())
+        self.assertEqual(dict(), self.org.nlu_api_config_json())
 
         nlu_api_url = reverse('orgs.org_nlu_api')
         response = self.client.get(nlu_api_url)
@@ -1436,21 +1436,21 @@ class OrgTest(TembaTest):
         self.assertNotContains(response, "Missing data: API Key. Please check them again and retry.")
 
         self.org.refresh_from_db()
-        self.assertEquals((NLU_BOTHUB_TAG, '673d4c5f35be4d1e9e76eaafe56704c1'), self.org.get_nlu_api_credentials())
-        self.assertEquals({NLU_API_NAME: NLU_BOTHUB_TAG, NLU_API_KEY: '673d4c5f35be4d1e9e76eaafe56704c1'}, self.org.nlu_api_config_json())
+        self.assertEqual((NLU_BOTHUB_TAG, '673d4c5f35be4d1e9e76eaafe56704c1'), self.org.get_nlu_api_credentials())
+        self.assertEqual({NLU_API_NAME: NLU_BOTHUB_TAG, NLU_API_KEY: '673d4c5f35be4d1e9e76eaafe56704c1'}, self.org.nlu_api_config_json())
 
         # Bothub.it test disconnect
         payload.update(disconnect='true')
         response = self.client.post(nlu_api_url, payload, follow=True)
         self.org.refresh_from_db()
-        self.assertEquals((None, None), self.org.get_nlu_api_credentials())
+        self.assertEqual((None, None), self.org.get_nlu_api_credentials())
 
     def test_wit_ai_nlu_api(self):
         self.login(self.admin)
 
         self.org.refresh_from_db()
-        self.assertEquals((None, None), self.org.get_nlu_api_credentials())
-        self.assertEquals(dict(), self.org.nlu_api_config_json())
+        self.assertEqual((None, None), self.org.get_nlu_api_credentials())
+        self.assertEqual(dict(), self.org.nlu_api_config_json())
 
         nlu_api_url = reverse('orgs.org_nlu_api')
         response = self.client.get(nlu_api_url)
@@ -1472,14 +1472,14 @@ class OrgTest(TembaTest):
         self.assertNotContains(response, "Missing data: API Key. Please check them again and retry.")
 
         self.org.refresh_from_db()
-        self.assertEquals((NLU_WIT_AI_TAG, None), self.org.get_nlu_api_credentials())
-        self.assertEquals({NLU_API_NAME: NLU_WIT_AI_TAG}, self.org.nlu_api_config_json())
+        self.assertEqual((NLU_WIT_AI_TAG, 'WIT_BOT_KEY'), self.org.get_nlu_api_credentials())
+        self.assertEqual({NLU_API_NAME: NLU_WIT_AI_TAG, NLU_API_KEY: 'WIT_BOT_KEY'}, self.org.nlu_api_config_json())
 
         # Wit.AI test disconnect
         payload.update(disconnect='true')
         response = self.client.post(nlu_api_url, payload, follow=True)
         self.org.refresh_from_db()
-        self.assertEquals((None, None), self.org.get_nlu_api_credentials())
+        self.assertEqual((None, None), self.org.get_nlu_api_credentials())
 
     def test_resthooks(self):
         # no hitting this page without auth
