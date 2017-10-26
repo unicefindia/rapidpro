@@ -12,7 +12,7 @@ class NluTest(TembaTest):
     def test_nlu_api_bothub_consumer(self):
         self.login(self.admin)
         payload = dict(api_name=NLU_BOTHUB_TAG, api_key='BOT_KEY_STRING', disconnect='false')
-        response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
+        self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
         self.org.refresh_from_db()
 
         consumer = NluApiConsumer.factory(self.org)
@@ -88,7 +88,7 @@ class NluTest(TembaTest):
     def test_nlu_api_wit_consumer(self):
         self.login(self.admin)
         payload = dict(api_name=NLU_WIT_AI_TAG, api_key='BOT_KEY_STRING', disconnect='false')
-        response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
+        self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
         self.org.refresh_from_db()
 
         consumer = NluApiConsumer.factory(self.org)

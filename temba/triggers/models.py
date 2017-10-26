@@ -15,7 +15,7 @@ from temba.contacts.models import Contact, ContactGroup
 from temba.flows.models import Flow, FlowRun, FlowStart
 from temba.ivr.models import IVRCall
 from temba.msgs.models import Msg
-from temba.nlu.models import NluApiConsumer, NLU_API_NAME, NLU_API_KEY
+from temba.nlu.models import NluApiConsumer
 from temba.orgs.models import Org
 from temba_expressions.utils import tokenize
 
