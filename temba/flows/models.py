@@ -872,11 +872,18 @@ class Flow(TembaModel):
 
         # wrapper around our value dict, lets us do a nice representation of both @flow.foo and @flow.foo.text
         def value_wrapper(val):
-            return dict(__default__=six.text_type(val['rule_value']),
+            value = dict(__default__=six.text_type(val['rule_value']),
                         text=val['text'],
                         time=datetime_to_str(val['time'], format=date_format, tz=self.org.timezone),
                         category=self.get_localized_text(val['category'], contact),
                         value=six.text_type(val['rule_value']))
+            intent = json.loads(val['rule_value']).get('intent', None)
+            if intent:
+                value['intent'] = intent
+            entities = json.loads(val['rule_value']).get('entities', None)
+            if entities:
+                value['entities'] = entities
+            return value
 
         flow_context = {}
         values = []
@@ -6322,15 +6329,15 @@ class HasIntentTest(Test):
 
     def evaluate(self, run, sms, context, text):
         intent = self.as_json().get('test', None).get('intent', None)
-        if intent:
-            consumer = NluApiConsumer.factory(sms.org)
+        consumer = NluApiConsumer.factory(sms.org)
+        if consumer and intent:
             intent_returned, accurancy, entities = consumer.predict(text, intent.get('bot_id', None))
             if intent_returned == intent.get('name', None):
                 response = {
                     'intent': intent_returned,
                     'entities': entities
                 }
-                return 1, response
+                return 1, json.dumps(response)
         return 0, None
 
 
