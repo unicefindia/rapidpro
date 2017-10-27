@@ -873,10 +873,11 @@ class Flow(TembaModel):
         # wrapper around our value dict, lets us do a nice representation of both @flow.foo and @flow.foo.text
         def value_wrapper(val):
             value = dict(__default__=six.text_type(val['rule_value']),
-                        text=val['text'],
-                        time=datetime_to_str(val['time'], format=date_format, tz=self.org.timezone),
-                        category=self.get_localized_text(val['category'], contact),
-                        value=six.text_type(val['rule_value']))
+                         text=val['text'],
+                         time=datetime_to_str(val['time'], format=date_format, tz=self.org.timezone),
+                         category=self.get_localized_text(val['category'], contact),
+                         value=six.text_type(val['rule_value']))
+
             intent = json.loads(val['rule_value']).get('intent', None)
             if intent:
                 value['intent'] = intent
