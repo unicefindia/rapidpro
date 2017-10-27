@@ -124,6 +124,7 @@ class WitConsumer(BaseConsumer):
             intents = entities.get('intent', None)
             if intents:
                 return intents[0].get('value'), intents[0].get('confidence'), self.get_entities(entities)
+        return None, 0, None
 
     def get_entities(self, entities):
         ent = dict()
