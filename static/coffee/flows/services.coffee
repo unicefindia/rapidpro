@@ -1369,29 +1369,23 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
     getBotsIntents: () ->
       return [
           {
-            uuid: "intent uuid1",
-            name: "intent 1",
-            bot_id: "bot_1",
-            bot_name: "bot 1"
-          },
-          {
             uuid: "intent uuid2",
-            name: "intent 2",
-            bot_id: "bot_1",
-            bot_name: "bot 1"
+            name: "info_services",
+            bot_id: "SLC25J33QHREG5OR23WNOQQ6KWRQH3VY",
+            bot_name: "wit/service informations"
           },
           {
             uuid: "intent uuid3",
-            name: "intent 1",
-            bot_id: "bot_2",
-            bot_name: "bot 2"
-          }
+            name: "info_price",
+            bot_id: "SLC25J33QHREG5OR23WNOQQ6KWRQH3VY",
+            bot_name: "wit/prices"
+          },
           {
             uuid: "intent uuid4",
-            name: "intent 2",
-            bot_id: "bot_2",
-            bot_name: "bot 2"
-          },
+            name: "cancellation",
+            bot_id: "SLC25J33QHREG5OR23WNOQQ6KWRQH3VY",
+            bot_name: "wit/cancel"
+          }
         ]
 
     checkUserHasNlu: () ->
