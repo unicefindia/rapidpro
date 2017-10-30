@@ -1138,7 +1138,7 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
 
   $scope.flowFields = Flow.getFlowFields(ruleset)
   if Flow.checkUserHasNlu()
-    $scope.listBotsIntents = Flow.getBotsIntents()
+    $scope.listBotsIntents = Flow.botsIntents
 
   $scope.fieldIndexOptions = [{text:'first', id: 0},
                               {text:'second', id: 1},
@@ -1208,9 +1208,6 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
     # trim off any excess groups
     formData.randomBuckets.splice(formData.buckets)
 
-  $scope.loadBotIntents = (bot) ->
-    $scope.botIntents = Flow.loadBotIntents
-
   $scope.hasRules = () ->
     if $scope.formData.rulesetConfig
       return $scope.formData.rulesetConfig.type in Flow.supportsRules
@@ -1263,7 +1260,7 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
           rule.test._base = rule.test.test[Flow.flow.base_language]
         else
           if rule.test.type == 'has_intent'
-            index = $scope.listBotsIntents.map((x) -> return x.uuid ).indexOf(rule.test.test.intent.uuid)
+            index = $scope.listBotsIntents.map((x) -> return x.name ).indexOf(rule.test.test.intent.name)
             rule.test =
               _base: rule.test.test
             rule.test._base.intent = $scope.listBotsIntents[index]

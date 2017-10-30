@@ -533,7 +533,6 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
         { type: 'true', name: 'Other', verbose_name:'contains anything', operands: 0, filter: NONE }
         { type: 'timeout', name:'Timeout', verbose_name:'timeout', operands:0, filter: NONE }
         { type: 'interrupted_status', name:'Interrupted', verbose_name:'interrupted status', operands:0, filter: NONE }
-        { type: 'has_intent', name:'Has intent', verbose_name:'has an intent', operands:3, filter: ALL_TEXT }
       ]
 
       @opNames =
@@ -1011,6 +1010,12 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
       Revisions.updateRevisions(flowId)
 
       Flow = @
+
+      $http.get('/flow/nlu/').success (data) ->
+        if data.intents
+          Flow.operators.push({ type: 'has_intent', name:'Has intent', verbose_name:'has an intent', operands:3, filter: ALL_TEXT })
+          Flow.botsIntents = data.intents
+
       $http.get('/flow/json/' + flowId + '/').success (data) ->
 
         flow = data.flow
@@ -1364,29 +1369,6 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
 
       @checkTerminal(actionset)
       @markDirty()
-
-    # Nlu services communications
-    getBotsIntents: () ->
-      return [
-          {
-            uuid: "intent uuid2",
-            name: "info_services",
-            bot_id: "SLC25J33QHREG5OR23WNOQQ6KWRQH3VY",
-            bot_name: "wit/service informations"
-          },
-          {
-            uuid: "intent uuid3",
-            name: "info_price",
-            bot_id: "SLC25J33QHREG5OR23WNOQQ6KWRQH3VY",
-            bot_name: "wit/prices"
-          },
-          {
-            uuid: "intent uuid4",
-            name: "cancellation",
-            bot_id: "SLC25J33QHREG5OR23WNOQQ6KWRQH3VY",
-            bot_name: "wit/cancel"
-          }
-        ]
 
     checkUserHasNlu: () ->
       return true
