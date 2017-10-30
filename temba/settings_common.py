@@ -447,6 +447,7 @@ PERMISSIONS = {
                    'export_results',
                    'filter',
                    'json',
+                   'nlu',
                    'read',
                    'recent_messages',
                    'results',

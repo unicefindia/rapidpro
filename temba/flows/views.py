@@ -37,6 +37,7 @@ from temba.flows.models import Flow, FlowRun, FlowRevision, FlowRunCount
 from temba.flows.tasks import export_flow_results_task
 from temba.locations.models import AdminBoundary
 from temba.msgs.models import Msg, PENDING
+from temba.nlu.models import NluApiConsumer
 from temba.triggers.models import Trigger
 from temba.utils import analytics, percentage, datetime_to_str, on_transaction_commit
 from temba.utils.expressions import get_function_listing
@@ -372,7 +373,7 @@ class FlowRunCRUDL(SmartCRUDL):
 
 class FlowCRUDL(SmartCRUDL):
     actions = ('list', 'archived', 'copy', 'create', 'delete', 'update', 'simulate', 'export_results',
-               'upload_action_recording', 'read', 'editor', 'results', 'run_table', 'json', 'broadcast', 'activity',
+               'upload_action_recording', 'read', 'editor', 'results', 'run_table', 'json', 'nlu', 'broadcast', 'activity',
                'activity_chart', 'filter', 'campaign', 'completion', 'revisions', 'recent_messages',
                'upload_media_action')
 
@@ -837,6 +838,14 @@ class FlowCRUDL(SmartCRUDL):
             qs = qs.filter(labels__in=self.get_label_filter(), is_archived=False).distinct()
 
             return qs
+
+    class Nlu(OrgPermsMixin, SmartListView):
+        def render_to_response(self, context, **response_kwargs):
+            consumer = NluApiConsumer.factory(self.request.user.get_org())
+            if consumer:
+                return JsonResponse(dict(intents=consumer.get_intents()))
+            else:
+                return JsonResponse(dict(intents=None))
 
     class Completion(OrgPermsMixin, SmartListView):
         def render_to_response(self, context, **response_kwargs):

@@ -50,6 +50,11 @@ class BaseConsumer(object):
         Abstract funciton to get entities
         """
 
+    def get_intents(self):
+        """
+        Abstract function to get bot intents
+        """
+
     def _request(self, base_url, data=None, headers=None):
         try:
             return requests.get(base_url, params=data, headers=headers)
@@ -133,6 +138,22 @@ class WitConsumer(BaseConsumer):
             ent.update({entity[0]: entity[1][0].get('value')})
         return ent
 
+    def get_intents(self):
+        intents_url = self.BASE_URL + 'entities/intent'
+        response = self._request(intents_url, data=None, headers=self.get_headers())
+        if not response:
+            return None
+        response_intents = json.loads(response.content)
+        intents = response_intents.get('values', None)
+        intent_list = []
+        if intents:
+            for intent in intents:
+                intent_list.append({
+                    'name': intent.get('value', None),
+                    'bot_id': self.auth,
+                    'bot_name': self.name
+                })
+            return intent_list
 
 class NluApiConsumer(object):
     """
