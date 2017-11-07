@@ -388,7 +388,7 @@ class NluApiTriggerForm(GroupBasedTriggerForm):
         This function will return all data bots of specific token organization (NLU Api Token)
         """
         consumer = NluApiConsumer.factory(org)
-        return consumer.list_bots()
+        return tuple(consumer.list_bots())
 
     def clean(self):
         pass

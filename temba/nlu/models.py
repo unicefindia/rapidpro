@@ -95,14 +95,30 @@ class BothubConsumer(BaseConsumer):
         list_bots = list()
         for bot in tuple_bots:
             list_bots.append((bot.get('uuid'), bot.get('slug')))
-
-        return tuple(list_bots)
+        return list_bots
 
     def get_entities(self, entities):
         ent = dict()
         for entity in entities:
             ent.update({entity.get('entity'): entity.get('value')})
         return ent
+
+    def get_intents(self):
+        list_intents_url = self.BASE_URL + '/bots/informations'
+        bots = self.list_bots()
+        print(bots)
+        intents_list = []
+        for bot in bots:
+            data = bot[0]
+            response = self._request(list_intents_url, data=data, headers=self.get_headers())
+            intents = json.loads(response.content)
+            for intent in intents:
+                intents_list.append({
+                    'name': intent,
+                    'bot_id': bot[0],
+                    'bot_name': bot[1]
+                })
+        return intents_list
 
 
 class WitConsumer(BaseConsumer):
