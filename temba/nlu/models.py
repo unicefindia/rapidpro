@@ -106,12 +106,13 @@ class BothubConsumer(BaseConsumer):
     def get_intents(self):
         list_intents_url = self.BASE_URL + '/bots/informations'
         bots = self.list_bots()
-        print(bots)
         intents_list = []
         for bot in bots:
-            data = bot[0]
+            data = {
+                'uuid': bot[0]
+            }
             response = self._request(list_intents_url, data=data, headers=self.get_headers())
-            intents = json.loads(response.content)
+            intents = json.loads(response.content).get('intents')
             for intent in intents:
                 intents_list.append({
                     'name': intent,
