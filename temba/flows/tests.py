@@ -27,6 +27,7 @@ from temba.ivr.models import IVRCall
 from temba.ussd.models import USSDSession
 from temba.locations.models import AdminBoundary, BoundaryAlias
 from temba.msgs.models import Broadcast, Label, Msg, INCOMING, PENDING, FLOW, WIRED, OUTGOING, FAILED
+from temba.nlu.models import NLU_BOTHUB_TAG, NLU_WIT_AI_TAG
 from temba.orgs.models import Language, CURRENT_EXPORT_VERSION
 from temba.tests import TembaTest, MockResponse, FlowFileTest
 from temba.triggers.models import Trigger
@@ -4836,6 +4837,85 @@ class FlowsTest(FlowFileTest):
 
         response = self.client.get(recent_messages_url + blue_params)
         assert_recent(response, ["blue"])
+
+    def test_nlu_bothub(self):
+        self.login(self.admin)
+
+        self.org.refresh_from_db()
+
+        response = self.client.get(reverse('flows.flow_nlu'))
+        self.assertEqual(response.get('intents'), None)
+
+        payload = dict(api_name=NLU_BOTHUB_TAG, api_key='673d4c5f35be4d1e9e76eaafe56704c1', disconnect='false')
+        response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
+
+        self.org.refresh_from_db()
+        self.assertEqual((NLU_BOTHUB_TAG, '673d4c5f35be4d1e9e76eaafe56704c1'), self.org.get_nlu_api_credentials())
+
+        with patch('temba.nlu.models.BothubConsumer.list_bots') as mock_list_bots:
+            mock_list_bots.return_value = [("706e1467-fa55-4562-b909-e09caca9b198", "bot-slug-92")]
+            with patch('requests.get') as mock_get_intents:
+                mock_get_intents.return_value = MockResponse(200, '{"private": false, "intents": [ "greet", "affirm", "restaurant_search", "goodbye"], "slug": "bot-slug-92"}')
+                response = self.client.get(reverse('flows.flow_nlu'))
+                data = {
+                    "intents": [
+                        {"bot_name": "bot-slug-92", "name": "greet", "bot_id": "706e1467-fa55-4562-b909-e09caca9b198"},
+                        {"bot_name": "bot-slug-92", "name": "affirm", "bot_id": "706e1467-fa55-4562-b909-e09caca9b198"},
+                        {"bot_name": "bot-slug-92", "name": "restaurant_search", "bot_id": "706e1467-fa55-4562-b909-e09caca9b198"},
+                        {"bot_name": "bot-slug-92", "name": "goodbye", "bot_id": "706e1467-fa55-4562-b909-e09caca9b198"}
+                    ]
+                }
+                self.assertEqual(response.json(), data)
+
+    def test_nlu_wit(self):
+        self.login(self.admin)
+
+        self.org.refresh_from_db()
+
+        response = self.client.get(reverse('flows.flow_nlu'))
+        self.assertEqual(response.get('intents'), None)
+
+        payload = dict(api_name=NLU_WIT_AI_TAG, api_key='WIT_BOT_KEY', disconnect='false')
+        response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
+
+        self.org.refresh_from_db()
+        self.assertEqual((NLU_WIT_AI_TAG, 'WIT_BOT_KEY'), self.org.get_nlu_api_credentials())
+
+        with patch('requests.get') as mock_get_intents:
+            data = """
+            {
+                "builtin" : false,
+                "doc" : "User-defined entity",
+                "id" : "571979db-f6ac-4820-bc28-a1e0787b98fc",
+                "lang" : "en",
+                "lookups" : [ "keywords", "free-text" ],
+                "name" : "intent",
+                "values" : [ {
+                    "value" : "greet",
+                    "expressions" : [ "greet" ]
+                }, {
+                    "value" : "affirm",
+                    "expressions" : [ "affirm" ]
+                }, {
+                    "value" : "restaurant_search",
+                    "expressions" : [ "restaurant_search" ]
+                }, {
+                    "value" : "goodbye",
+                    "expressions" : [ "goodbye" ]
+                } ]
+            }
+            """
+            mock_get_intents.return_value = MockResponse(200, data)
+            response = self.client.get(reverse('flows.flow_nlu'))
+            data = {
+                "intents": [
+                    {"bot_name": "Wit.AI Consumer", "name": "greet", "bot_id": "WIT_BOT_KEY"},
+                    {"bot_name": "Wit.AI Consumer", "name": "affirm", "bot_id": "WIT_BOT_KEY"},
+                    {"bot_name": "Wit.AI Consumer", "name": "restaurant_search", "bot_id": "WIT_BOT_KEY"},
+                    {"bot_name": "Wit.AI Consumer", "name": "goodbye", "bot_id": "WIT_BOT_KEY"}
+                ]
+            }
+            self.assertEqual(response.json(), data)
 
     def test_completion(self):
 

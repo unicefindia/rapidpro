@@ -172,6 +172,7 @@ class WitConsumer(BaseConsumer):
                 })
             return intent_list
 
+
 class NluApiConsumer(object):
     """
     Nlu API consumer
