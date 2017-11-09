@@ -160,19 +160,18 @@ class WitConsumer(BaseConsumer):
     def get_intents(self):
         intents_url = self.BASE_URL + 'entities/intent'
         response = self._request(intents_url, data=None, headers=self.get_headers())
-        if not response:
-            return None
-        response_intents = json.loads(response.content)
-        intents = response_intents.get('values', None)
-        intent_list = []
-        if intents:
-            for intent in intents:
-                intent_list.append({
-                    'name': intent.get('value', None),
-                    'bot_id': self.auth,
-                    'bot_name': self.name
-                })
-            return intent_list
+        if response:
+            response_intents = json.loads(response.content)
+            intents = response_intents.get('values', None)
+            intent_list = []
+            if intents:
+                for intent in intents:
+                    intent_list.append({
+                        'name': intent.get('value', None),
+                        'bot_id': self.auth,
+                        'bot_name': self.name
+                    })
+                return intent_list
 
 
 class NluApiConsumer(object):

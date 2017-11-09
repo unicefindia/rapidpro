@@ -132,3 +132,17 @@ class NluTest(TembaTest):
             self.assertEqual(type(entities), dict)
             self.assertEqual(entities.get('exames'), 'exame')
             self.assertEqual(entities.get('medico'), 'ortopedista')
+
+        with patch('requests.get') as mock_get:
+            mock_get.return_value = MockResponse(200, """
+            {
+                "msg_id": "0j1thaYcCT2iJX7dB",
+                "_text": "Test none intents or entities",
+                "entities": {}
+            }
+            """)
+            intent, accurancy, entities = consumer.predict("Test none intents or entities",
+                                                           None)
+            self.assertEqual(intent, None)
+            self.assertEqual(accurancy, 0)
+            self.assertEqual(entities, None)
