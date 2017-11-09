@@ -1793,6 +1793,7 @@ class FlowTest(TembaTest):
         sms.text = "I want food"
         sms.org.connect_nlu_api(self.user, NLU_BOTHUB_TAG, 'API_KEY')
         test = HasIntentTest(test=bot)
+        self.assertEqual(type(HasIntentTest.from_json(self.org, test.as_json())), HasIntentTest)
         with patch('temba.nlu.models.BothubConsumer._request') as mock_get:
             mock_get.return_value = MockResponse(200, """
             {
@@ -1841,6 +1842,38 @@ class FlowTest(TembaTest):
             }
             """)
             self.assertTest(True, '{"entities": {"cuisine": "Mexican", "location": "center"}, "intent": "restaurant_search"}', test)
+            mock_get.return_value = MockResponse(200, """
+            {
+                "bot_uuid": "e5bf3007-2629-44e3-8cbe-4505ecb130e2",
+                "answer": {
+                    "text": "Goodbye",
+                    "entities": [],
+                    "intent_ranking": [
+                        {
+                            "confidence": 0.731929302865667,
+                            "name": "goodbye"
+                        },
+                        {
+                            "confidence": 0.14645046976303883,
+                            "name": "restaurant_search"
+                        },
+                        {
+                            "confidence": 0.07863577626166107,
+                            "name": "greet"
+                        },
+                        {
+                            "confidence": 0.04298445110963322,
+                            "name": "affirm"
+                        }
+                    ],
+                    "intent": {
+                        "confidence": 0.731929302865667,
+                        "name": "goodbye"
+                    }
+                }
+            }
+            """)
+            self.assertTest(False, None, test)
 
         def perform_date_tests(sms, dayfirst):
             """
@@ -5521,6 +5554,59 @@ class FlowsTest(FlowFileTest):
     def test_decimal_substitution(self):
         flow = self.get_flow('pick_a_number')
         self.assertEqual("You picked 3!", self.send_message(flow, "3"))
+
+    def test_has_intent(self):
+        flow = self.get_flow('rules_has_intent')
+        with patch('requests.get') as mock_get:
+            mock_get.return_value = MockResponse(200, """
+                        {
+                            "bot_uuid": "e5bf3007-2629-44e3-8cbe-4505ecb130e2",
+                            "answer": {
+                                "text": "I am looking for a Mexican restaurant in the center of town",
+                                "entities": [
+                                    {
+                                        "start": 19,
+                                        "value": "Mexican",
+                                        "end": 26,
+                                        "entity": "cuisine",
+                                        "extractor": "ner_crf"
+                                    },
+                                    {
+                                        "start": 45,
+                                        "value": "center",
+                                        "end": 51,
+                                        "entity": "location",
+                                        "extractor": "ner_crf"
+                                    }
+                                ],
+                                "intent_ranking": [
+                                    {
+                                        "confidence": 0.731929302865667,
+                                        "name": "restaurant_search"
+                                    },
+                                    {
+                                        "confidence": 0.14645046976303883,
+                                        "name": "goodbye"
+                                    },
+                                    {
+                                        "confidence": 0.07863577626166107,
+                                        "name": "greet"
+                                    },
+                                    {
+                                        "confidence": 0.04298445110963322,
+                                        "name": "affirm"
+                                    }
+                                ],
+                                "intent": {
+                                    "confidence": 0.731929302865667,
+                                    "name": "restaurant_search"
+                                }
+                            }
+                        }
+                        """)
+
+            self.org.connect_nlu_api(self.user, NLU_BOTHUB_TAG, 'API_KEY')
+            self.assertEqual("restaurant_search", self.send_message(flow, "I am looking for a Mexican restaurant in the center of town"))
 
     def test_rules_first(self):
         flow = self.get_flow('rules_first')
