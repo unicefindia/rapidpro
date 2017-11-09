@@ -41,7 +41,7 @@ from .models import ActionSet, RuleSet, Action, Rule, FlowRunCount, FlowPathCoun
 from .models import FlowPathRecentMessage, Test, TrueTest, FalseTest, AndTest, OrTest, PhoneTest, NumberTest
 from .models import EqTest, LtTest, LteTest, GtTest, GteTest, BetweenTest, ContainsOnlyPhraseTest, ContainsPhraseTest
 from .models import DateEqualTest, DateAfterTest, DateBeforeTest, DateTest
-from .models import StartsWithTest, ContainsTest, ContainsAnyTest, RegexTest, NotEmptyTest
+from .models import StartsWithTest, ContainsTest, ContainsAnyTest, RegexTest, NotEmptyTest, HasIntentTest
 from .models import HasStateTest, HasDistrictTest, HasWardTest, HasEmailTest
 from .models import SendAction, AddLabelAction, AddToGroupAction, ReplyAction, SaveToContactAction, SetLanguageAction, SetChannelAction
 from .models import EmailAction, StartFlowAction, TriggerFlowAction, DeleteFromGroupAction, WebhookAction, ActionLog
@@ -1787,6 +1787,60 @@ class FlowTest(TembaTest):
         self.assertTest(False, None, NotEmptyTest())
         sms.text = "it works "
         self.assertTest(True, "it works", NotEmptyTest())
+
+        # has intents test
+        bot = {u'intent': {u'bot_name': u'bot-slug-92', u'name': u'restaurant_search', u'bot_id': u'706e1467-fa55-4562-b909-e09caca9b198'}}
+        sms.text = "I want food"
+        sms.org.connect_nlu_api(self.user, NLU_BOTHUB_TAG, 'API_KEY')
+        test = HasIntentTest(test=bot)
+        with patch('temba.nlu.models.BothubConsumer._request') as mock_get:
+            mock_get.return_value = MockResponse(200, """
+            {
+                "bot_uuid": "e5bf3007-2629-44e3-8cbe-4505ecb130e2",
+                "answer": {
+                    "text": "I am looking for a Mexican restaurant in the center of town",
+                    "entities": [
+                        {
+                            "start": 19,
+                            "value": "Mexican",
+                            "end": 26,
+                            "entity": "cuisine",
+                            "extractor": "ner_crf"
+                        },
+                        {
+                            "start": 45,
+                            "value": "center",
+                            "end": 51,
+                            "entity": "location",
+                            "extractor": "ner_crf"
+                        }
+                    ],
+                    "intent_ranking": [
+                        {
+                            "confidence": 0.731929302865667,
+                            "name": "restaurant_search"
+                        },
+                        {
+                            "confidence": 0.14645046976303883,
+                            "name": "goodbye"
+                        },
+                        {
+                            "confidence": 0.07863577626166107,
+                            "name": "greet"
+                        },
+                        {
+                            "confidence": 0.04298445110963322,
+                            "name": "affirm"
+                        }
+                    ],
+                    "intent": {
+                        "confidence": 0.731929302865667,
+                        "name": "restaurant_search"
+                    }
+                }
+            }
+            """)
+            self.assertTest(True, '{"entities": {"cuisine": "Mexican", "location": "center"}, "intent": "restaurant_search"}', test)
 
         def perform_date_tests(sms, dayfirst):
             """

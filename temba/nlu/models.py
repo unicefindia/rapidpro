@@ -91,11 +91,12 @@ class BothubConsumer(BaseConsumer):
     def list_bots(self):
         list_bots_url = self.BASE_URL + 'auth'
         response = self._request(list_bots_url, headers=self.get_headers())
-        tuple_bots = tuple(json.loads(response.content))
-        list_bots = list()
-        for bot in tuple_bots:
-            list_bots.append((bot.get('uuid'), bot.get('slug')))
-        return list_bots
+        if response:
+            tuple_bots = tuple(json.loads(response.content))
+            list_bots = list()
+            for bot in tuple_bots:
+                list_bots.append((bot.get('uuid'), bot.get('slug')))
+            return list_bots
 
     def get_entities(self, entities):
         ent = dict()
@@ -106,20 +107,21 @@ class BothubConsumer(BaseConsumer):
     def get_intents(self):
         list_intents_url = self.BASE_URL + '/bots/informations'
         bots = self.list_bots()
-        intents_list = []
-        for bot in bots:
-            data = {
-                'uuid': bot[0]
-            }
-            response = self._request(list_intents_url, data=data, headers=self.get_headers())
-            intents = json.loads(response.content).get('intents')
-            for intent in intents:
-                intents_list.append({
-                    'name': intent,
-                    'bot_id': bot[0],
-                    'bot_name': bot[1]
-                })
-        return intents_list
+        if bots:
+            intents_list = []
+            for bot in bots:
+                data = {
+                    'uuid': bot[0]
+                }
+                response = self._request(list_intents_url, data=data, headers=self.get_headers())
+                intents = json.loads(response.content).get('intents')
+                for intent in intents:
+                    intents_list.append({
+                        'name': intent,
+                        'bot_id': bot[0],
+                        'bot_name': bot[1]
+                    })
+            return intents_list
 
 
 class WitConsumer(BaseConsumer):
