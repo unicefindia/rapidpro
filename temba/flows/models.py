@@ -918,9 +918,9 @@ class Flow(TembaModel):
                          time=datetime_to_str(val['time'], format=date_format, tz=self.org.timezone),
                          category=self.get_localized_text(val['category'], contact),
                          value=six.text_type(val['rule_value']))
-            if hasattr(val['rule_value'], 'intent'):
+            if 'intent' in val['rule_value']:
                 value['intent'] = json.loads(val['rule_value']).get('intent', None)
-            if hasattr(val['rule_value'], 'entities'):
+            if 'entities' in val['rule_value']:
                 value['entities'] = json.loads(val['rule_value']).get('entities', None)
             return value
 
