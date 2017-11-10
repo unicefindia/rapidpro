@@ -68,12 +68,12 @@ class BothubConsumer(BaseConsumer):
     Bothub consumer
     This consumer will call Bothub api.
     """
-    BASE_URL = 'http://api.bothub.it/'
+    BASE_URL = 'http://api.bothub.it'
 
     def predict(self, msg, bot):
-        predict_url = self.BASE_URL + 'bots'
+        predict_url = '%s/v1/message' % self.BASE_URL
         data = {
-            'uuid': bot,
+            'bot': bot,
             'msg': msg
         }
         response = self._request(predict_url, data=data, headers=self.get_headers())
@@ -89,10 +89,10 @@ class BothubConsumer(BaseConsumer):
         return intent.get('name', None), intent.get('confidence', None), entities
 
     def list_bots(self):
-        list_bots_url = self.BASE_URL + 'auth'
+        list_bots_url = '%s/v1/auth' % self.BASE_URL
         response = self._request(list_bots_url, headers=self.get_headers())
         if response:
-            tuple_bots = tuple(json.loads(response.content))
+            tuple_bots = tuple(json.loads(response.content).get('bots'))
             list_bots = list()
             for bot in tuple_bots:
                 list_bots.append((bot.get('uuid'), bot.get('slug')))
@@ -105,7 +105,7 @@ class BothubConsumer(BaseConsumer):
         return ent
 
     def get_intents(self):
-        list_intents_url = self.BASE_URL + '/bots/informations'
+        list_intents_url = '%s/v1/bots' % self.BASE_URL
         bots = self.list_bots()
         if bots:
             intents_list = []
