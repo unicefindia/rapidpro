@@ -22,10 +22,12 @@ class NluTest(TembaTest):
 
         with patch('requests.get') as mock_get:
             mock_get.return_value = MockResponse(200, """
-            [
-                {"slug": "bot-slug-16", "uuid": "e5bf3007-2629-44e3-8cbe-4505ecb130e2"},
-                {"slug": "bot-slug-15", "uuid": "53c800c6-9e90-4ede-b3b8-723596bd8b2e"}
-            ]
+            {
+                "bots": [
+                    {"slug": "bot-slug-16", "uuid": "e5bf3007-2629-44e3-8cbe-4505ecb130e2"},
+                    {"slug": "bot-slug-15", "uuid": "53c800c6-9e90-4ede-b3b8-723596bd8b2e"}
+                ]
+            }
             """)
             self.assertEqual(tuple(consumer.list_bots()),
                              (('e5bf3007-2629-44e3-8cbe-4505ecb130e2', 'bot-slug-16'),
