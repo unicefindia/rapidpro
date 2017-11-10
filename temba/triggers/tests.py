@@ -1021,8 +1021,8 @@ class TriggerTest(TembaTest):
         self.org.refresh_from_db()
 
         with patch('requests.get') as mock_get:
-            mock_get.return_value = MockResponse(200, '[{"slug": "bot-slug-16", "uuid": "3c15fefc-58cc-4fcb-a29f-38dc8b1ef76f"}, \
-                                                        {"slug": "bot-slug-15", "uuid": "53c800c6-9e90-4ede-b3b8-723596bd8b2e"}]')
+            mock_get.return_value = MockResponse(200, '{"bots": [{"slug": "bot-slug-16", "uuid": "3c15fefc-58cc-4fcb-a29f-38dc8b1ef76f"}, \
+                                                        {"slug": "bot-slug-15", "uuid": "53c800c6-9e90-4ede-b3b8-723596bd8b2e"}]}')
 
             response = self.client.get(reverse('triggers.trigger_create'))
             self.assertContains(response, "NLU")
