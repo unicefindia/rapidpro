@@ -140,10 +140,10 @@ class WitConsumer(BaseConsumer):
     Wit AI consumer
     This consumer will call Wit Ai api.
     """
-    BASE_URL = 'https://api.wit.ai/'
+    BASE_URL = 'https://api.wit.ai'
 
     def predict(self, msg, bot):
-        predict_url = self.BASE_URL + 'message'
+        predict_url = '%s/message' % self.BASE_URL
         data = {
             'q': msg,
             'n': 1
@@ -161,6 +161,12 @@ class WitConsumer(BaseConsumer):
                 return intents[0].get('value'), intents[0].get('confidence'), self.get_entities(entities)
         return None, 0, None
 
+    def is_valid_token(self):
+        intents_url = '%s/entities/intent' % self.BASE_URL
+        response = self._request(intents_url, headers=self.get_headers())
+        if response.status_code == 200:
+            return True
+
     def get_entities(self, entities):
         ent = dict()
         entities.pop('intent', None)
@@ -169,7 +175,7 @@ class WitConsumer(BaseConsumer):
         return ent
 
     def get_intents(self):
-        intents_url = self.BASE_URL + 'entities/intent'
+        intents_url = '%s/entities/intent' % self.BASE_URL
         response = self._request(intents_url, data=None, headers=self.get_headers())
         if response:
             response_intents = json.loads(response.content)
@@ -200,6 +206,9 @@ class NluApiConsumer(object):
 
     @staticmethod
     def is_valid_token(api_name, api_key):
+        if api_key[:7] == "Bearer ":
+            api_key = api_key[7:]
+
         if api_name == NLU_BOTHUB_TAG:
             return BothubConsumer(api_key, api_name).is_valid_token()
         if api_name == NLU_WIT_AI_TAG:
