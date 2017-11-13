@@ -2065,10 +2065,10 @@ class OrgCRUDL(SmartCRUDL):
     class NluApi(InferOrgMixin, OrgPermsMixin, SmartUpdateView):
 
         class NluApiForm(forms.ModelForm):
-            api_name = forms.ChoiceField(label=_("API Name"), required=True,
-                                         help_text="Enter your Api Name", choices=NLU_API_CHOICES)
+            api_name = forms.ChoiceField(label=_("NLU Service"), required=True,
+                                         help_text="Select the NLU Service", choices=NLU_API_CHOICES)
             api_key = forms.CharField(max_length=255, label=_("API Key"), required=False,
-                                      help_text="Enter your NLU Api Key")
+                                      help_text="Enter the NLU API Key")
             disconnect = forms.CharField(widget=forms.HiddenInput, max_length=6, required=True)
 
             def clean(self):
@@ -2078,7 +2078,7 @@ class OrgCRUDL(SmartCRUDL):
                     api_key = self.cleaned_data.get('api_key')
 
                     if not api_name:
-                        raise ValidationError(_("Missing data: API Name. "
+                        raise ValidationError(_("Missing data: NLU Service. "
                                                 "Please check them again and retry."))
                     if not api_key:
                         raise ValidationError(_("Missing data: API Key. "

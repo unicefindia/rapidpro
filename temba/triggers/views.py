@@ -369,10 +369,10 @@ class NluApiTriggerForm(GroupBasedTriggerForm):
     """
     For for catch NLU triggers
     """
-    intents = forms.CharField(max_length=255, required=True, label=_("Intents Keyword"),
+    intents = forms.CharField(max_length=255, required=True, label=_("Intents Key"),
                               help_text=_("The intents that will trigger this flow"))
-    accurancy = forms.IntegerField(max_value=100, min_value=0, required=True, label=_("Accurancy Value"),
-                                   help_text=_("The minimum accuracy value between 0 and 100"))
+    accurancy = forms.IntegerField(max_value=100, min_value=0, required=True, label=_("Accuracy rate"),
+                                   help_text=_("The minimum accuracy rate between 0 and 100"))
 
     def __init__(self, user, *args, **kwargs):
         org = user.get_org()

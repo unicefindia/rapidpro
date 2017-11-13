@@ -1425,17 +1425,17 @@ class OrgTest(TembaTest):
         # Without name
         payload = dict(disconnect='false')
         response = self.client.post(nlu_api_url, payload, follow=True)
-        self.assertContains(response, "Missing data: API Name. Please check them again and retry.")
+        self.assertContains(response, "Missing data: NLU Service. Please check them again and retry.")
 
         # Without key
         payload.update(dict(api_name=NLU_BOTHUB_TAG))
         response = self.client.post(nlu_api_url, payload, follow=True)
-        self.assertNotContains(response, "Missing data: API Name. Please check them again and retry.")
+        self.assertNotContains(response, "Missing data: NLU Service. Please check them again and retry.")
         self.assertContains(response, "Missing data: API Key. Please check them again and retry.")
 
         payload.update(dict(api_key='673d4c5f35be4d1e9e76eaafe56704c1'))
         response = self.client.post(nlu_api_url, payload, follow=True)
-        self.assertNotContains(response, "Missing data: API Name. Please check them again and retry.")
+        self.assertNotContains(response, "Missing data: NLU Service. Please check them again and retry.")
         self.assertNotContains(response, "Missing data: API Key. Please check them again and retry.")
 
         self.org.refresh_from_db()
@@ -1462,16 +1462,16 @@ class OrgTest(TembaTest):
         # Wit.AI test connect
         payload = dict(disconnect='false')
         response = self.client.post(nlu_api_url, payload, follow=True)
-        self.assertContains(response, "Missing data: API Name. Please check them again and retry.")
+        self.assertContains(response, "Missing data: NLU Service. Please check them again and retry.")
 
         payload.update(dict(api_name=NLU_WIT_AI_TAG))
         response = self.client.post(nlu_api_url, payload, follow=True)
-        self.assertNotContains(response, "Missing data: API Name. Please check them again and retry.")
+        self.assertNotContains(response, "Missing data: NLU Service. Please check them again and retry.")
         self.assertContains(response, "Missing data: API Key. Please check them again and retry.")
 
         payload.update(dict(api_key='WIT_BOT_KEY'))
         response = self.client.post(nlu_api_url, payload, follow=True)
-        self.assertNotContains(response, "Missing data: API Name. Please check them again and retry.")
+        self.assertNotContains(response, "Missing data: NLU Service. Please check them again and retry.")
         self.assertNotContains(response, "Missing data: API Key. Please check them again and retry.")
 
         self.org.refresh_from_db()

@@ -7,20 +7,19 @@
 -block title-text
   .title-text
     %h1
-      -trans "Natural Language Understand Api"
+      -trans "Natural Language Understand Service"
 
 -block summary
   -if api_name
-    -trans "Connected to NLU Api"
+    -trans "Connected to NLU Service"
     <b>{{api_name}}</b>.
   -else
-    -trans "Connect your NLU Api"
+    -trans "Connect your NLU Service"
 
 -block pre-form
   -if not api_name
     -blocktrans
-      Connecting your Natural Language Understand Api will allow you get entity's and intentions of yours 
-      users messages.
+      Connecting a Natural Language Understanding service allows you to get entities and intents from contacts messages.
     %hr
 
 -block fields
@@ -32,7 +31,7 @@
 -block post-form
   -if api_name
     %p
-      -trans "Your NLU Api is connected"
+      -trans "Your NLU Service is connected"
       %b
        {{api_name}}.
 
@@ -41,17 +40,17 @@
       %a{href:'javascript:confirmNluApiDisconnect();'}
         %b
          -trans "disconnect"
-      -trans "your NLU Api."
+      -trans "your NLU Service."
       %p
        %b
         -trans "Doing so will interrupt flows that use NLU."
 
     .disconnect-nlu-api.hide
       .title
-        -trans "Disconnect NLU Api"
+        -trans "Disconnect NLU Service"
       .body
         -blocktrans
-          This will disconnect your NLU Api. Are you sure you want to proceed?
+          This will disconnect your NLU Service. Are you sure you want to proceed?
     %a#disconnect-nlu-api-form.posterize{href:'{% url "orgs.org_nlu_api" %}?disconnect=true'}
 
 -block extra-script
