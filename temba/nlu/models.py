@@ -55,6 +55,11 @@ class BaseConsumer(object):
         Abstract function to get bot intents
         """
 
+    def is_valid_token(self):
+        """
+        Abstract function to check if token is valid
+        """
+
     def _request(self, base_url, data=None, headers=None):
         try:
             return requests.get(base_url, params=data, headers=headers)
@@ -87,6 +92,12 @@ class BothubConsumer(BaseConsumer):
         entities = self.get_entities(answer.get('entities', None))
 
         return intent.get('name', None), intent.get('confidence', None), entities
+
+    def is_valid_token(self):
+        auth_url = '%s/v1/auth' % self.BASE_URL
+        response = self._request(auth_url, headers=self.get_headers())
+        if response.status_code == 200:
+            return True
 
     def list_bots(self):
         list_bots_url = '%s/v1/auth' % self.BASE_URL
@@ -186,3 +197,10 @@ class NluApiConsumer(object):
             return BothubConsumer(api_key, api_name)
         if api_name == NLU_WIT_AI_TAG:
             return WitConsumer(api_key, api_name)
+
+    @staticmethod
+    def is_valid_token(api_name, api_key):
+        if api_name == NLU_BOTHUB_TAG:
+            return BothubConsumer(api_key, api_name).is_valid_token()
+        if api_name == NLU_WIT_AI_TAG:
+            return WitConsumer(api_key, api_name).is_valid_token()

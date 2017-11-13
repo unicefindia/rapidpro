@@ -39,7 +39,7 @@ from temba.campaigns.models import Campaign
 from temba.channels.models import Channel
 from temba.flows.models import Flow
 from temba.formax import FormaxMixin
-from temba.nlu.models import NLU_API_NAME, NLU_API_KEY, NLU_API_CHOICES
+from temba.nlu.models import NLU_API_NAME, NLU_API_KEY, NLU_API_CHOICES, NluApiConsumer
 from temba.utils import analytics, languages
 from temba.utils.timezones import TimeZoneFormField
 from temba.utils.email import is_valid_address
@@ -2083,6 +2083,10 @@ class OrgCRUDL(SmartCRUDL):
                     if not api_key:
                         raise ValidationError(_("Missing data: API Key. "
                                                 "Please check them again and retry."))
+                    if not NluApiConsumer.is_valid_token(api_name, api_key):
+                        raise ValidationError(_("Invalid data: API Key. "
+                                                "Please check them again and retry."))
+
                 return self.cleaned_data
 
             class Meta:
