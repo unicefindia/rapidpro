@@ -933,6 +933,9 @@ class Org(SmartModel):
             return None, None
 
     def connect_nlu_api(self, user, api_name, api_key):
+        if api_key[:7] == "Bearer ":
+            api_key = api_key[7:]
+
         nlu_api_config = {
             NLU_API_NAME: api_name,
             NLU_API_KEY: api_key
