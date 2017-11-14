@@ -22,7 +22,7 @@ from temba.schedules.views import BaseScheduleForm
 from temba.channels.models import Channel, ChannelType
 from temba.flows.models import Flow
 from temba.msgs.views import ModalMixin
-from temba.nlu.models import NLU_API_NAME, NLU_API_KEY, NLU_BOTHUB_TAG, NluApiConsumer
+from temba.nlu.models import NLU_API_NAME, NluApiConsumer
 from temba.utils import analytics, on_transaction_commit
 from temba.utils.views import BaseActionForm
 from .models import Trigger
@@ -369,8 +369,6 @@ class NluApiTriggerForm(GroupBasedTriggerForm):
     """
     For for catch NLU triggers
     """
-    intents = forms.CharField(max_length=255, required=True, label=_("Intents Key"),
-                              help_text=_("The intents that will trigger this flow"))
     accurancy = forms.IntegerField(max_value=100, min_value=0, required=True, label=_("Accuracy rate"),
                                    help_text=_("The minimum accuracy rate between 0 and 100"))
 
@@ -378,22 +376,27 @@ class NluApiTriggerForm(GroupBasedTriggerForm):
         org = user.get_org()
         flows = Flow.objects.filter(org=org, is_active=True, is_archived=False, flow_type__in=[Flow.FLOW])
         super(NluApiTriggerForm, self).__init__(user, flows, *args, **kwargs)
-        if org.nlu_api_config_json().get(NLU_API_NAME, None) == NLU_BOTHUB_TAG:
-            self.fields['bots'] = forms.ChoiceField(self.get_bots_by_org(org), label=_("Bot Intepreter"), required=True,
-                                                    help_text=_("Bot that will intepreter words and return intents"))
+        self.fields['bots'] = forms.MultipleChoiceField(self.get_bots_by_org(org), label=_("Bot Intepreter"), required=True,
+                                                        help_text=_("Bot that will intepreter words and return intents"))
 
     def get_bots_by_org(self, org):
         """
         This function will return all data bots of specific token organization (NLU Api Token)
         """
         consumer = NluApiConsumer.factory(org)
-        return tuple(consumer.list_bots())
+        intents = consumer.get_intents()
+        intents_dict = dict()
+        for intent in intents:
+            if intent.get('bot_name') not in intents_dict.keys():
+                intents_dict[intent.get('bot_name')] = ()
+            intents_dict[intent.get('bot_name')] += (("%s$%s$%s" % (intent.get('name'), intent.get('bot_id'), intent.get('bot_name')), intent.get('name')),)
+        return tuple(intents_dict.items())
 
     def clean(self):
         pass
 
     class Meta(BaseTriggerForm.Meta):
-        fields = ('flow', 'groups', 'intents', 'accurancy')
+        fields = ('flow', 'groups', 'accurancy')
 
 
 class TriggerActionForm(BaseActionForm):
@@ -492,8 +495,7 @@ class TriggerCRUDL(SmartCRUDL):
             if self.get_object().nlu_data:
                 context['api_name'], api_key = self.get_object().org.get_nlu_api_credentials()
                 nlu_data = self.get_object().get_nlu_data()
-                context['bot'] = json.dumps(nlu_data.get('bot'))
-                context['intents'] = json.dumps(nlu_data.get('intents').split(','))
+                context['intent_bot'] = json.dumps(nlu_data.get('intent_bot'))
                 context['accurancy'] = nlu_data.get('accurancy')
 
             context['user_tz'] = get_current_timezone_name()
@@ -578,8 +580,7 @@ class TriggerCRUDL(SmartCRUDL):
 
             if trigger_type == Trigger.TYPE_NLU_API:
                 nlu_data = {
-                    'bot': form.cleaned_data['bots'],
-                    'intents': form.cleaned_data['intents'],
+                    'intent_bot': form.cleaned_data['bots'],
                     'accurancy': form.cleaned_data['accurancy']
                 }
                 nlu_data = json.dumps(nlu_data)
@@ -958,12 +959,8 @@ class TriggerCRUDL(SmartCRUDL):
             org = user.get_org()
             groups = form.cleaned_data['groups']
 
-            if not form.cleaned_data.get('bots', None):
-                form.cleaned_data['bots'] = org.nlu_api_config_json().get(NLU_API_KEY, None)
-
             nlu_data = {
-                'bot': form.cleaned_data['bots'],
-                'intents': form.cleaned_data['intents'],
+                'intent_bot': form.cleaned_data['bots'],
                 'accurancy': form.cleaned_data['accurancy']
             }
             nlu_data = json.dumps(nlu_data)
