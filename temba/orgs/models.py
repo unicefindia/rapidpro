@@ -37,7 +37,7 @@ from requests import Session
 from smartmin.models import SmartModel
 from temba.bundles import get_brand_bundles, get_bundle_map
 from temba.locations.models import AdminBoundary, BoundaryAlias
-from temba.nlu.models import NLU_API_KEY, NLU_API_NAME
+from temba.nlu.models import NLU_API_KEY, NLU_API_NAME, NluApiConsumer, NLU_WIT_AI_TAG, NLU_BOTHUB_TAG
 from temba.utils import analytics, str_to_datetime, get_datetime_format, datetime_to_str, languages
 from temba.utils.cache import get_cacheable_result, get_cacheable_attr, incrby_existing
 from temba.utils.currencies import currency_for_country
@@ -940,15 +940,32 @@ class Org(SmartModel):
             NLU_API_NAME: api_name,
             NLU_API_KEY: api_key
         }
-
-        self.nlu_api_config = json.dumps(nlu_api_config)
-        self.modified_by = user
-        self.save()
+        self.set_new_nlu_config(user, json.dumps(nlu_api_config))
 
     def remove_nlu_api(self, user):
         from temba.triggers.models import Trigger
         Trigger.remove_all_triggers_nlu(user)
-        self.nlu_api_config = None
+        self.set_new_nlu_config(user, None)
+
+    def add_extra_token(self, user, extra):
+        nlu_api_config = self.nlu_api_config_json()
+        if 'extra_tokens' not in nlu_api_config.keys():
+            nlu_api_config.update({'extra_tokens': []})
+
+        if not any(extra['token'] == extra_saved['token'] for extra_saved in nlu_api_config['extra_tokens']):
+            if nlu_api_config[NLU_API_NAME] == NLU_WIT_AI_TAG:
+                if NluApiConsumer.is_valid_token(nlu_api_config['api_name'], extra.get('token')):
+                    nlu_api_config.get('extra_tokens').append(extra)
+
+            elif nlu_api_config[NLU_API_NAME] == NLU_BOTHUB_TAG:
+                consumer = NluApiConsumer.factory(self)
+                if consumer.is_valid_bot(extra.get('token')):
+                    nlu_api_config.get('extra_tokens').append(extra)
+
+            self.set_new_nlu_config(user, json.dumps(nlu_api_config))
+
+    def set_new_nlu_config(self, user, config):
+        self.nlu_api_config = config
         self.modified_by = user
         self.save()
 

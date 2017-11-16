@@ -23,9 +23,10 @@ class BaseConsumer(object):
     Base consumer
     This is the base for any nlu api consumers.
     """
-    def __init__(self, auth, nlu_type):
+    def __init__(self, auth, nlu_type, extra_tokens=None):
         self.auth = auth
         self.name = "%s Consumer" % dict(NLU_API_CHOICES).get(nlu_type)
+        self.extra_tokens = extra_tokens
 
     def __str__(self):
         return self.name
@@ -40,9 +41,11 @@ class BaseConsumer(object):
         Abstract funciton to predict
         """
 
-    def get_headers(self):
+    def get_headers(self, token=None):
+        if not token:
+            token = self.auth
         return {
-            'Authorization': 'Bearer %s' % self.auth
+            'Authorization': 'Bearer %s' % token
         }
 
     def get_entities(self, entities):
@@ -92,6 +95,15 @@ class BothubConsumer(BaseConsumer):
         entities = self.get_entities(answer.get('entities', None))
 
         return intent.get('name', None), intent.get('confidence', None), entities
+
+    def is_valid_bot(self, bot):
+        list_intents_url = '%s/v1/bots' % self.BASE_URL
+        data = {
+            'uuid': bot
+        }
+        response = self._request(list_intents_url, data=data, headers=self.get_headers())
+        if response.status_code == 200:
+            return True
 
     def is_valid_token(self):
         auth_url = '%s/v1/auth' % self.BASE_URL
@@ -148,7 +160,7 @@ class WitConsumer(BaseConsumer):
             'q': msg,
             'n': 1
         }
-        response = self._request(predict_url, data=data, headers=self.get_headers())
+        response = self._request(predict_url, data=data, headers=self.get_headers(bot))
         if not response:
             return None, 0, None
 
@@ -199,10 +211,11 @@ class NluApiConsumer(object):
     @staticmethod
     def factory(org):
         api_name, api_key = org.get_nlu_api_credentials()
+        extra_tokens = org.nlu_api_config_json().get('extra_tokens', None)
         if api_name == NLU_BOTHUB_TAG:
-            return BothubConsumer(api_key, api_name)
+            return BothubConsumer(api_key, api_name, extra_tokens)
         if api_name == NLU_WIT_AI_TAG:
-            return WitConsumer(api_key, api_name)
+            return WitConsumer(api_key, api_name, extra_tokens)
 
     @staticmethod
     def is_valid_token(api_name, api_key):

@@ -25,6 +25,19 @@
 -block fields
   -if not api_name
     {{ block.super }}
+  -else
+    .hide
+      {{ block.super }}
+    %input{name: 'extra_token_name', type: 'text'}
+    %input{name: 'extra_token', type: 'text'}
+    %input{name: 'token', type: 'hidden', value: 'true'}
+    %button
+      -trans "Add token"
+    %p
+      -trans "Extra tokens:"
+        -for extra in extra_tokens
+          %p
+            {{extra.name}} - {{extra.token}}
 
 -block form-buttons
 

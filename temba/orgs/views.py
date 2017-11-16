@@ -2070,10 +2070,11 @@ class OrgCRUDL(SmartCRUDL):
             api_key = forms.CharField(max_length=255, label=_("API Key"), required=False,
                                       help_text="Enter the NLU API Key")
             disconnect = forms.CharField(widget=forms.HiddenInput, max_length=6, required=True)
+            extra = forms.CharField(widget=forms.HiddenInput, max_length=6, required=False)
 
             def clean(self):
                 super(OrgCRUDL.NluApi.NluApiForm, self).clean()
-                if self.cleaned_data.get('disconnect', 'false') == 'false':
+                if self.cleaned_data.get('disconnect', 'false') == 'false' and self.cleaned_data.get('token', 'false') == 'false':
                     api_name = self.cleaned_data.get('api_name')
                     api_key = self.cleaned_data.get('api_key')
 
@@ -2103,20 +2104,27 @@ class OrgCRUDL(SmartCRUDL):
             config = org.nlu_api_config_json()
             initial['api_name'] = config.get(NLU_API_NAME, '')
             initial['api_key'] = config.get(NLU_API_KEY, '')
+            initial['extra_tokens'] = config.get('extra_tokens', '')
             initial['disconnect'] = 'false'
             return initial
 
         def get_context_data(self, **kwargs):
             context = super(OrgCRUDL.NluApi, self).get_context_data(**kwargs)
             api_name, api_key = self.object.get_nlu_api_credentials()
+            extra_tokens = self.object.nlu_api_config_json().get('extra_tokens', None)
             if api_name:
                 context['api_name'] = dict(NLU_API_CHOICES).get(api_name, None)
+                context['extra_tokens'] = extra_tokens
 
             return context
 
         def post(self, *args, **kwargs):
             user = self.request.user
             org = user.get_org()
+            if self.request.POST.get('token', 'false') == 'true':
+                org.add_extra_token(user, {'name': self.request.POST.get('extra_token_name'), 'token': self.request.POST.get('extra_token')})
+                return HttpResponseRedirect(reverse('orgs.org_nlu_api'))
+
             if self.request.POST.get('disconnect', 'false') == 'true':
                 org.remove_nlu_api(user)
                 return HttpResponseRedirect(reverse('orgs.org_home'))
