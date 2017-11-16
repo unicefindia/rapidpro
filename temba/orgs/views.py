@@ -2071,10 +2071,11 @@ class OrgCRUDL(SmartCRUDL):
                                       help_text="Enter the NLU API Key")
             disconnect = forms.CharField(widget=forms.HiddenInput, max_length=6, required=True)
             extra = forms.CharField(widget=forms.HiddenInput, max_length=6, required=False)
+            delete_extra = forms.CharField(widget=forms.HiddenInput, max_length=6, required=False)
 
             def clean(self):
                 super(OrgCRUDL.NluApi.NluApiForm, self).clean()
-                if self.cleaned_data.get('disconnect', 'false') == 'false' and self.cleaned_data.get('token', 'false') == 'false':
+                if self.cleaned_data.get('disconnect', 'false') == 'false' and self.cleaned_data.get('token', 'false') == 'false' and self.cleaned_data.get('delete_extra', 'false') == 'false':
                     api_name = self.cleaned_data.get('api_name')
                     api_key = self.cleaned_data.get('api_key')
 
@@ -2123,6 +2124,10 @@ class OrgCRUDL(SmartCRUDL):
             org = user.get_org()
             if self.request.POST.get('token', 'false') == 'true':
                 org.add_extra_token(user, {'name': self.request.POST.get('extra_token_name'), 'token': self.request.POST.get('extra_token')})
+                return HttpResponseRedirect(reverse('orgs.org_nlu_api'))
+
+            if self.request.POST.get('delete_extra', 'false') == 'true':
+                org.remove_extra_token(user, self.request.POST.get('token'))
                 return HttpResponseRedirect(reverse('orgs.org_nlu_api'))
 
             if self.request.POST.get('disconnect', 'false') == 'true':
