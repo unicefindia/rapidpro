@@ -1416,7 +1416,7 @@ class OrgTest(TembaTest):
 
         # Bothub.it test connect
         # Without name
-        payload = dict(disconnect='false')
+        payload = dict(disconnect='false', token='false', delete_extra='false')
         response = self.client.post(nlu_api_url, payload, follow=True)
         self.assertContains(response, "Missing data: NLU Service. Please check them again and retry.")
 
@@ -1425,11 +1425,12 @@ class OrgTest(TembaTest):
         response = self.client.post(nlu_api_url, payload, follow=True)
         self.assertNotContains(response, "Missing data: NLU Service. Please check them again and retry.")
         self.assertContains(response, "Missing data: API Key. Please check them again and retry.")
-
-        payload.update(dict(api_key='673d4c5f35be4d1e9e76eaafe56704c1'))
-        response = self.client.post(nlu_api_url, payload, follow=True)
-        self.assertNotContains(response, "Missing data: NLU Service. Please check them again and retry.")
-        self.assertNotContains(response, "Missing data: API Key. Please check them again and retry.")
+        with patch("temba.nlu.models.NluApiConsumer.is_valid_token") as mock:
+            mock.return_value = True
+            payload.update(dict(api_key='673d4c5f35be4d1e9e76eaafe56704c1'))
+            response = self.client.post(nlu_api_url, payload, follow=True)
+            self.assertNotContains(response, "Missing data: NLU Service. Please check them again and retry.")
+            self.assertNotContains(response, "Missing data: API Key. Please check them again and retry.")
 
         self.org.refresh_from_db()
         self.assertEqual((NLU_BOTHUB_TAG, '673d4c5f35be4d1e9e76eaafe56704c1'), self.org.get_nlu_api_credentials())
