@@ -1012,6 +1012,7 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
       Flow = @
 
       $http.get('/flow/nlu/').success (data) ->
+        console.log(data)
         if data.intents
           Flow.operators.push({ type: 'has_intent', name:'Has intent', verbose_name:'has an intent', operands:3, filter: ALL_TEXT })
           Flow.botsIntents = data.intents

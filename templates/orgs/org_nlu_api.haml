@@ -31,10 +31,10 @@
     .control-group.field_extra_token_name
       %label.control-label
         -trans "Bot name"
-      .control-group.field_extra_token_name
-        %input{name: 'extra_token_name', type: 'text'}
-        %p.help-block
-          -trans "You can put any name for this bot"
+    .control-group.field_extra_token_name
+      %input{name: 'extra_token_name', type: 'text'}
+      %p.help-block
+        -trans "You can put any name for this bot"
 
     .control-group.field_extra_token
       %label.control-label
@@ -45,15 +45,17 @@
           -trans "You can get key in your NLU Service website"
 
     %input{name: 'token', type: 'hidden', value: 'true'}
-    %button{class: 'btn'}
+    %button{class: 'btn btn-add-token'}
       -trans "Add token"
-    %p
-      -trans "Extra tokens:"
-        -for extra in extra_tokens
-          %p
-            {{extra.name}} - {{extra.token}} -
-            %a.posterize{href:'{% url "orgs.org_nlu_api" %}?delete_extra=true&token={{extra.token}}'}
-              -trans "Delete"
+
+    -if extra_tokens
+      %p
+        -trans "Extra tokens:"
+          -for extra in extra_tokens
+            %p
+              {{extra.name}} - {{extra.token}} -
+              %a.posterize{href:'{% url "orgs.org_nlu_api" %}?delete_extra=true&token={{extra.token}}'}
+                -trans "Delete"
 
 -block form-buttons
 
@@ -62,17 +64,18 @@
     %p
       -trans "Your NLU Service is connected"
       %b
-       {{api_name}}.
+        {{api_name}}.
 
     %p
       -trans "If you no longer want it connected, you can"
       %a{href:'javascript:confirmNluApiDisconnect();'}
         %b
-         -trans "disconnect"
+          -trans "disconnect"
+
       -trans "your NLU Service."
       %p
-       %b
-        -trans "Doing so will interrupt flows that use NLU."
+        %b
+          -trans "Doing so will interrupt flows that use NLU."
 
     .disconnect-nlu-api.hide
       .title
@@ -89,4 +92,10 @@
     });
     function confirmNluApiDisconnect() {
       removalConfirmation("disconnect-nlu-api", "Disconnect");
+    }
+
+-block extra-style
+  :css
+    .btn-add-token {
+      margin: 0 0 10px 0;
     }
