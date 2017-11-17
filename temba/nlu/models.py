@@ -176,7 +176,6 @@ class WitConsumer(BaseConsumer):
     def is_valid_token(self):
         intents_url = '%s/entities/intent' % self.BASE_URL
         response = self._request(intents_url, headers=self.get_headers())
-        print(response)
         if response.status_code == 200:
             return True
 
