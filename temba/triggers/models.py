@@ -491,19 +491,18 @@ class Trigger(SmartModel):
         nlu_data['intents_splited'] = []
         nlu_data['bots'] = []
 
-        for intent in nlu_data.get('intent_bot'):
-            info_intent = intent.split('$')
-            nlu_data['bots'].append(info_intent[1])
-            nlu_data['intents_replaced'] += "%s - %s, " % (info_intent[0], info_intent[2])
-            nlu_data['intents_splited'].append(info_intent[0])
+        for intent_bot in nlu_data.get('intent_bot'):
+            nlu_data['bots'].append(intent_bot['token'])
+            nlu_data['intents_replaced'] += "%s - %s, " % (intent_bot['intent'], intent_bot['name'])
+            nlu_data['intents_splited'].append(intent_bot['intent'])
 
         nlu_data['bots'] = set(nlu_data['bots'])
         for bot in nlu_data['bots']:
             if bot not in nlu_data.keys():
                 nlu_data[bot] = []
-            for intent in nlu_data.get('intent_bot'):
-                if bot in intent:
-                    nlu_data[bot].append(intent.split('$')[0])
+            for intent_bot in nlu_data.get('intent_bot'):
+                if bot in intent_bot:
+                    nlu_data[bot].append(intent_bot['intent'])
         return nlu_data
 
     @classmethod

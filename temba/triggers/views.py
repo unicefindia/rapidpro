@@ -495,7 +495,10 @@ class TriggerCRUDL(SmartCRUDL):
             if self.get_object().nlu_data:
                 context['api_name'], api_key = self.get_object().org.get_nlu_api_credentials()
                 nlu_data = self.get_object().get_nlu_data()
-                context['intent_bot'] = json.dumps(nlu_data.get('intent_bot'))
+                intent_bots_to_view = []
+                for intent_bot in nlu_data.get('intent_bot'):
+                    intent_bots_to_view.append("%s$%s$%s" % (intent_bot['intent'], intent_bot['token'], intent_bot['name']))
+                context['intent_bot'] = json.dumps(intent_bots_to_view)
                 context['accurancy'] = nlu_data.get('accurancy')
 
             context['user_tz'] = get_current_timezone_name()
@@ -580,7 +583,7 @@ class TriggerCRUDL(SmartCRUDL):
 
             if trigger_type == Trigger.TYPE_NLU_API:
                 nlu_data = {
-                    'intent_bot': form.cleaned_data['bots'],
+                    'intent_bot': TriggerCRUDL.NluApi.convert_intent_bot(form.cleaned_data['bots']),
                     'accurancy': form.cleaned_data['accurancy']
                 }
                 nlu_data = json.dumps(nlu_data)
@@ -954,13 +957,26 @@ class TriggerCRUDL(SmartCRUDL):
                 return HttpResponseRedirect(reverse("triggers.trigger_create"))
             return super(TriggerCRUDL.NluApi, self).pre_process(request, *args, **kwargs)
 
+        @classmethod
+        def convert_intent_bot(cls, bots):
+            intent_bot = []
+            for bot in bots:
+                bot_splited = bot.split('$')
+                bot = {
+                    'intent': bot_splited[0],
+                    'token': bot_splited[1],
+                    'name': bot_splited[2]
+                }
+                intent_bot.append(bot)
+            return intent_bot
+
         def form_valid(self, form):
             user = self.request.user
             org = user.get_org()
             groups = form.cleaned_data['groups']
 
             nlu_data = {
-                'intent_bot': form.cleaned_data['bots'],
+                'intent_bot': self.convert_intent_bot(form.cleaned_data['bots']),
                 'accurancy': form.cleaned_data['accurancy']
             }
             nlu_data = json.dumps(nlu_data)
