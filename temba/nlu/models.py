@@ -176,6 +176,7 @@ class WitConsumer(BaseConsumer):
     def is_valid_token(self):
         intents_url = '%s/entities/intent' % self.BASE_URL
         response = self._request(intents_url, headers=self.get_headers())
+        print(response)
         if response.status_code == 200:
             return True
 
@@ -188,19 +189,20 @@ class WitConsumer(BaseConsumer):
 
     def get_intents(self):
         intents_url = '%s/entities/intent' % self.BASE_URL
-        response = self._request(intents_url, data=None, headers=self.get_headers())
-        if response:
-            response_intents = json.loads(response.content)
-            intents = response_intents.get('values', None)
-            intent_list = []
-            if intents:
-                for intent in intents:
-                    intent_list.append({
-                        'name': intent.get('value', None),
-                        'bot_id': self.auth,
-                        'bot_name': self.name
-                    })
-                return intent_list
+        intent_list = []
+        for extra in self.extra_tokens:
+            response = self._request(intents_url, data=None, headers=self.get_headers(extra['token']))
+            if response:
+                response_intents = json.loads(response.content)
+                intents = response_intents.get('values', None)
+                if intents:
+                    for intent in intents:
+                        intent_list.append({
+                            'name': intent.get('value', None),
+                            'bot_id': extra['token'],
+                            'bot_name': extra['name']
+                        })
+        return intent_list
 
 
 class NluApiConsumer(object):

@@ -39,7 +39,7 @@ from temba.campaigns.models import Campaign
 from temba.channels.models import Channel
 from temba.flows.models import Flow
 from temba.formax import FormaxMixin
-from temba.nlu.models import NLU_API_NAME, NLU_API_KEY, NLU_API_CHOICES, NluApiConsumer
+from temba.nlu.models import NLU_API_NAME, NLU_API_KEY, NLU_API_CHOICES, NluApiConsumer, NLU_WIT_AI_TAG
 from temba.utils import analytics, languages
 from temba.utils.timezones import TimeZoneFormField
 from temba.utils.email import is_valid_address
@@ -2060,14 +2060,18 @@ class OrgCRUDL(SmartCRUDL):
                                          help_text="Select the NLU Service", choices=NLU_API_CHOICES)
             api_key = forms.CharField(max_length=255, label=_("API Key"), required=False,
                                       help_text="Enter the NLU API Key")
+            name_bot = forms.CharField(max_length=255, label=_("Bot Name"), required=False,
+                                       help_text="Enter the bot name")
             disconnect = forms.CharField(widget=forms.HiddenInput, max_length=6, required=True)
             extra = forms.CharField(widget=forms.HiddenInput, max_length=6, required=False)
             delete_extra = forms.CharField(widget=forms.HiddenInput, max_length=6, required=False)
+
             def clean(self):
                 super(OrgCRUDL.NluApi.NluApiForm, self).clean()
                 if self.cleaned_data.get('disconnect', 'false') == 'false' and self.cleaned_data.get('token', 'false') == 'false' and self.cleaned_data.get('delete_extra', 'false') == 'false':
                     api_name = self.cleaned_data.get('api_name')
                     api_key = self.cleaned_data.get('api_key')
+                    name_bot = self.cleaned_data.get('name_bot')
 
                     if not api_name:
                         raise ValidationError(_("Missing data: NLU Service. "
@@ -2078,7 +2082,9 @@ class OrgCRUDL(SmartCRUDL):
                     if not NluApiConsumer.is_valid_token(api_name, api_key):
                         raise ValidationError(_("Invalid data: API Key. "
                                                 "Please check them again and retry."))
-
+                    if not name_bot and api_name == NLU_WIT_AI_TAG:
+                        raise ValidationError(_("Missing data: Bot Name. "
+                                                "Please check them again and retry."))
                 return self.cleaned_data
 
             class Meta:
@@ -2134,8 +2140,11 @@ class OrgCRUDL(SmartCRUDL):
 
             api_name = form.cleaned_data.get('api_name')
             api_key = form.cleaned_data.get('api_key')
+            name_bot = form.cleaned_data.get('name_bot')
 
-            if api_name:
+            if api_name == NLU_WIT_AI_TAG:
+                org.connect_nlu_api(user, api_name, api_key, name_bot)
+            else:
                 org.connect_nlu_api(user, api_name, api_key)
 
             return super(OrgCRUDL.NluApi, self).form_valid(form)
