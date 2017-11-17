@@ -46,7 +46,7 @@ class BaseConsumer(object):
         Abstract funciton to predict
         """
 
-    def get_headers(self, token=None, prefix=None, prefix_separator=None):
+    def get_headers(self, token=None, prefix=None, prefix_separator=None, **kwargs):
         if not token:
             token = self.auth
 
@@ -55,7 +55,11 @@ class BaseConsumer(object):
         else:
             authorization = '%s %s' % (prefix, token) if prefix else '%s' % token
 
-        return http_headers(extra={'Authorization': authorization})
+        extra = {'Authorization': authorization}
+        for item in kwargs.keys():
+            extra[item] = kwargs[item]
+
+        return http_headers(extra=extra)
 
     def get_entities(self, entities):
         """
@@ -152,7 +156,7 @@ class BothubConsumer(BaseConsumer):
             if response.status_code == 200 and response.content:
                 content = json.loads(response.content)
                 intents = content.get('intents', [])
-                intents_list = [dict(name=intent, bot_uuid=bot.get('uuid'), bot_name=bot.get('slug')) for intent in intents]
+                intents_list = [dict(name=intent, bot_id=bot.get('uuid'), bot_name=bot.get('slug')) for intent in intents]
 
         return intents_list
 
@@ -167,22 +171,19 @@ class WitConsumer(BaseConsumer):
 
     def predict(self, msg, bot):
         predict_url = '%s/message' % self.BASE_URL
-        data = {
-            'q': msg,
-            'n': 1
-        }
+        data = dict(q=msg)
+
         response = self._request(predict_url, data=data, headers=self.get_headers(token=bot, prefix=self.AUTH_PREFIX))
-        if not response:
+
+        if response.status_code != 200 and not response.content:
             return None, 0, None
 
         predict = json.loads(response.content)
 
-        entities = predict.get('entities', None)
-        if entities:
-            intents = entities.get('intent', None)
-            if intents:
-                return intents[0].get('value'), intents[0].get('confidence'), self.get_entities(entities)
-        return None, 0, None
+        entities = predict.get('entities', {})
+        entity = entities[0] if entities else None
+
+        return entity.get('value'), entity.get('confidence'), self.get_entities(entities) if entity else None, 0, None
 
     def is_valid_token(self):
         intents_url = '%s/entities' % self.BASE_URL
@@ -190,28 +191,24 @@ class WitConsumer(BaseConsumer):
         return True if response.status_code == 200 else False
 
     def get_entities(self, entities):
-        ent = dict()
+        entity = dict()
         entities.pop('intent', None)
-        for entity in entities.items():
+        for item in entities.items():
             ent.update({entity[0]: entity[1][0].get('value')})
-        return ent
+        return entity
 
     def get_intents(self):
-        intents_url = '%s/entities/intent' % self.BASE_URL
+        intents_url = '%s/entities' % self.BASE_URL
         response = self._request(intents_url, data=None, headers=self.get_headers(prefix='Bearer'))
-        print response.content
-        if response:
-            response_intents = json.loads(response.content)
-            intents = response_intents.get('values', None)
-            intent_list = []
-            if intents:
-                for intent in intents:
-                    intent_list.append({
-                        'name': intent.get('value', None),
-                        'bot_id': self.auth,
-                        'bot_name': self.name
-                    })
-                return intent_list
+
+        intents_list = []
+
+        if response.status_code == 200 and response.content:
+            entities = json.loads(response.content)
+            intents_list = [dict(name=intent.replace('$', '/'), bot_id=self.auth, bot_name=self.name)
+                            for intent in entities]
+
+        return intents_list
 
 
 class NluApiConsumer(object):
