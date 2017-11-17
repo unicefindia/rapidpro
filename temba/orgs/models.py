@@ -956,7 +956,7 @@ class Org(SmartModel):
 
         if not any(extra['token'] == extra_saved['token'] for extra_saved in nlu_api_config['extra_tokens']):
             if nlu_api_config[NLU_API_NAME] == NLU_WIT_AI_TAG:
-                if NluApiConsumer.is_valid_token(nlu_api_config['api_name'], extra.get('token')):
+                if NluApiConsumer.is_valid_token(nlu_api_config[NLU_API_NAME], extra.get('token')):
                     nlu_api_config.get('extra_tokens').append(extra)
 
             elif nlu_api_config[NLU_API_NAME] == NLU_BOTHUB_TAG:
