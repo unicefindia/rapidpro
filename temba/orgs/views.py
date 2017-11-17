@@ -2063,7 +2063,6 @@ class OrgCRUDL(SmartCRUDL):
             disconnect = forms.CharField(widget=forms.HiddenInput, max_length=6, required=True)
             extra = forms.CharField(widget=forms.HiddenInput, max_length=6, required=False)
             delete_extra = forms.CharField(widget=forms.HiddenInput, max_length=6, required=False)
-
             def clean(self):
                 super(OrgCRUDL.NluApi.NluApiForm, self).clean()
                 if self.cleaned_data.get('disconnect', 'false') == 'false' and self.cleaned_data.get('token', 'false') == 'false' and self.cleaned_data.get('delete_extra', 'false') == 'false':
@@ -2098,6 +2097,8 @@ class OrgCRUDL(SmartCRUDL):
             initial['api_key'] = config.get(NLU_API_KEY, '')
             initial['extra_tokens'] = config.get('extra_tokens', '')
             initial['disconnect'] = 'false'
+            initial['delete_extra'] = 'false'
+            initial['token'] = 'false'
             return initial
 
         def get_context_data(self, **kwargs):
