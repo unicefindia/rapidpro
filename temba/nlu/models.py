@@ -120,9 +120,10 @@ class BothubConsumer(BaseConsumer):
             for bot in tuple_bots:
                 list_bots.append((bot.get('uuid'), bot.get('slug')))
 
-        for bot in self.extra_tokens:
-            if self.is_valid_bot(bot.get('token')):
-                list_bots.append((bot.get('token'), bot.get('name')))
+        if self.extra_tokens:
+            for bot in self.extra_tokens:
+                if self.is_valid_bot(bot.get('token')):
+                    list_bots.append((bot.get('token'), bot.get('name')))
 
         return list_bots
 
