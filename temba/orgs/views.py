@@ -2122,11 +2122,11 @@ class OrgCRUDL(SmartCRUDL):
             org = user.get_org()
             if self.request.POST.get('token', 'false') == 'true':
                 org.add_extra_token(user, {'name': self.request.POST.get('extra_token_name'), 'token': self.request.POST.get('extra_token')})
-                return HttpResponseRedirect(reverse('orgs.org_nlu_api'))
+                return HttpResponseRedirect(reverse('orgs.org_home'))
 
             if self.request.POST.get('delete_extra', 'false') == 'true':
                 org.remove_extra_token(user, self.request.POST.get('token'))
-                return HttpResponseRedirect(reverse('orgs.org_nlu_api'))
+                return HttpResponseRedirect(reverse('orgs.org_home'))
 
             if self.request.POST.get('disconnect', 'false') == 'true':
                 org.remove_nlu_api(user)
