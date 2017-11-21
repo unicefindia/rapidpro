@@ -114,12 +114,17 @@ class BothubConsumer(BaseConsumer):
     def list_bots(self):
         list_bots_url = '%s/v1/auth' % self.BASE_URL
         response = self._request(list_bots_url, headers=self.get_headers())
+        list_bots = list()
         if response:
             tuple_bots = tuple(json.loads(response.content).get('bots'))
-            list_bots = list()
             for bot in tuple_bots:
                 list_bots.append((bot.get('uuid'), bot.get('slug')))
-            return list_bots
+
+        for bot in self.extra_tokens:
+            if self.is_valid_bot(bot.get('token')):
+                list_bots.append((bot.get('token'), bot.get('name')))
+
+        return list_bots
 
     def get_entities(self, entities):
         ent = dict()
