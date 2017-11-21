@@ -228,7 +228,7 @@ class NluApiConsumer(object):
         api_name, api_key = org.get_nlu_api_credentials()
         extra_tokens = org.nlu_api_config_json().get('extra_tokens', None)
 
-        assert api_name and api_key, _('Please, provide the follow args: api_name and api_key')
+        assert api_name, _('Please, provide the follow args: api_name and api_key')
 
         if api_name == NLU_BOTHUB_TAG:
             consumer = BothubConsumer(api_key, api_name, extra_tokens)
