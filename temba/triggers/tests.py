@@ -960,7 +960,7 @@ class TriggerTest(TembaTest):
         self.assertEqual(response.status_code, 200)
         group = self.create_group("Trigger Group", [])
         post_data = dict(flow=flow.pk, intents='restaurant_search,goodbye,greet',
-                         accurancy=65, bots=self.org.nlu_api_config_json().get(NLU_API_KEY), groups=[group.pk])
+                         accuracy=65, bots=self.org.nlu_api_config_json().get(NLU_API_KEY), groups=[group.pk])
 
         response = self.client.post(trigger_url, post_data)
         trigger = Trigger.objects.all().order_by('-pk')[0]
@@ -971,7 +971,7 @@ class TriggerTest(TembaTest):
         self.assertEqual(get_nlu_data['intents'], 'restaurant_search,goodbye,greet')
         self.assertEqual(get_nlu_data['intents_replaced'], 'restaurant_search, goodbye, greet')
         self.assertEqual(get_nlu_data['intents_splited'], ['restaurant_search', 'goodbye', 'greet'])
-        self.assertEqual(get_nlu_data['accurancy'], 65)
+        self.assertEqual(get_nlu_data['accuracy'], 65)
         self.assertEqual(get_nlu_data['bot'], self.org.nlu_api_config_json().get(NLU_API_KEY))
 
         trigger_nlu = Trigger.get_triggers_of_type(self.org, Trigger.TYPE_NLU_API).first()
@@ -1029,7 +1029,7 @@ class TriggerTest(TembaTest):
 
             response = self.client.get(trigger_url)
             self.assertEqual(response.status_code, 200)
-            post_data = dict(flow=flow.pk, intents='greet', accurancy=75, bots='53c800c6-9e90-4ede-b3b8-723596bd8b2e')
+            post_data = dict(flow=flow.pk, intents='greet', accuracy=75, bots='53c800c6-9e90-4ede-b3b8-723596bd8b2e')
             response = self.client.post(trigger_url, post_data)
 
             trigger_nlu = Trigger.get_triggers_of_type(self.org, Trigger.TYPE_NLU_API).first()
@@ -1037,7 +1037,7 @@ class TriggerTest(TembaTest):
             update_url = reverse('triggers.trigger_update', args=[trigger_nlu.pk])
             response = self.client.get(update_url)
 
-            post_data = dict(flow=flow.pk, intents='restaurant_search,goodbye,greet', accurancy=65, bots='53c800c6-9e90-4ede-b3b8-723596bd8b2e')
+            post_data = dict(flow=flow.pk, intents='restaurant_search,goodbye,greet', accuracy=65, bots='53c800c6-9e90-4ede-b3b8-723596bd8b2e')
             response = self.client.post(update_url, post_data)
             self.assertEqual(response.status_code, 302)
 

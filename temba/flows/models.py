@@ -6723,7 +6723,7 @@ class HasIntentTest(Test):
         intent = self.as_json().get('test', None).get('intent', None)
         consumer = NluApiConsumer.factory(sms.org)
         if consumer and intent:
-            intent_returned, accurancy, entities = consumer.predict(text, intent.get('bot_id', None))
+            intent_returned, accuracy, entities = consumer.predict(text, intent.get('bot_id', None))
 
             if intent_returned == intent.get('name'):
                 response = dict(intent=intent_returned, entities=entities)

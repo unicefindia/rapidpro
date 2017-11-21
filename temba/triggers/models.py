@@ -46,7 +46,7 @@ class Trigger(SmartModel):
                      (TYPE_NEW_CONVERSATION, _("New Conversation Trigger")),
                      (TYPE_USSD_PULL, _("USSD Pull Session Trigger")),
                      (TYPE_REFERRAL, _("Referral Trigger")),
-                     (TYPE_NLU_API, _("NLU Api Trigger")))
+                     (TYPE_NLU_API, _("NLU API Trigger")))
 
     KEYWORD_MAX_LEN = 16
 
@@ -95,8 +95,8 @@ class Trigger(SmartModel):
     channel = models.ForeignKey(Channel, verbose_name=_("Channel"), null=True, related_name='triggers',
                                 help_text=_("The associated channel"))
 
-    nlu_data = models.TextField(null=True, verbose_name=_("Nlu Data"),
-                                help_text=_('Intents, accurancy, bots, somethings that will be used to nlu'))
+    nlu_data = models.TextField(null=True, verbose_name=_("NLU Data"),
+                                help_text=_('Intents, accuracy, bots, somethings that will be used to nlu'))
 
     @classmethod
     def create(cls, org, user, trigger_type, flow, channel=None, **kwargs):
@@ -471,39 +471,46 @@ class Trigger(SmartModel):
             nlu_data = trigger.get_nlu_data()
 
             consumer = NluApiConsumer.factory(entity.org)
-            if consumer:
+            if consumer and nlu_data and nlu_data.get('bots', None):
                 for bot in nlu_data['bots']:
-                    intent, accurancy, entities = consumer.predict(entity, bot)
-                    accurancy = accurancy * 100
-                    if intent in nlu_data[bot] and accurancy >= nlu_data.get('accurancy'):
-                        extra = {
-                            'intent': intent,
-                            'entities': entities
-                        }
-                        trigger.flow.start([], [entity.contact], start_msg=entity, restart_participants=True, extra=extra)
+                    intent, accuracy, entities = consumer.predict(entity, bot)
+                    accuracy *= 100
+                    if intent in nlu_data[bot] and accuracy >= nlu_data.get('accuracy'):
+                        extra = dict(intent=intent, entities=entities)
+                        trigger.flow.start([], [entity.contact], start_msg=entity, restart_participants=True,
+                                           extra=extra)
                         return True
 
         return False
 
     def get_nlu_data(self):
-        nlu_data = json.loads(self.nlu_data)
-        nlu_data['intents_replaced'] = ""
-        nlu_data['intents_splited'] = []
-        nlu_data['bots'] = []
+        nlu_data = json.loads(self.nlu_data) if self.nlu_data else {}
+        intents = nlu_data.get('intent_bot', [])
 
-        for intent in nlu_data.get('intent_bot'):
+        for counter, intent in enumerate(intents):
+
+            if 'intents_replaced' not in nlu_data:
+                nlu_data['intents_replaced'] = ''
+
+            if 'intents_splited' not in nlu_data:
+                nlu_data['intents_splited'] = []
+
+            if 'bots' not in nlu_data:
+                nlu_data['bots'] = []
+
             info_intent = intent.split('$')
             nlu_data['bots'].append(info_intent[1])
-            nlu_data['intents_replaced'] += "%s - %s, " % (info_intent[0], info_intent[2])
+
+            sufix = ', ' if counter + 1 < len(intents) else ''
+
+            nlu_data['intents_replaced'] += "%s - %s%s" % (info_intent[0], info_intent[2], sufix)
             nlu_data['intents_splited'].append(info_intent[0])
 
-        nlu_data['bots'] = set(nlu_data['bots'])
-        for bot in nlu_data['bots']:
-            if bot not in nlu_data.keys():
-                nlu_data[bot] = []
-            for intent in nlu_data.get('intent_bot'):
-                if bot in intent:
-                    nlu_data[bot].append(intent.split('$')[0])
+        if 'bots' in nlu_data:
+            nlu_data['bots'] = set(nlu_data['bots'])
+            for key in nlu_data['bots']:
+                nlu_data[key] = [intent.split('$')[0] for intent in nlu_data.get('intent_bot') if key in intent]
+
         return nlu_data
 
     @classmethod

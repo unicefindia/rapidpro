@@ -2074,7 +2074,7 @@ class OrgCRUDL(SmartCRUDL):
                     api_key = self.cleaned_data.get('api_key')
 
                     if not api_name or not api_name or not NluApiConsumer.is_valid_token(api_name, api_key):
-                        raise ValidationError(_("Missing data. Please check if all required data was sent."))
+                        raise ValidationError(_("Incorrect data. Please check if all fields that were sent."))
 
                 return self.cleaned_data
 

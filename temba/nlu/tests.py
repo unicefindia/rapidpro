@@ -80,10 +80,10 @@ class NluTest(TembaTest):
                 }
             }
             """)
-            intent, accurancy, entities = consumer.predict("I am looking for a Mexican restaurant in the center of town",
+            intent, accuracy, entities = consumer.predict("I am looking for a Mexican restaurant in the center of town",
                                                            "e5bf3007-2629-44e3-8cbe-4505ecb130e2")
             self.assertEqual(intent, 'restaurant_search')
-            self.assertEqual(accurancy, 0.731929302865667)
+            self.assertEqual(accuracy, 0.731929302865667)
             self.assertEqual(type(entities), dict)
             self.assertEqual(entities.get('cuisine'), 'Mexican')
             self.assertEqual(entities.get('location'), 'center')
@@ -127,10 +127,10 @@ class NluTest(TembaTest):
                 }
             }
             """)
-            intent, accurancy, entities = consumer.predict("Eu quero um exame com um ortopedista",
+            intent, accuracy, entities = consumer.predict("Eu quero um exame com um ortopedista",
                                                            None)
             self.assertEqual(intent, 'atendimento')
-            self.assertEqual(accurancy, 0.89605580369856)
+            self.assertEqual(accuracy, 0.89605580369856)
             self.assertEqual(type(entities), dict)
             self.assertEqual(entities.get('exames'), 'exame')
             self.assertEqual(entities.get('medico'), 'ortopedista')
@@ -143,8 +143,8 @@ class NluTest(TembaTest):
                 "entities": {}
             }
             """)
-            intent, accurancy, entities = consumer.predict("Test none intents or entities",
+            intent, accuracy, entities = consumer.predict("Test none intents or entities",
                                                            None)
             self.assertEqual(intent, None)
-            self.assertEqual(accurancy, 0)
+            self.assertEqual(accuracy, 0)
             self.assertEqual(entities, None)

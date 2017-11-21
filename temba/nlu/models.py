@@ -93,42 +93,37 @@ class BothubConsumer(BaseConsumer):
     This consumer will call Bothub api.
     """
     BASE_URL = 'http://api.bothub.it'
+    AUTH_PREFIX = 'Bearer'
 
     def predict(self, msg, bot):
         predict_url = '%s/v1/message' % self.BASE_URL
-        data = {
-            'bot': bot,
-            'msg': msg
-        }
-        response = self._request(predict_url, data=data, headers=self.get_headers())
+        data = dict(bot=bot, msg=msg)
+        response = self._request(predict_url, data=data, headers=self.get_headers(prefix=self.AUTH_PREFIX))
         if not response:
             return None, 0, None
 
         predict = json.loads(response.content)
 
-        answer = predict.get('answer', None)
-        intent = answer.get('intent', None)
-        entities = self.get_entities(answer.get('entities', None))
+        answer = predict.get('answer', {})
+        intent = answer.get('intent', {})
+        entities = self.get_entities(answer.get('entities')) if 'entities' in answer else None
 
         return intent.get('name', None), intent.get('confidence', None), entities
 
     def is_valid_bot(self, bot):
         list_intents_url = '%s/v1/bots' % self.BASE_URL
-        data = {
-            'uuid': bot
-        }
-        response = self._request(list_intents_url, data=data, headers=self.get_headers())
-        if response.status_code == 200:
-            return True
+        data = dict(uuid=bot)
+        response = self._request(list_intents_url, data=data, headers=self.get_headers(prefix=self.AUTH_PREFIX))
+        return True if response.status_code == 200 else False
 
     def is_valid_token(self):
         auth_url = '%s/v1/auth' % self.BASE_URL
-        response = self._request(auth_url, headers=self.get_headers())
+        response = self._request(auth_url, headers=self.get_headers(prefix=self.AUTH_PREFIX))
         return True if response.status_code == 200 else False
 
     def list_bots(self):
         list_bots_url = '%s/v1/auth' % self.BASE_URL
-        response = self._request(list_bots_url, headers=self.get_headers())
+        response = self._request(list_bots_url, headers=self.get_headers(prefix=self.AUTH_PREFIX))
         list_bots = []
 
         if response.status_code == 200 and response.content:
@@ -140,10 +135,10 @@ class BothubConsumer(BaseConsumer):
         return list_bots
 
     def get_entities(self, entities):
-        ent = dict()
-        for entity in entities:
-            ent.update({entity.get('entity'): entity.get('value')})
-        return ent
+        entity = dict()
+        for item in entities:
+            entity[item.get('entity')] = item.get('value')
+        return entity
 
     def get_intents(self):
         list_intents_url = '%s/v1/bots' % self.BASE_URL
@@ -151,8 +146,8 @@ class BothubConsumer(BaseConsumer):
         intents_list = []
 
         for bot in bots:
-            data = dict(uuid=bot[0])
-            response = self._request(list_intents_url, data=data, headers=self.get_headers())
+            data = dict(uuid=bot.get('uuid'))
+            response = self._request(list_intents_url, data=data, headers=self.get_headers(prefix=self.AUTH_PREFIX))
             if response.status_code == 200 and response.content:
                 content = json.loads(response.content)
                 intents = content.get('intents', [])
@@ -191,7 +186,7 @@ class WitConsumer(BaseConsumer):
 
     def is_valid_token(self):
         intents_url = '%s/entities' % self.BASE_URL
-        response = self._request(intents_url, headers=self.get_headers(prefix='Bearer'))
+        response = self._request(intents_url, headers=self.get_headers(prefix=self.AUTH_PREFIX))
         return True if response.status_code == 200 else False
 
     def get_entities(self, entities):
@@ -204,7 +199,7 @@ class WitConsumer(BaseConsumer):
 
     def get_intents(self):
         intents_url = '%s/entities' % self.BASE_URL
-        response = self._request(intents_url, data=None, headers=self.get_headers(prefix='Bearer'))
+        response = self._request(intents_url, data=None, headers=self.get_headers(prefix=self.AUTH_PREFIX))
 
         intents_list = []
 

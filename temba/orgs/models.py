@@ -249,8 +249,8 @@ class Org(SmartModel):
 
     parent = models.ForeignKey('orgs.Org', null=True, blank=True, help_text=_('The parent org that manages this org'))
 
-    nlu_api_config = models.CharField(null=True, max_length=255, default=None,
-                                      help_text=_('Configurations to Natural Language Understand Api'))
+    nlu_api_config = models.TextField(null=True, max_length=255, verbose_name=_("NLU API Configuration"),
+                                      help_text=_('Settings for Natural Language Understand API'))
 
     @classmethod
     def get_unique_slug(cls, name):
@@ -432,7 +432,11 @@ class Org(SmartModel):
 
     def nlu_api_config_json(self):
         if self.nlu_api_config:
-            return json.loads(self.nlu_api_config)
+            try:
+                return json.loads(self.nlu_api_config)
+            except ValueError as e:
+                logging.error(e.args)
+                return dict()
         else:
             return dict()
 

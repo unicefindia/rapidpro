@@ -369,22 +369,24 @@ class NluApiTriggerForm(GroupBasedTriggerForm):
     """
     For for catch NLU triggers
     """
-    accurancy = forms.IntegerField(max_value=100, min_value=0, required=True, label=_("Accuracy rate"),
-                                   help_text=_("The minimum accuracy rate between 0 and 100"))
+    accuracy = forms.IntegerField(max_value=100, min_value=0, required=True, label=_("Accuracy Rate"),
+                                  help_text=_("The minimum accuracy rate between 0 and 100"))
+    bots = forms.MultipleChoiceField(label=_("Bot Interpreter"), required=True,
+                                     help_text=_("Bot that will intepreter words and return intents"))
 
     def __init__(self, user, *args, **kwargs):
         org = user.get_org()
         flows = Flow.objects.filter(org=org, is_active=True, is_archived=False, flow_type__in=[Flow.FLOW])
         super(NluApiTriggerForm, self).__init__(user, flows, *args, **kwargs)
-        self.fields['bots'] = forms.MultipleChoiceField(self.get_bots_by_org(org), label=_("Bot Intepreter"), required=True,
-                                                        help_text=_("Bot that will intepreter words and return intents"))
+        self.fields['bots'].choices = NluApiTriggerForm.get_bots_by_org(org)
 
-    def get_bots_by_org(self, org):
+    @staticmethod
+    def get_bots_by_org(org):
         """
-        This function will return all data bots of specific token organization (NLU Api Token)
+        This function will return all data bots of specific token organization (NLU API Token)
         """
         consumer = NluApiConsumer.factory(org)
-        intents = consumer.get_intents()
+        intents = consumer.get_intents() if consumer else []
         intents_dict = dict()
         for intent in intents:
             if intent.get('bot_name') not in intents_dict.keys():
@@ -392,11 +394,8 @@ class NluApiTriggerForm(GroupBasedTriggerForm):
             intents_dict[intent.get('bot_name')] += (("%s$%s$%s" % (intent.get('name'), intent.get('bot_id'), intent.get('bot_name')), intent.get('name')),)
         return tuple(intents_dict.items())
 
-    def clean(self):
-        pass
-
     class Meta(BaseTriggerForm.Meta):
-        fields = ('flow', 'groups', 'accurancy')
+        fields = ('flow', 'groups', 'accuracy')
 
 
 class TriggerActionForm(BaseActionForm):
@@ -496,7 +495,7 @@ class TriggerCRUDL(SmartCRUDL):
                 context['api_name'], api_key = self.get_object().org.get_nlu_api_credentials()
                 nlu_data = self.get_object().get_nlu_data()
                 context['intent_bot'] = json.dumps(nlu_data.get('intent_bot'))
-                context['accurancy'] = nlu_data.get('accurancy')
+                context['accuracy'] = nlu_data.get('accuracy')
 
             context['user_tz'] = get_current_timezone_name()
             context['user_tz_offset'] = int(timezone.localtime(timezone.now()).utcoffset().total_seconds() / 60)
@@ -579,11 +578,8 @@ class TriggerCRUDL(SmartCRUDL):
                     on_transaction_commit(lambda: check_schedule_task.delay(trigger.schedule.pk))
 
             if trigger_type == Trigger.TYPE_NLU_API:
-                nlu_data = {
-                    'intent_bot': form.cleaned_data['bots'],
-                    'accurancy': form.cleaned_data['accurancy']
-                }
-                nlu_data = json.dumps(nlu_data)
+                nlu_data = json.dumps(dict(intent_bot=form.cleaned_data['bots'],
+                                           accuracy=form.cleaned_data['accuracy']))
 
                 trigger.nlu_data = nlu_data
 
@@ -959,14 +955,9 @@ class TriggerCRUDL(SmartCRUDL):
             org = user.get_org()
             groups = form.cleaned_data['groups']
 
-            nlu_data = {
-                'intent_bot': form.cleaned_data['bots'],
-                'accurancy': form.cleaned_data['accurancy']
-            }
-            nlu_data = json.dumps(nlu_data)
+            nlu_data = json.dumps(dict(intent_bot=form.cleaned_data['bots'], accuracy=form.cleaned_data['accuracy']))
 
-            self.object = Trigger.create(org, user, Trigger.TYPE_NLU_API, form.cleaned_data['flow'],
-                                         nlu_data=nlu_data)
+            self.object = Trigger.create(org, user, Trigger.TYPE_NLU_API, form.cleaned_data['flow'], nlu_data=nlu_data)
             for group in groups:
                 self.object.groups.add(group)
 
@@ -975,11 +966,6 @@ class TriggerCRUDL(SmartCRUDL):
             response = self.render_to_response(self.get_context_data(form=form))
             response['REDIRECT'] = self.get_success_url()
             return response
-
-        def get_context_data(self, **kwargs):
-            context = super(TriggerCRUDL.NluApi, self).get_context_data(**kwargs)
-            context['api_name'], api_key = self.request.user.get_org().get_nlu_api_credentials()
-            return context
 
         def get_form_kwargs(self):
             kwargs = super(TriggerCRUDL.NluApi, self).get_form_kwargs()
