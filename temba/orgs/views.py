@@ -2068,23 +2068,20 @@ class OrgCRUDL(SmartCRUDL):
 
             def clean(self):
                 super(OrgCRUDL.NluApi.NluApiForm, self).clean()
+
+                # TODO Improve this conditional!!!
                 if self.cleaned_data.get('disconnect', 'false') == 'false' and self.cleaned_data.get('token', 'false') == 'false' and self.cleaned_data.get('delete_extra', 'false') == 'false':
                     api_name = self.cleaned_data.get('api_name')
                     api_key = self.cleaned_data.get('api_key')
                     name_bot = self.cleaned_data.get('name_bot')
-
-                    if not api_name:
-                        raise ValidationError(_("Missing data: NLU Service. "
-                                                "Please check them again and retry."))
-                    if not api_key:
-                        raise ValidationError(_("Missing data: API Key. "
-                                                "Please check them again and retry."))
-                    if not NluApiConsumer.is_valid_token(api_name, api_key):
-                        raise ValidationError(_("Invalid data: API Key. "
-                                                "Please check them again and retry."))
-                    if not name_bot and api_name == NLU_WIT_AI_TAG:
+                    
+                    if api_name == NLU_WIT_AI_TAG and not name_bot:
                         raise ValidationError(_("Missing data: Bot Name. "
                                                 "Please check them again and retry."))
+
+                    elif not api_name or not api_key or not NluApiConsumer.is_valid_token(api_name, api_key):
+                        raise ValidationError(_("Incorrect data. Please check if all fields that were sent."))
+
                 return self.cleaned_data
 
             class Meta:

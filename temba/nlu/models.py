@@ -3,6 +3,11 @@ from __future__ import unicode_literals
 
 import requests
 import json
+import logging
+
+from django.utils.translation import ugettext_lazy as _
+
+from temba.utils.http import http_headers
 
 
 NLU_API_NAME = 'NLU_API_NAME'
@@ -41,12 +46,20 @@ class BaseConsumer(object):
         Abstract funciton to predict
         """
 
-    def get_headers(self, token=None):
+    def get_headers(self, token=None, prefix=None, prefix_separator=None, **kwargs):
         if not token:
             token = self.auth
-        return {
-            'Authorization': 'Bearer %s' % token
-        }
+
+        if prefix_separator:
+            authorization = '%s%s%s' % (prefix, prefix_separator, token) if prefix else '%s' % token
+        else:
+            authorization = '%s %s' % (prefix, token) if prefix else '%s' % token
+
+        extra = {'Authorization': authorization}
+        for item in kwargs.keys():
+            extra[item] = kwargs[item]
+
+        return http_headers(extra=extra)
 
     def get_entities(self, entities):
         """
@@ -63,12 +76,15 @@ class BaseConsumer(object):
         Abstract function to check if token is valid
         """
 
-    def _request(self, base_url, data=None, headers=None):
-        try:
-            return requests.get(base_url, params=data, headers=headers)
-        except Exception as e:
-            print(e)
-            return None
+    def _request(self, base_url, method='GET', data=None, headers=None):
+        kwargs = dict(headers=headers)
+
+        if method == 'GET':
+            kwargs['params'] = data
+        else:
+            kwargs['data'] = data
+
+        return requests.request(method=method, url=base_url, **kwargs)
 
 
 class BothubConsumer(BaseConsumer):
@@ -77,48 +93,44 @@ class BothubConsumer(BaseConsumer):
     This consumer will call Bothub api.
     """
     BASE_URL = 'http://api.bothub.it'
+    AUTH_PREFIX = 'Bearer'
 
     def predict(self, msg, bot):
         predict_url = '%s/v1/message' % self.BASE_URL
-        data = {
-            'bot': bot,
-            'msg': msg
-        }
-        response = self._request(predict_url, data=data, headers=self.get_headers())
+        data = dict(bot=bot, msg=msg)
+        response = self._request(predict_url, data=data, headers=self.get_headers(prefix=self.AUTH_PREFIX))
         if not response:
             return None, 0, None
 
         predict = json.loads(response.content)
 
-        answer = predict.get('answer', None)
-        intent = answer.get('intent', None)
-        entities = self.get_entities(answer.get('entities', None))
+        answer = predict.get('answer', {})
+        intent = answer.get('intent', {})
+        entities = self.get_entities(answer.get('entities')) if 'entities' in answer else None
 
         return intent.get('name', None), intent.get('confidence', None), entities
 
     def is_valid_bot(self, bot):
         list_intents_url = '%s/v1/bots' % self.BASE_URL
-        data = {
-            'uuid': bot
-        }
-        response = self._request(list_intents_url, data=data, headers=self.get_headers())
-        if response.status_code == 200:
-            return True
+        data = dict(uuid=bot)
+        response = self._request(list_intents_url, data=data, headers=self.get_headers(prefix=self.AUTH_PREFIX))
+        return True if response.status_code == 200 else False
 
     def is_valid_token(self):
         auth_url = '%s/v1/auth' % self.BASE_URL
-        response = self._request(auth_url, headers=self.get_headers())
-        if response.status_code == 200:
-            return True
+        response = self._request(auth_url, headers=self.get_headers(prefix=self.AUTH_PREFIX))
+        return True if response.status_code == 200 else False
 
     def list_bots(self):
         list_bots_url = '%s/v1/auth' % self.BASE_URL
-        response = self._request(list_bots_url, headers=self.get_headers())
-        list_bots = list()
-        if response:
-            tuple_bots = tuple(json.loads(response.content).get('bots'))
-            for bot in tuple_bots:
-                list_bots.append((bot.get('uuid'), bot.get('slug')))
+        response = self._request(list_bots_url, headers=self.get_headers(prefix=self.AUTH_PREFIX))
+        list_bots = []
+
+        if response.status_code == 200 and response.content:
+            content = json.loads(response.content)
+            bots = content.get('bots', [])
+            for bot in bots:
+                list_bots.append(dict(uuid=bot.get('uuid'), slug=bot.get('slug')))
 
         if self.extra_tokens:
             for bot in self.extra_tokens:
@@ -128,29 +140,25 @@ class BothubConsumer(BaseConsumer):
         return list_bots
 
     def get_entities(self, entities):
-        ent = dict()
-        for entity in entities:
-            ent.update({entity.get('entity'): entity.get('value')})
-        return ent
+        entity = dict()
+        for item in entities:
+            entity[item.get('entity')] = item.get('value')
+        return entity
 
     def get_intents(self):
         list_intents_url = '%s/v1/bots' % self.BASE_URL
         bots = self.list_bots()
-        if bots:
-            intents_list = []
-            for bot in bots:
-                data = {
-                    'uuid': bot[0]
-                }
-                response = self._request(list_intents_url, data=data, headers=self.get_headers())
-                intents = json.loads(response.content).get('intents')
-                for intent in intents:
-                    intents_list.append({
-                        'name': intent,
-                        'bot_id': bot[0],
-                        'bot_name': bot[1]
-                    })
-            return intents_list
+        intents_list = []
+
+        for bot in bots:
+            data = dict(uuid=bot.get('uuid'))
+            response = self._request(list_intents_url, data=data, headers=self.get_headers(prefix=self.AUTH_PREFIX))
+            if response.status_code == 200 and response.content:
+                content = json.loads(response.content)
+                intents = content.get('intents', [])
+                intents_list = [dict(name=intent, bot_id=bot.get('uuid'), bot_name=bot.get('slug')) for intent in intents]
+
+        return intents_list
 
 
 class WitConsumer(BaseConsumer):
@@ -159,55 +167,55 @@ class WitConsumer(BaseConsumer):
     This consumer will call Wit Ai api.
     """
     BASE_URL = 'https://api.wit.ai'
+    AUTH_PREFIX = 'Bearer'
 
     def predict(self, msg, bot):
         predict_url = '%s/message' % self.BASE_URL
-        data = {
-            'q': msg,
-            'n': 1
-        }
-        response = self._request(predict_url, data=data, headers=self.get_headers(bot))
-        if not response:
+        data = dict(q=msg)
+
+        response = self._request(predict_url, data=data, headers=self.get_headers(token=bot, prefix=self.AUTH_PREFIX))
+
+        if response.status_code != 200 and not response.content:
             return None, 0, None
 
         predict = json.loads(response.content)
 
-        entities = predict.get('entities', None)
-        if entities:
-            intents = entities.get('intent', None)
-            if intents:
-                return intents[0].get('value'), intents[0].get('confidence'), self.get_entities(entities)
-        return None, 0, None
+        entities = predict.get('entities', {})
+        entities_keys = entities.keys()
+        key = entities_keys[0] if entities_keys else None
+        entity = entities.get(key) if key else None
+        priority_entity = entity[0] if entity else None
+
+        return priority_entity.get('value'), priority_entity.get('confidence'), self.get_entities(entities) \
+            if priority_entity else (None, 0, None)
 
     def is_valid_token(self):
-        intents_url = '%s/entities/intent' % self.BASE_URL
-        response = self._request(intents_url, headers=self.get_headers())
-        if response.status_code == 200:
-            return True
+        intents_url = '%s/entities' % self.BASE_URL
+        response = self._request(intents_url, headers=self.get_headers(prefix=self.AUTH_PREFIX))
+        return True if response.status_code == 200 else False
 
     def get_entities(self, entities):
-        ent = dict()
-        entities.pop('intent', None)
-        for entity in entities.items():
-            ent.update({entity[0]: entity[1][0].get('value')})
-        return ent
+        entity = dict()
+        for key in entities.keys():
+            intents = entities.get(key, [])
+            ent = intents[0] if intents else {}
+            entity[key] = ent.get('value')
+        return entity
 
     def get_intents(self):
-        intents_url = '%s/entities/intent' % self.BASE_URL
-        intent_list = []
-        for extra in self.extra_tokens:
-            response = self._request(intents_url, data=None, headers=self.get_headers(extra['token']))
-            if response:
-                response_intents = json.loads(response.content)
-                intents = response_intents.get('values', None)
-                if intents:
-                    for intent in intents:
-                        intent_list.append({
-                            'name': intent.get('value', None),
-                            'bot_id': extra['token'],
-                            'bot_name': extra['name']
-                        })
-        return intent_list
+        intents_url = '%s/entities' % self.BASE_URL
+        intents_list = []
+        
+        for item in self.extra_tokens:
+            response = self._request(intents_url, data=None, headers=self.get_headers(prefix=self.AUTH_PREFIX,
+                                                                                      token=item.get('token')))
+                
+            if response.status_code == 200 and response.content:
+                entities = json.loads(response.content)
+                intents_list = [dict(name=intent.replace('$', '/'), bot_id=item.get('token'), bot_name=item.get('name'))
+                                for intent in entities]
+        
+        return intents_list
 
 
 class NluApiConsumer(object):
@@ -219,17 +227,30 @@ class NluApiConsumer(object):
     def factory(org):
         api_name, api_key = org.get_nlu_api_credentials()
         extra_tokens = org.nlu_api_config_json().get('extra_tokens', None)
+
+        assert api_name and api_key, _('Please, provide the follow args: api_name and api_key')
+
         if api_name == NLU_BOTHUB_TAG:
-            return BothubConsumer(api_key, api_name, extra_tokens)
-        if api_name == NLU_WIT_AI_TAG:
-            return WitConsumer(api_key, api_name, extra_tokens)
+            consumer = BothubConsumer(api_key, api_name, extra_tokens)
+        elif api_name == NLU_WIT_AI_TAG:
+            consumer = WitConsumer(api_key, api_name, extra_tokens)
+        else:
+            consumer = None
+            logging.warning(_('Consumer not found, please provide a valid'))
+
+        return consumer
 
     @staticmethod
     def is_valid_token(api_name, api_key):
-        if api_key[:7] == "Bearer ":
-            api_key = api_key[7:]
+
+        assert api_name and api_key, _('Please, provide the follow args: api_name and api_key')
 
         if api_name == NLU_BOTHUB_TAG:
-            return BothubConsumer(api_key, api_name).is_valid_token()
-        if api_name == NLU_WIT_AI_TAG:
-            return WitConsumer(api_key, api_name).is_valid_token()
+            consumer = BothubConsumer(api_key, api_name).is_valid_token()
+        elif api_name == NLU_WIT_AI_TAG:
+            consumer = WitConsumer(api_key, api_name).is_valid_token()
+        else:
+            consumer = None
+            logging.warning(_('Consumer not found, please provide a valid'))
+
+        return consumer
