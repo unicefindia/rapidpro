@@ -181,9 +181,13 @@ class WitConsumer(BaseConsumer):
         predict = json.loads(response.content)
 
         entities = predict.get('entities', {})
-        entity = entities[0] if entities else None
+        entities_keys = entities.keys()
+        key = entities_keys[0] if entities_keys else None
+        entity = entities.get(key) if key else None
+        priority_entity = entity[0] if entity else None
 
-        return entity.get('value'), entity.get('confidence'), self.get_entities(entities) if entity else None, 0, None
+        return priority_entity.get('value'), priority_entity.get('confidence'), self.get_entities(entities) \
+            if priority_entity else (None, 0, None)
 
     def is_valid_token(self):
         intents_url = '%s/entities' % self.BASE_URL
@@ -192,9 +196,10 @@ class WitConsumer(BaseConsumer):
 
     def get_entities(self, entities):
         entity = dict()
-        entities.pop('intent', None)
-        for item in entities.items():
-            ent.update({entity[0]: entity[1][0].get('value')})
+        for key in entities.keys():
+            intents = entities.get(key, [])
+            ent = intents[0] if intents else {}
+            entity[key] = ent.get('value')
         return entity
 
     def get_intents(self):
