@@ -15,6 +15,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='trigger',
             name='nlu_data',
-            field=models.TextField(help_text='Intents, accurancy, bots, somethings that will be used to nlu', null=True, verbose_name='Nlu Data'),
+            field=models.TextField(help_text='Intents, accuracy, bots, somethings that will be used to nlu', null=True, verbose_name='NLU Data'),
         ),
     ]
