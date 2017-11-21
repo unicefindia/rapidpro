@@ -1015,6 +1015,8 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
         if data.intents
           Flow.operators.push({ type: 'has_intent', name:'Has intent', verbose_name:'has an intent', operands:3, filter: ALL_TEXT })
           Flow.botsIntents = data.intents
+        else
+          Flow.botsIntents = []
 
       $http.get('/flow/json/' + flowId + '/').success (data) ->
 
@@ -1369,9 +1371,6 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
 
       @checkTerminal(actionset)
       @markDirty()
-
-    checkUserHasNlu: () ->
-      return true
 ]
 
 ModalController = ($scope, $modalInstance, type, title, body, hideCancel=false, details=null, ok=null) ->

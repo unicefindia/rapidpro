@@ -1151,8 +1151,7 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
   flow = Flow.flow
 
   $scope.flowFields = Flow.getFlowFields(ruleset)
-  if Flow.checkUserHasNlu()
-    $scope.listBotsIntents = Flow.botsIntents
+  $scope.listBotsIntents = Flow.botsIntents
 
   $scope.fieldIndexOptions = [{text:'first', id: 0},
                               {text:'second', id: 1},
