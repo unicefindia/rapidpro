@@ -52,7 +52,7 @@
         -for extra in extra_tokens
           %p
             {{extra.name}} - {{extra.token}} -
-            %a.posterize{href:'{% url "orgs.org_nlu_api" %}?delete_extra=true&token={{extra.token}}'}
+            %a{href:'{% url "orgs.org_nlu_api" %}?delete_extra=true&token={{extra.token}}'}
               -trans "Delete"
 
 -block form-buttons

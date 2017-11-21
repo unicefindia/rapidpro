@@ -2116,21 +2116,27 @@ class OrgCRUDL(SmartCRUDL):
                 context['extra_tokens'] = extra_tokens
 
             return context
+        
+        def get(self, *args, **kwargs):
+            user = self.request.user
+            org = user.get_org()
+            if self.request.GET.get('delete_extra', 'false') == 'true':
+                org.remove_extra_token(user, self.request.GET.get('token'))
+                return HttpResponseRedirect(reverse('orgs.org_home'))
+
+            return super(OrgCRUDL.NluApi, self).get(self, *args, **kwargs)
 
         def post(self, *args, **kwargs):
             user = self.request.user
             org = user.get_org()
-            if self.request.POST.get('token', 'false') == 'true':
-                org.add_extra_token(user, {'name': self.request.POST.get('extra_token_name'), 'token': self.request.POST.get('extra_token')})
-                return HttpResponseRedirect(reverse('orgs.org_home'))
-
-            if self.request.POST.get('delete_extra', 'false') == 'true':
-                org.remove_extra_token(user, self.request.POST.get('token'))
-                return HttpResponseRedirect(reverse('orgs.org_home'))
 
             if self.request.POST.get('disconnect', 'false') == 'true':
                 org.remove_nlu_api(user)
                 return HttpResponseRedirect(reverse('orgs.org_home'))
+
+            if self.request.POST.get('token', 'false') == 'true':
+                org.add_extra_token(user, {'name': self.request.POST.get('extra_token_name'), 'token': self.request.POST.get('extra_token')})
+                return HttpResponseRedirect(reverse('orgs.org_nlu_api'))
 
             return super(OrgCRUDL.NluApi, self).post(self, *args, **kwargs)
 
