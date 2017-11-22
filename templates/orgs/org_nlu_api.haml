@@ -50,12 +50,25 @@
 
     -if extra_tokens
       %p
-        -trans "Extra tokens:"
+        %table{class: "table"}
+           %tbody
+            %tr
+              %th
+                -trans "Name"
+              %th
+                -trans "Token"
+              %th
+                -trans "Action"
+
           -for extra in extra_tokens
-            %p
-              {{extra.name}} - {{extra.token}} -
-              %a.posterize{href:'{% url "orgs.org_nlu_api" %}?delete_extra=true&token={{extra.token}}'}
-                -trans "Delete"
+            %tr
+              %td
+                {{extra.name}}
+              %td
+                {{extra.token}}
+              %td
+                %a{href:'{% url "orgs.org_nlu_api" %}?delete_extra=true&token={{extra.token}}'}
+                  -trans "Delete"
 
 -block form-buttons
 
