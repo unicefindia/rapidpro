@@ -12,15 +12,17 @@ class NluTest(TembaTest):
     def test_nlu_api_bothub_consumer(self):
         self.login(self.admin)
 
-        payload = dict(api_name=NLU_BOTHUB_TAG, api_key='BOT_KEY_STRING', disconnect='false')
-        self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
+        payload = dict(api_name=NLU_BOTHUB_TAG, api_key='BOT_KEY_STRING', disconnect='false', token='false')
+        with patch('temba.nlu.models.BothubConsumer.is_valid_token') as mock_validation:
+            mock_validation.return_value = True
+            self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
         self.org.refresh_from_db()
 
         consumer = NluApiConsumer.factory(self.org)
         self.assertEqual(six.text_type(consumer), 'BotHub Consumer')
-        self.assertEqual(consumer.get_headers(), {'Authorization': 'Bearer BOT_KEY_STRING'})
+        self.assertEquals(consumer.get_headers(prefix=consumer.AUTH_PREFIX)['Authorization'], 'Bearer BOT_KEY_STRING')
 
-        with patch('requests.get') as mock_get:
+        with patch('requests.request') as mock_get:
             mock_get.return_value = MockResponse(200, """
             {
                 "bots": [
@@ -29,11 +31,10 @@ class NluTest(TembaTest):
                 ]
             }
             """)
-            self.assertEqual(tuple(consumer.list_bots()),
-                             (('e5bf3007-2629-44e3-8cbe-4505ecb130e2', 'bot-slug-16'),
-                              ('53c800c6-9e90-4ede-b3b8-723596bd8b2e', 'bot-slug-15')))
+            self.assertEqual(consumer.list_bots(),[{"slug": "bot-slug-16", "uuid": "e5bf3007-2629-44e3-8cbe-4505ecb130e2"},
+                                                   {"slug": "bot-slug-15", "uuid": "53c800c6-9e90-4ede-b3b8-723596bd8b2e"}])
 
-        with patch('requests.get') as mock_get:
+        with patch('requests.request') as mock_get:
             mock_get.return_value = MockResponse(200, """
             {
                 "bot_uuid": "e5bf3007-2629-44e3-8cbe-4505ecb130e2",
@@ -91,14 +92,16 @@ class NluTest(TembaTest):
     def test_nlu_api_wit_consumer(self):
         self.login(self.admin)
 
-        payload = dict(api_name=NLU_WIT_AI_TAG, api_key='BOT_KEY_STRING', disconnect='false')
-        self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
+        payload = dict(api_name=NLU_WIT_AI_TAG, api_key='BOT_KEY_STRING', name_bot="Bot name", disconnect='false', token='token')
+        with patch('temba.nlu.models.WitConsumer.is_valid_token') as mock_validation:
+            mock_validation.return_value = True
+            response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
         self.org.refresh_from_db()
 
         consumer = NluApiConsumer.factory(self.org)
         self.assertEqual(six.text_type(consumer), 'Wit.AI Consumer')
 
-        with patch('requests.get') as mock_get:
+        with patch('requests.request') as mock_get:
             mock_get.return_value = MockResponse(200, """
             {
                 "msg_id": "0j1thaYcCT2iJX7dB",
@@ -134,7 +137,7 @@ class NluTest(TembaTest):
             self.assertEqual(entities.get('exames'), 'exame')
             self.assertEqual(entities.get('medico'), 'ortopedista')
 
-        with patch('requests.get') as mock_get:
+        with patch('requests.request') as mock_get:
             mock_get.return_value = MockResponse(200, """
             {
                 "msg_id": "0j1thaYcCT2iJX7dB",
