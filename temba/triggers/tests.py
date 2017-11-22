@@ -952,38 +952,58 @@ class TriggerTest(TembaTest):
         response = self.client.get(trigger_url)
         self.assertEqual(response.status_code, 302)
 
-        payload = dict(api_name=NLU_WIT_AI_TAG, api_key='WIT_BOT_KEY', disconnect='false')
-        self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
+        payload = dict(api_name=NLU_WIT_AI_TAG, api_key='WIT_BOT_KEY', name_bot='Bot name', disconnect='false', token='false')
+        with patch('temba.nlu.models.WitConsumer.is_valid_token') as mock_validation:
+            mock_validation.return_value = True
+            response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
         self.org.refresh_from_db()
 
         response = self.client.get(trigger_url)
         self.assertEqual(response.status_code, 200)
         group = self.create_group("Trigger Group", [])
-        post_data = dict(flow=flow.pk, intents='restaurant_search,goodbye,greet',
-                         accuracy=65, bots=self.org.nlu_api_config_json().get(NLU_API_KEY), groups=[group.pk])
+        with patch('temba.nlu.models.WitConsumer.get_intents') as mock_get_intents:
+            mock_get_intents.return_value = [
+                {
+                    "bot_name": "BotName",
+                    "name": "greet",
+                    "bot_id": "WIT_AI_TOKEN"
+                }, {
+                    "bot_name": "BotName",
+                    "name": "affirm",
+                    "bot_id": "WIT_AI_TOKEN"
+                }, {
+                    "bot_name": "BotName",
+                    "name": "restaurant_search",
+                    "bot_id": "WIT_AI_TOKEN"
+                }, {
+                    "bot_name": "BotName",
+                    "name": "goodbye",
+                    "bot_id": "WIT_AI_TOKEN"
+                }
+            ]
 
-        response = self.client.post(trigger_url, post_data)
+            post_data = dict(flow=flow.pk, accuracy=65, bots=['greet$WIT_AI_TOKEN$BotName'], groups=[group.pk])
+            response = self.client.post(trigger_url, post_data)
+
         trigger = Trigger.objects.all().order_by('-pk')[0]
 
         self.assertEqual(trigger.trigger_type, Trigger.TYPE_NLU_API)
         self.assertEqual(trigger.flow.pk, flow.pk)
         get_nlu_data = trigger.get_nlu_data()
-        self.assertEqual(get_nlu_data['intents'], 'restaurant_search,goodbye,greet')
-        self.assertEqual(get_nlu_data['intents_replaced'], 'restaurant_search, goodbye, greet')
-        self.assertEqual(get_nlu_data['intents_splited'], ['restaurant_search', 'goodbye', 'greet'])
+        self.assertEqual(get_nlu_data['intents_replaced'], 'greet - BotName')
+        self.assertEqual(get_nlu_data['intents_splited'], ['greet'])
         self.assertEqual(get_nlu_data['accuracy'], 65)
-        self.assertEqual(get_nlu_data['bot'], self.org.nlu_api_config_json().get(NLU_API_KEY))
 
         trigger_nlu = Trigger.get_triggers_of_type(self.org, Trigger.TYPE_NLU_API).first()
 
         self.assertEqual(trigger_nlu.pk, trigger.pk)
 
-        with patch('requests.get') as mock_get:
+        with patch('requests.request') as mock_get:
             mock_get.side_effect = Exception('Fail request')
             Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "i want chinese food")
             self.assertEqual(0, flow.runs.all().count())
 
-        with patch('requests.get') as mock_get:
+        with patch('requests.request') as mock_get:
             mock_return_wit = '{"msg_id":"0GhmeqSm6P3Wkz0P0","_text":"greet","entities":{"intent":[{"confidence":%s,"value":"greet"}]}}'
             mock_get.return_value = MockResponse(200, mock_return_wit % '0.35233400021608')
             Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "Hello")
