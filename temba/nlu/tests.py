@@ -81,7 +81,7 @@ class NluTest(TembaTest):
             }
             """)
             intent, accuracy, entities = consumer.predict("I am looking for a Mexican restaurant in the center of town",
-                                                           "e5bf3007-2629-44e3-8cbe-4505ecb130e2")
+                                                          "e5bf3007-2629-44e3-8cbe-4505ecb130e2")
             self.assertEqual(intent, 'restaurant_search')
             self.assertEqual(accuracy, 0.731929302865667)
             self.assertEqual(type(entities), dict)
@@ -127,8 +127,7 @@ class NluTest(TembaTest):
                 }
             }
             """)
-            intent, accuracy, entities = consumer.predict("Eu quero um exame com um ortopedista",
-                                                           None)
+            intent, accuracy, entities = consumer.predict("Eu quero um exame com um ortopedista", None)
             self.assertEqual(intent, 'atendimento')
             self.assertEqual(accuracy, 0.89605580369856)
             self.assertEqual(type(entities), dict)
@@ -143,8 +142,7 @@ class NluTest(TembaTest):
                 "entities": {}
             }
             """)
-            intent, accuracy, entities = consumer.predict("Test none intents or entities",
-                                                           None)
+            intent, accuracy, entities = consumer.predict("Test none intents or entities", None)
             self.assertEqual(intent, None)
             self.assertEqual(accuracy, 0)
             self.assertEqual(entities, None)

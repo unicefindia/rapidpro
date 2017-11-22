@@ -2068,13 +2068,17 @@ class OrgCRUDL(SmartCRUDL):
 
             def clean(self):
                 super(OrgCRUDL.NluApi.NluApiForm, self).clean()
+                actions = [
+                    self.cleaned_data.get('disconnect', 'false'),
+                    self.cleaned_data.get('token', 'false'),
+                    self.cleaned_data.get('delete_extra', 'false')
+                ]
 
-                # TODO Improve this conditional!!!
-                if self.cleaned_data.get('disconnect', 'false') == 'false' and self.cleaned_data.get('token', 'false') == 'false' and self.cleaned_data.get('delete_extra', 'false') == 'false':
+                if 'true' not in actions:
                     api_name = self.cleaned_data.get('api_name')
                     api_key = self.cleaned_data.get('api_key')
                     name_bot = self.cleaned_data.get('name_bot')
-                    
+
                     if api_name == NLU_WIT_AI_TAG and not name_bot:
                         raise ValidationError(_("Missing data: Bot Name. "
                                                 "Please check them again and retry."))
@@ -2113,7 +2117,7 @@ class OrgCRUDL(SmartCRUDL):
                 context['extra_tokens'] = extra_tokens
 
             return context
-        
+
         def get(self, *args, **kwargs):
             user = self.request.user
             org = user.get_org()

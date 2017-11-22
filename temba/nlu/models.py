@@ -205,16 +205,16 @@ class WitConsumer(BaseConsumer):
     def get_intents(self):
         intents_url = '%s/entities' % self.BASE_URL
         intents_list = []
-        
+
         for item in self.extra_tokens:
             response = self._request(intents_url, data=None, headers=self.get_headers(prefix=self.AUTH_PREFIX,
                                                                                       token=item.get('token')))
-                
+
             if response.status_code == 200 and response.content:
                 entities = json.loads(response.content)
                 intents_list = [dict(name=intent.replace('$', '/'), bot_id=item.get('token'), bot_name=item.get('name'))
                                 for intent in entities]
-        
+
         return intents_list
 
 
@@ -228,8 +228,6 @@ class NluApiConsumer(object):
         api_name, api_key = org.get_nlu_api_credentials()
         extra_tokens = org.nlu_api_config_json().get('extra_tokens', None)
 
-        assert api_name, _('Please, provide the follow args: api_name and api_key')
-
         if api_name == NLU_BOTHUB_TAG:
             consumer = BothubConsumer(api_key, api_name, extra_tokens)
         elif api_name == NLU_WIT_AI_TAG:
@@ -242,7 +240,6 @@ class NluApiConsumer(object):
 
     @staticmethod
     def is_valid_token(api_name, api_key):
-
         assert api_name and api_key, _('Please, provide the follow args: api_name and api_key')
 
         if api_name == NLU_BOTHUB_TAG:

@@ -533,6 +533,7 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
         { type: 'true', name: 'Other', verbose_name:'contains anything', operands: 0, filter: NONE }
         { type: 'timeout', name:'Timeout', verbose_name:'timeout', operands:0, filter: NONE }
         { type: 'interrupted_status', name:'Interrupted', verbose_name:'interrupted status', operands:0, filter: NONE }
+        { type: 'has_intent', name:'Has intent', verbose_name:'has an intent', operands:3, filter: ALL_TEXT }
       ]
 
       @opNames =
@@ -1013,7 +1014,6 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
 
       $http.get('/flow/nlu/').success (data) ->
         if data.intents
-          Flow.operators.push({ type: 'has_intent', name:'Has intent', verbose_name:'has an intent', operands:3, filter: ALL_TEXT })
           Flow.botsIntents = data.intents
         else
           Flow.botsIntents = []
