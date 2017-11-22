@@ -129,13 +129,10 @@ class BothubConsumer(BaseConsumer):
         if response.status_code == 200 and response.content:
             content = json.loads(response.content)
             bots = content.get('bots', [])
-            for bot in bots:
-                list_bots.append(dict(uuid=bot.get('uuid'), slug=bot.get('slug')))
+            list_bots += [dict(uuid=bot.get('uuid'), slug=bot.get('slug')) for bot in bots]
 
         if self.extra_tokens:
-            for bot in self.extra_tokens:
-                if self.is_valid_bot(bot.get('token')):
-                    list_bots.append((bot.get('token'), bot.get('name')))
+            list_bots += [dict(uuid=bot.get('token'), slug=bot.get('name')) for bot in self.extra_tokens]
 
         return list_bots
 
@@ -156,7 +153,8 @@ class BothubConsumer(BaseConsumer):
             if response.status_code == 200 and response.content:
                 content = json.loads(response.content)
                 intents = content.get('intents', [])
-                intents_list = [dict(name=intent, bot_id=bot.get('uuid'), bot_name=bot.get('slug')) for intent in intents]
+                intents_list += [dict(name=intent, bot_id=bot.get('uuid'), bot_name=bot.get('slug'))
+                                 for intent in intents]
 
         return intents_list
 
@@ -212,8 +210,8 @@ class WitConsumer(BaseConsumer):
 
             if response.status_code == 200 and response.content:
                 entities = json.loads(response.content)
-                intents_list = [dict(name=intent.replace('$', '/'), bot_id=item.get('token'), bot_name=item.get('name'))
-                                for intent in entities]
+                intents_list += [dict(name=intent.replace('$', '/'), bot_id=item.get('token'), bot_name=item.get('name'))
+                                 for intent in entities]
 
         return intents_list
 
