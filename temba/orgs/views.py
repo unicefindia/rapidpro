@@ -2064,14 +2064,12 @@ class OrgCRUDL(SmartCRUDL):
                                        help_text="Enter the bot name")
             disconnect = forms.CharField(widget=forms.HiddenInput, max_length=6, required=True)
             extra = forms.CharField(widget=forms.HiddenInput, max_length=6, required=False)
-            delete_extra = forms.CharField(widget=forms.HiddenInput, max_length=6, required=False)
 
             def clean(self):
                 super(OrgCRUDL.NluApi.NluApiForm, self).clean()
                 actions = [
                     self.cleaned_data.get('disconnect', 'false'),
-                    self.cleaned_data.get('token', 'false'),
-                    self.cleaned_data.get('delete_extra', 'false')
+                    self.cleaned_data.get('token', 'false')
                 ]
 
                 if 'true' not in actions:
@@ -2104,7 +2102,6 @@ class OrgCRUDL(SmartCRUDL):
             initial['api_key'] = config.get(NLU_API_KEY, '')
             initial['extra_tokens'] = config.get('extra_tokens', '')
             initial['disconnect'] = 'false'
-            initial['delete_extra'] = 'false'
             initial['token'] = 'false'
             return initial
 
