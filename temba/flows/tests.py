@@ -5640,7 +5640,7 @@ class FlowsTest(FlowFileTest):
 
     def test_has_intent(self):
         flow = self.get_flow('rules_has_intent')
-        with patch('requests.get') as mock_get:
+        with patch('requests.request') as mock_get:
             mock_get.return_value = MockResponse(200, """
                         {
                             "bot_uuid": "e5bf3007-2629-44e3-8cbe-4505ecb130e2",
