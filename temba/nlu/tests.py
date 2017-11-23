@@ -132,7 +132,7 @@ class NluTest(TembaTest):
             """)
             intent, accuracy, entities = consumer.predict("Eu quero um exame com um ortopedista", None)
             self.assertEqual(intent, 'ortopedista')
-            self.assertEqual(accuracy, 0.89605580369856)
+            self.assertEqual(accuracy, 0.87037789125963)
             self.assertEqual(type(entities), dict)
             self.assertEqual(entities.get('exames'), 'exame')
             self.assertEqual(entities.get('medico'), 'ortopedista')

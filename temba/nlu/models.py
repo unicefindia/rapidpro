@@ -184,7 +184,7 @@ class WitConsumer(BaseConsumer):
         entity = entities.get(key) if key else None
         priority_entity = entity[0] if entity else None
 
-        return priority_entity.get('value'), priority_entity.get('confidence'), self.get_entities(entities) \
+        return (priority_entity.get('value'), priority_entity.get('confidence'), self.get_entities(entities)) \
             if priority_entity else (None, 0, None)
 
     def is_valid_token(self):
