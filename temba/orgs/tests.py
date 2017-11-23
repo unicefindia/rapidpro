@@ -1452,23 +1452,29 @@ class OrgTest(TembaTest):
         self.assertContains(response, 'NLU')
 
         # Wit.AI test connect
-        payload = dict(disconnect='false')
+        payload = dict(disconnect='false', token='false')
         response = self.client.post(nlu_api_url, payload, follow=True)
-        self.assertContains(response, "Missing data: NLU Service. Please check them again and retry.")
+        self.assertContains(response, "Incorrect data. Please check if all fields that were sent.")
 
         payload.update(dict(api_name=NLU_WIT_AI_TAG))
         response = self.client.post(nlu_api_url, payload, follow=True)
-        self.assertNotContains(response, "Missing data: NLU Service. Please check them again and retry.")
-        self.assertContains(response, "Missing data: API Key. Please check them again and retry.")
+        self.assertContains(response, "Missing data: Bot Name. Please check them again and retry.")
 
-        payload.update(dict(api_key='WIT_BOT_KEY'))
+        payload.update(dict(name_bot='Name bot'))
         response = self.client.post(nlu_api_url, payload, follow=True)
-        self.assertNotContains(response, "Missing data: NLU Service. Please check them again and retry.")
-        self.assertNotContains(response, "Missing data: API Key. Please check them again and retry.")
+        self.assertNotContains(response, "Missing data: Bot Name. Please check them again and retry.")
+        self.assertContains(response, "Incorrect data. Please check if all fields that were sent.")
+
+        with patch("temba.nlu.models.NluApiConsumer.is_valid_token") as mock:
+            payload.update(dict(api_key='WIT_BOT_KEY'))
+            mock.return_value = True
+            response = self.client.post(nlu_api_url, payload, follow=True)
+            self.assertNotContains(response, "Incorrect data. Please check if all fields that were sent.")
+            self.assertNotContains(response, "Missing data: Bot Name. Please check them again and retry.")
 
         self.org.refresh_from_db()
-        self.assertEqual((NLU_WIT_AI_TAG, 'WIT_BOT_KEY'), self.org.get_nlu_api_credentials())
-        self.assertEqual({NLU_API_NAME: NLU_WIT_AI_TAG, NLU_API_KEY: 'WIT_BOT_KEY'}, self.org.nlu_api_config_json())
+        self.assertEqual((NLU_WIT_AI_TAG, ''), self.org.get_nlu_api_credentials())
+        self.assertEqual({NLU_API_NAME: NLU_WIT_AI_TAG, NLU_API_KEY: '', 'extra_tokens': [{'name': 'Name bot', 'token': 'WIT_BOT_KEY'}]}, self.org.nlu_api_config_json())
 
         # Wit.AI test disconnect
         payload.update(disconnect='true')
