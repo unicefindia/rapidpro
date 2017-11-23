@@ -2,13 +2,28 @@
 from __future__ import unicode_literals
 from mock import patch
 from temba.tests import TembaTest, MockResponse
-from .models import NluApiConsumer, NLU_BOTHUB_TAG, NLU_WIT_AI_TAG
+from .models import NluApiConsumer, NLU_BOTHUB_TAG, NLU_WIT_AI_TAG, BaseConsumer
 from django.core.urlresolvers import reverse
 
 import six
 
 
 class NluTest(TembaTest):
+    def test_nlu_api_base_consumer(self):
+        base_consumer = BaseConsumer('ANY_TOKEN', 'TYPE', None)
+        headers = {
+            'Authorization': 'Token=ANY_TOKEN',
+            'header_x': 'value_header_x',
+            'User-agent': 'RapidPro'
+        }
+        self.assertEqual(base_consumer.get_headers(prefix='Token', prefix_separator="=", header_x='value_header_x'), headers)
+        self.assertEqual(NluApiConsumer.is_valid_token('OTHER', 'OTHER'), None)
+        with patch('requests.request') as mock:
+            mock.return_value = MockResponse(200, '{}')
+            self.assertTrue(NluApiConsumer.is_valid_token(NLU_BOTHUB_TAG, 'BOTHUB_API_KEY'))
+            self.assertTrue(NluApiConsumer.is_valid_token(NLU_WIT_AI_TAG, 'WIT_AI_API_KEY'))
+            self.assertEqual(base_consumer._request('http://foo.com', method='POST', data=dict(test=True)).status_code, 200)
+
     def test_nlu_api_bothub_consumer(self):
         self.login(self.admin)
 
