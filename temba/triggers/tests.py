@@ -16,7 +16,7 @@ from temba.contacts.models import TEL_SCHEME, Contact
 from temba.flows.models import Flow, ActionSet, FlowRun
 from temba.orgs.models import Language
 from temba.msgs.models import Msg, INCOMING
-from temba.nlu.models import NLU_API_KEY, NLU_WIT_AI_TAG, NLU_BOTHUB_TAG
+from temba.nlu.models import NLU_WIT_AI_TAG, NLU_BOTHUB_TAG
 from temba.schedules.models import Schedule
 from temba.tests import TembaTest, MockResponse
 from .models import Trigger
