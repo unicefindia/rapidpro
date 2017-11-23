@@ -18,6 +18,7 @@ class NluTest(TembaTest):
         }
         self.assertEqual(base_consumer.get_headers(prefix='Token', prefix_separator="=", header_x='value_header_x'), headers)
         self.assertEqual(NluApiConsumer.is_valid_token('OTHER', 'OTHER'), None)
+
         with patch('requests.request') as mock:
             mock.return_value = MockResponse(200, '{}')
             self.assertTrue(NluApiConsumer.is_valid_token(NLU_BOTHUB_TAG, 'BOTHUB_API_KEY'))
@@ -49,7 +50,6 @@ class NluTest(TembaTest):
             self.assertEqual(consumer.list_bots(), [{"slug": "bot-slug-16", "uuid": "e5bf3007-2629-44e3-8cbe-4505ecb130e2"},
                                                     {"slug": "bot-slug-15", "uuid": "53c800c6-9e90-4ede-b3b8-723596bd8b2e"}])
 
-        with patch('requests.request') as mock_get:
             mock_get.return_value = MockResponse(403, "")
             intent, accuracy, entities = consumer.predict("Eu quero um exame com um ortopedista", None)
             self.assertEqual(intent, None)
@@ -164,7 +164,6 @@ class NluTest(TembaTest):
             self.assertEqual(entities.get('exames'), 'exame')
             self.assertEqual(entities.get('medico'), 'ortopedista')
 
-        with patch('requests.request') as mock_get:
             mock_get.return_value = MockResponse(200, """
             {
                 "msg_id": "0j1thaYcCT2iJX7dB",

@@ -99,7 +99,8 @@ class BothubConsumer(BaseConsumer):
         predict_url = '%s/v1/message' % self.BASE_URL
         data = dict(bot=bot, msg=msg)
         response = self._request(predict_url, data=data, headers=self.get_headers(prefix=self.AUTH_PREFIX))
-        if not response:
+
+        if response.status_code != 200:
             return None, 0, None
 
         predict = json.loads(response.content)
@@ -126,7 +127,7 @@ class BothubConsumer(BaseConsumer):
         response = self._request(list_bots_url, headers=self.get_headers(prefix=self.AUTH_PREFIX))
         list_bots = []
 
-        if response.status_code == 200 and response.content:
+        if response.status_code == 200:
             content = json.loads(response.content)
             bots = content.get('bots', [])
             list_bots += [dict(uuid=bot.get('uuid'), slug=bot.get('slug')) for bot in bots]
@@ -150,7 +151,7 @@ class BothubConsumer(BaseConsumer):
         for bot in bots:
             data = dict(uuid=bot.get('uuid'))
             response = self._request(list_intents_url, data=data, headers=self.get_headers(prefix=self.AUTH_PREFIX))
-            if response.status_code == 200 and response.content:
+            if response.status_code == 200:
                 content = json.loads(response.content)
                 intents = content.get('intents', [])
                 intents_list += [dict(name=intent, bot_id=bot.get('uuid'), bot_name=bot.get('slug'))
@@ -173,7 +174,7 @@ class WitConsumer(BaseConsumer):
 
         response = self._request(predict_url, data=data, headers=self.get_headers(token=bot, prefix=self.AUTH_PREFIX))
 
-        if response.status_code != 200 and not response.content:
+        if response.status_code != 200:
             return None, 0, None
 
         predict = json.loads(response.content)
@@ -208,7 +209,7 @@ class WitConsumer(BaseConsumer):
             response = self._request(intents_url, data=None, headers=self.get_headers(prefix=self.AUTH_PREFIX,
                                                                                       token=item.get('token')))
 
-            if response.status_code == 200 and response.content:
+            if response.status_code == 200:
                 entities = json.loads(response.content)
                 intents_list += [dict(name=intent.replace('$', '/'), bot_id=item.get('token'), bot_name=item.get('name'))
                                  for intent in entities]
