@@ -50,6 +50,12 @@ class NluTest(TembaTest):
                                                     {"slug": "bot-slug-15", "uuid": "53c800c6-9e90-4ede-b3b8-723596bd8b2e"}])
 
         with patch('requests.request') as mock_get:
+            mock_get.return_value = MockResponse(403, "")
+            intent, accuracy, entities = consumer.predict("Eu quero um exame com um ortopedista", None)
+            self.assertEqual(intent, None)
+            self.assertEqual(accuracy, 0)
+            self.assertEqual(entities, None)
+
             mock_get.return_value = MockResponse(200, """
             {
                 "bot_uuid": "e5bf3007-2629-44e3-8cbe-4505ecb130e2",
@@ -96,7 +102,7 @@ class NluTest(TembaTest):
                 }
             }
             """)
-            intent, accuracy, entities = consumer.predict("I am looking for a Mexican restaurant in the center of town",
+            intent, accuracy, entities = consumer.predict("Eu quero um exame com um ortopedista",
                                                           "e5bf3007-2629-44e3-8cbe-4505ecb130e2")
             self.assertEqual(intent, 'restaurant_search')
             self.assertEqual(accuracy, 0.731929302865667)
@@ -117,6 +123,12 @@ class NluTest(TembaTest):
         self.assertEqual(six.text_type(consumer), 'Wit.AI Consumer')
 
         with patch('requests.request') as mock_get:
+            mock_get.return_value = MockResponse(403, "")
+            intent, accuracy, entities = consumer.predict("I am looking for a Mexican restaurant in the center of town",
+                                                          "e5bf3007-2629-44e3-8cbe-4505ecb130e2")
+            self.assertEqual(intent, None)
+            self.assertEqual(accuracy, 0)
+            self.assertEqual(entities, None)
             mock_get.return_value = MockResponse(200, """
             {
                 "msg_id": "0j1thaYcCT2iJX7dB",
