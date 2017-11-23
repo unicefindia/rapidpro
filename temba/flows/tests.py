@@ -5026,15 +5026,17 @@ class FlowsTest(FlowFileTest):
         response = self.client.get(reverse('flows.flow_nlu'))
         self.assertEqual(response.get('intents'), None)
 
-        payload = dict(api_name=NLU_BOTHUB_TAG, api_key='673d4c5f35be4d1e9e76eaafe56704c1', disconnect='false')
-        response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
+        with patch('temba.nlu.models.BothubConsumer.is_valid_token') as mock_is_valid_token:
+            mock_is_valid_token.return_value = True
+            payload = dict(api_name=NLU_BOTHUB_TAG, api_key='673d4c5f35be4d1e9e76eaafe56704c1', disconnect='false', token='false')
+            response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
 
         self.org.refresh_from_db()
         self.assertEqual((NLU_BOTHUB_TAG, '673d4c5f35be4d1e9e76eaafe56704c1'), self.org.get_nlu_api_credentials())
 
         with patch('temba.nlu.models.BothubConsumer.list_bots') as mock_list_bots:
-            mock_list_bots.return_value = [("706e1467-fa55-4562-b909-e09caca9b198", "bot-slug-92")]
-            with patch('requests.get') as mock_get_intents:
+            mock_list_bots.return_value = [{"uuid": "706e1467-fa55-4562-b909-e09caca9b198", "slug": "bot-slug-92"}]
+            with patch('requests.request') as mock_get_intents:
                 mock_get_intents.return_value = MockResponse(200, '{"private": false, "intents": [ "greet", "affirm", "restaurant_search", "goodbye"], "slug": "bot-slug-92"}')
                 response = self.client.get(reverse('flows.flow_nlu'))
                 data = {
