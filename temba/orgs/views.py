@@ -2058,10 +2058,10 @@ class OrgCRUDL(SmartCRUDL):
         class NluApiForm(forms.ModelForm):
             api_name = forms.ChoiceField(label=_("NLU Service"), required=True,
                                          help_text="Select the NLU Service", choices=NLU_API_CHOICES)
-            api_key = forms.CharField(max_length=255, label=_("API Key"), required=False,
-                                      help_text="Enter the NLU API Key")
             name_bot = forms.CharField(max_length=255, label=_("Bot Name"), required=False,
                                        help_text="Enter the bot name")
+            api_key = forms.CharField(max_length=255, label=_("API Key"), required=False,
+                                      help_text="Enter the NLU API Key")
             disconnect = forms.CharField(widget=forms.HiddenInput, max_length=6, required=True)
             extra = forms.CharField(widget=forms.HiddenInput, max_length=6, required=False)
 
@@ -2074,8 +2074,8 @@ class OrgCRUDL(SmartCRUDL):
 
                 if 'true' not in actions:
                     api_name = self.cleaned_data.get('api_name')
-                    api_key = self.cleaned_data.get('api_key')
                     name_bot = self.cleaned_data.get('name_bot')
+                    api_key = self.cleaned_data.get('api_key')
 
                     if api_name == NLU_WIT_AI_TAG and not name_bot:
                         raise ValidationError(_("Missing data: Bot Name. "
@@ -2088,7 +2088,7 @@ class OrgCRUDL(SmartCRUDL):
 
             class Meta:
                 model = Org
-                fields = ('api_name', 'api_key', 'disconnect')
+                fields = ('api_name', 'name_bot', 'api_key', 'disconnect')
 
         success_message = ''
         success_url = '@orgs.org_home'
