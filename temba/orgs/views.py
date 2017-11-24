@@ -2067,6 +2067,7 @@ class OrgCRUDL(SmartCRUDL):
 
             def clean(self):
                 super(OrgCRUDL.NluApi.NluApiForm, self).clean()
+
                 actions = [
                     self.cleaned_data.get('disconnect', 'false'),
                     self.cleaned_data.get('token', 'false')
@@ -2090,9 +2091,33 @@ class OrgCRUDL(SmartCRUDL):
                 model = Org
                 fields = ('api_name', 'name_bot', 'api_key', 'disconnect')
 
+        class NluApiExtraForm(NluApiForm):
+            extra_token_name = forms.CharField(max_length=255, label=_("Bot Name"), required=True,
+                                               help_text="You can put any name for this bot")
+            extra_token = forms.CharField(max_length=255, label=_("API Key"), required=True,
+                                          help_text="You can get key in your NLU Service website")
+            token = forms.CharField(widget=forms.HiddenInput, max_length=4, required=True, initial=True)
+
+            def clean(self):
+                super(OrgCRUDL.NluApi.NluApiExtraForm, self).clean()
+                return self.cleaned_data
+
+            class Meta:
+                model = Org
+                fields = ('api_name', 'name_bot', 'api_key', 'disconnect', 'extra_token_name', 'extra_token')
+                widgets = {'name_bot': forms.HiddenInput(),
+                           'api_key': forms.HiddenInput(),
+                           'api_name': forms.HiddenInput()}
+
         success_message = ''
         success_url = '@orgs.org_home'
-        form_class = NluApiForm
+
+        def get_form_class(self):
+            api_name, api_key = self.object.get_nlu_api_credentials()
+            if not api_name:
+                return OrgCRUDL.NluApi.NluApiForm
+            else:
+                return OrgCRUDL.NluApi.NluApiExtraForm
 
         def derive_initial(self):
             initial = super(OrgCRUDL.NluApi, self).derive_initial()
@@ -2119,7 +2144,11 @@ class OrgCRUDL(SmartCRUDL):
             user = self.request.user
             org = user.get_org()
             if self.request.GET.get('delete_extra', 'false') == 'true':
-                org.remove_extra_token(user, self.request.GET.get('token'))
+                nlu_api_config = org.nlu_api_config_json()
+                if len(nlu_api_config.get('extra_tokens', [])) > 1:
+                    org.remove_extra_token(user, self.request.GET.get('token'))
+                else:
+                    org.remove_nlu_api(user)
                 return HttpResponseRedirect(reverse('orgs.org_home'))
 
             return super(OrgCRUDL.NluApi, self).get(self, *args, **kwargs)
@@ -2133,8 +2162,14 @@ class OrgCRUDL(SmartCRUDL):
                 return HttpResponseRedirect(reverse('orgs.org_home'))
 
             if self.request.POST.get('token', 'false') == 'true':
-                org.add_extra_token(user, {'name': self.request.POST.get('extra_token_name'), 'token': self.request.POST.get('extra_token')})
-                return HttpResponseRedirect(reverse('orgs.org_nlu_api'))
+                api_name = self.request.POST.get('api_name')
+                extra_token_name = self.request.POST.get('extra_token_name')
+                extra_token = self.request.POST.get('extra_token')
+
+                if not extra_token_name or not extra_token or not NluApiConsumer.is_valid_token(api_name, extra_token):
+                    raise ValidationError(_("Incorrect data. Please check if all fields that were sent."))
+
+                org.add_extra_token(user, dict(name=extra_token_name, token=extra_token))
 
             return super(OrgCRUDL.NluApi, self).post(self, *args, **kwargs)
 
