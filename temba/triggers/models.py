@@ -475,6 +475,7 @@ class Trigger(SmartModel):
                 for bot in nlu_data['bots']:
                     intent, accuracy, entities = consumer.predict(entity, bot)
                     accuracy *= 100
+
                     if intent in nlu_data[bot] and accuracy >= nlu_data.get('accuracy'):
                         extra = dict(intent=intent, entities=entities)
                         trigger.flow.start([], [entity.contact], start_msg=entity, restart_participants=True,
@@ -498,18 +499,17 @@ class Trigger(SmartModel):
             if 'bots' not in nlu_data:
                 nlu_data['bots'] = []
 
-            info_intent = intent.split('$')
-            nlu_data['bots'].append(info_intent[1])
+            nlu_data['bots'].append(intent.get('token'))
 
             sufix = ', ' if counter + 1 < len(intents) else ''
 
-            nlu_data['intents_replaced'] += "%s - %s%s" % (info_intent[0], info_intent[2], sufix)
-            nlu_data['intents_splited'].append(info_intent[0])
+            nlu_data['intents_replaced'] += "%s - %s%s" % (intent.get('intent'), intent.get('name'), sufix)
+            nlu_data['intents_splited'].append(intent.get('intent'))
 
         if 'bots' in nlu_data:
             nlu_data['bots'] = set(nlu_data['bots'])
-            for key in nlu_data['bots']:
-                nlu_data[key] = [intent.split('$')[0] for intent in nlu_data.get('intent_bot') if key in intent]
+            for bot in nlu_data['bots']:
+                nlu_data[bot] = [intent.get('intent') for intent in nlu_data.get('intent_bot') if bot == intent.get('token')]
 
         return nlu_data
 

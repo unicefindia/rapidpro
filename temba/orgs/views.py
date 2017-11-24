@@ -39,7 +39,7 @@ from temba.campaigns.models import Campaign
 from temba.channels.models import Channel
 from temba.flows.models import Flow
 from temba.formax import FormaxMixin
-from temba.nlu.models import NLU_API_NAME, NLU_API_KEY, NLU_API_CHOICES, NluApiConsumer
+from temba.nlu.models import NLU_API_NAME, NLU_API_KEY, NLU_API_CHOICES, NluApiConsumer, NLU_WIT_AI_TAG
 from temba.utils import analytics, languages
 from temba.utils.timezones import TimeZoneFormField
 from temba.utils.email import is_valid_address
@@ -2058,29 +2058,37 @@ class OrgCRUDL(SmartCRUDL):
         class NluApiForm(forms.ModelForm):
             api_name = forms.ChoiceField(label=_("NLU Service"), required=True,
                                          help_text="Select the NLU Service", choices=NLU_API_CHOICES)
-            api_key = forms.CharField(max_length=255, label=_("API Key"), required=True,
+            name_bot = forms.CharField(max_length=255, label=_("Bot Name"), required=False,
+                                       help_text="Enter the bot name")
+            api_key = forms.CharField(max_length=255, label=_("API Key"), required=False,
                                       help_text="Enter the NLU API Key")
             disconnect = forms.CharField(widget=forms.HiddenInput, max_length=6, required=True)
-            token = forms.CharField(widget=forms.HiddenInput, max_length=100, required=False)
             extra = forms.CharField(widget=forms.HiddenInput, max_length=6, required=False)
-            delete_extra = forms.CharField(widget=forms.HiddenInput, max_length=6, required=False)
 
             def clean(self):
                 super(OrgCRUDL.NluApi.NluApiForm, self).clean()
+                actions = [
+                    self.cleaned_data.get('disconnect', 'false'),
+                    self.cleaned_data.get('token', 'false')
+                ]
 
-                # TODO Improve this conditional!!!
-                if self.cleaned_data.get('disconnect', 'false') == 'false' and self.cleaned_data.get('token', 'false') == 'false' and self.cleaned_data.get('delete_extra', 'false') == 'false':
+                if 'true' not in actions:
                     api_name = self.cleaned_data.get('api_name')
+                    name_bot = self.cleaned_data.get('name_bot')
                     api_key = self.cleaned_data.get('api_key')
 
-                    if not api_name or not api_name or not NluApiConsumer.is_valid_token(api_name, api_key):
+                    if api_name == NLU_WIT_AI_TAG and not name_bot:
+                        raise ValidationError(_("Missing data: Bot Name. "
+                                                "Please check them again and retry."))
+
+                    elif not api_name or not api_key or not NluApiConsumer.is_valid_token(api_name, api_key):
                         raise ValidationError(_("Incorrect data. Please check if all fields that were sent."))
 
                 return self.cleaned_data
 
             class Meta:
                 model = Org
-                fields = ('api_name', 'api_key', 'disconnect')
+                fields = ('api_name', 'name_bot', 'api_key', 'disconnect')
 
         success_message = ''
         success_url = '@orgs.org_home'
@@ -2094,7 +2102,6 @@ class OrgCRUDL(SmartCRUDL):
             initial['api_key'] = config.get(NLU_API_KEY, '')
             initial['extra_tokens'] = config.get('extra_tokens', '')
             initial['disconnect'] = 'false'
-            initial['delete_extra'] = 'false'
             initial['token'] = 'false'
             return initial
 
@@ -2108,21 +2115,26 @@ class OrgCRUDL(SmartCRUDL):
 
             return context
 
+        def get(self, *args, **kwargs):
+            user = self.request.user
+            org = user.get_org()
+            if self.request.GET.get('delete_extra', 'false') == 'true':
+                org.remove_extra_token(user, self.request.GET.get('token'))
+                return HttpResponseRedirect(reverse('orgs.org_home'))
+
+            return super(OrgCRUDL.NluApi, self).get(self, *args, **kwargs)
+
         def post(self, *args, **kwargs):
             user = self.request.user
             org = user.get_org()
-            if self.request.POST.get('token', 'false') == 'true':
-                org.add_extra_token(user, {'name': self.request.POST.get('extra_token_name'),
-                                           'token': self.request.POST.get('extra_token')})
-                return HttpResponseRedirect(reverse('orgs.org_nlu_api'))
-
-            if self.request.POST.get('delete_extra', 'false') == 'true':
-                org.remove_extra_token(user, self.request.POST.get('token'))
-                return HttpResponseRedirect(reverse('orgs.org_nlu_api'))
 
             if self.request.POST.get('disconnect', 'false') == 'true':
                 org.remove_nlu_api(user)
                 return HttpResponseRedirect(reverse('orgs.org_home'))
+
+            if self.request.POST.get('token', 'false') == 'true':
+                org.add_extra_token(user, {'name': self.request.POST.get('extra_token_name'), 'token': self.request.POST.get('extra_token')})
+                return HttpResponseRedirect(reverse('orgs.org_nlu_api'))
 
             return super(OrgCRUDL.NluApi, self).post(self, *args, **kwargs)
 
@@ -2132,8 +2144,11 @@ class OrgCRUDL(SmartCRUDL):
 
             api_name = form.cleaned_data.get('api_name')
             api_key = form.cleaned_data.get('api_key')
+            name_bot = form.cleaned_data.get('name_bot')
 
-            if api_name:
+            if api_name == NLU_WIT_AI_TAG:
+                org.connect_nlu_api(user, api_name, api_key, name_bot)
+            else:
                 org.connect_nlu_api(user, api_name, api_key)
 
             return super(OrgCRUDL.NluApi, self).form_valid(form)

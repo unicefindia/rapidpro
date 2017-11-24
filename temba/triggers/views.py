@@ -467,7 +467,7 @@ class TriggerCRUDL(SmartCRUDL):
             add_section('trigger-catchall', 'triggers.trigger_catchall', 'icon-bubble')
 
             api_name, api_key = self.org.get_nlu_api_credentials()
-            if api_name and api_key:
+            if api_name:
                 add_section('trigger-nlu-api', 'triggers.trigger_nlu_api', 'icon-robot-nlu')
 
     class Update(ModalMixin, OrgMixin, SmartUpdateView):
@@ -494,7 +494,10 @@ class TriggerCRUDL(SmartCRUDL):
             if self.get_object().nlu_data:
                 context['api_name'], api_key = self.get_object().org.get_nlu_api_credentials()
                 nlu_data = self.get_object().get_nlu_data()
-                context['intent_bot'] = json.dumps(nlu_data.get('intent_bot'))
+                intent_bots_to_view = []
+                for intent_bot in nlu_data.get('intent_bot'):
+                    intent_bots_to_view.append("%s$%s$%s" % (intent_bot['intent'], intent_bot['token'], intent_bot['name']))
+                context['intent_bot'] = json.dumps(intent_bots_to_view)
                 context['accuracy'] = nlu_data.get('accuracy')
 
             context['user_tz'] = get_current_timezone_name()
@@ -578,7 +581,7 @@ class TriggerCRUDL(SmartCRUDL):
                     on_transaction_commit(lambda: check_schedule_task.delay(trigger.schedule.pk))
 
             if trigger_type == Trigger.TYPE_NLU_API:
-                nlu_data = json.dumps(dict(intent_bot=form.cleaned_data['bots'],
+                nlu_data = json.dumps(dict(intent_bot=TriggerCRUDL.NluApi.convert_intent_bot(form.cleaned_data['bots']),
                                            accuracy=form.cleaned_data['accuracy']))
 
                 trigger.nlu_data = nlu_data
@@ -950,12 +953,21 @@ class TriggerCRUDL(SmartCRUDL):
                 return HttpResponseRedirect(reverse("triggers.trigger_create"))
             return super(TriggerCRUDL.NluApi, self).pre_process(request, *args, **kwargs)
 
+        @staticmethod
+        def convert_intent_bot(bots):
+            intent_bot = []
+            for bot in bots:
+                bot_splited = bot.split('$')
+                intent_bot.append(dict(intent=bot_splited[0], token=bot_splited[1], name=bot_splited[2]))
+            return intent_bot
+
         def form_valid(self, form):
             user = self.request.user
             org = user.get_org()
             groups = form.cleaned_data['groups']
 
-            nlu_data = json.dumps(dict(intent_bot=form.cleaned_data['bots'], accuracy=form.cleaned_data['accuracy']))
+            nlu_data = json.dumps(dict(intent_bot=TriggerCRUDL.NluApi.convert_intent_bot(form.cleaned_data['bots']),
+                                       accuracy=form.cleaned_data['accuracy']))
 
             self.object = Trigger.create(org, user, Trigger.TYPE_NLU_API, form.cleaned_data['flow'], nlu_data=nlu_data)
             for group in groups:

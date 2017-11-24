@@ -5026,15 +5026,17 @@ class FlowsTest(FlowFileTest):
         response = self.client.get(reverse('flows.flow_nlu'))
         self.assertEqual(response.get('intents'), None)
 
-        payload = dict(api_name=NLU_BOTHUB_TAG, api_key='673d4c5f35be4d1e9e76eaafe56704c1', disconnect='false')
-        response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
+        with patch('temba.nlu.models.BothubConsumer.is_valid_token') as mock_is_valid_token:
+            mock_is_valid_token.return_value = True
+            payload = dict(api_name=NLU_BOTHUB_TAG, api_key='673d4c5f35be4d1e9e76eaafe56704c1', disconnect='false', token='false')
+            response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
 
         self.org.refresh_from_db()
         self.assertEqual((NLU_BOTHUB_TAG, '673d4c5f35be4d1e9e76eaafe56704c1'), self.org.get_nlu_api_credentials())
 
         with patch('temba.nlu.models.BothubConsumer.list_bots') as mock_list_bots:
-            mock_list_bots.return_value = [("706e1467-fa55-4562-b909-e09caca9b198", "bot-slug-92")]
-            with patch('requests.get') as mock_get_intents:
+            mock_list_bots.return_value = [{"uuid": "706e1467-fa55-4562-b909-e09caca9b198", "slug": "bot-slug-92"}]
+            with patch('requests.request') as mock_get_intents:
                 mock_get_intents.return_value = MockResponse(200, '{"private": false, "intents": [ "greet", "affirm", "restaurant_search", "goodbye"], "slug": "bot-slug-92"}')
                 response = self.client.get(reverse('flows.flow_nlu'))
                 data = {
@@ -5055,46 +5057,34 @@ class FlowsTest(FlowFileTest):
         response = self.client.get(reverse('flows.flow_nlu'))
         self.assertEqual(response.get('intents'), None)
 
-        payload = dict(api_name=NLU_WIT_AI_TAG, api_key='WIT_BOT_KEY', disconnect='false')
-        response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
+        with patch('temba.nlu.models.WitConsumer.is_valid_token') as mock_is_valid_token:
+            mock_is_valid_token.return_value = True
+            payload = dict(api_name=NLU_WIT_AI_TAG, api_key='WIT_BOT_KEY', name_bot='bot name', disconnect='false', token='false')
+            response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
 
         self.org.refresh_from_db()
-        self.assertEqual((NLU_WIT_AI_TAG, 'WIT_BOT_KEY'), self.org.get_nlu_api_credentials())
+        self.assertEqual((NLU_WIT_AI_TAG, ''), self.org.get_nlu_api_credentials())
 
-        with patch('requests.get') as mock_get_intents:
+        with patch('requests.request') as mock_get_intents:
             data = """
-            {
-                "builtin" : false,
-                "doc" : "User-defined entity",
-                "id" : "571979db-f6ac-4820-bc28-a1e0787b98fc",
-                "lang" : "en",
-                "lookups" : [ "keywords", "free-text" ],
-                "name" : "intent",
-                "values" : [ {
-                    "value" : "greet",
-                    "expressions" : [ "greet" ]
-                }, {
-                    "value" : "affirm",
-                    "expressions" : [ "affirm" ]
-                }, {
-                    "value" : "restaurant_search",
-                    "expressions" : [ "restaurant_search" ]
-                }, {
-                    "value" : "goodbye",
-                    "expressions" : [ "goodbye" ]
-                } ]
-            }
+            [
+                "greet",
+                "affirm",
+                "restaurant_search",
+                "goodbye"
+            ]
             """
             mock_get_intents.return_value = MockResponse(200, data)
             response = self.client.get(reverse('flows.flow_nlu'))
             data = {
                 "intents": [
-                    {"bot_name": "Wit.AI Consumer", "name": "greet", "bot_id": "WIT_BOT_KEY"},
-                    {"bot_name": "Wit.AI Consumer", "name": "affirm", "bot_id": "WIT_BOT_KEY"},
-                    {"bot_name": "Wit.AI Consumer", "name": "restaurant_search", "bot_id": "WIT_BOT_KEY"},
-                    {"bot_name": "Wit.AI Consumer", "name": "goodbye", "bot_id": "WIT_BOT_KEY"}
+                    {"bot_name": "bot name", "name": "greet", "bot_id": "WIT_BOT_KEY"},
+                    {"bot_name": "bot name", "name": "affirm", "bot_id": "WIT_BOT_KEY"},
+                    {"bot_name": "bot name", "name": "restaurant_search", "bot_id": "WIT_BOT_KEY"},
+                    {"bot_name": "bot name", "name": "goodbye", "bot_id": "WIT_BOT_KEY"}
                 ]
             }
+
             self.assertEqual(response.json(), data)
 
     def test_completion(self):
@@ -5650,7 +5640,7 @@ class FlowsTest(FlowFileTest):
 
     def test_has_intent(self):
         flow = self.get_flow('rules_has_intent')
-        with patch('requests.get') as mock_get:
+        with patch('requests.request') as mock_get:
             mock_get.return_value = MockResponse(200, """
                         {
                             "bot_uuid": "e5bf3007-2629-44e3-8cbe-4505ecb130e2",

@@ -30,17 +30,17 @@
       {{ block.super }}
     .control-group.field_extra_token_name
       %label.control-label
-        -trans "Bot name"
-    .control-group.field_extra_token_name
-      %input{name: 'extra_token_name', type: 'text'}
-      %p.help-block
-        -trans "You can put any name for this bot"
+        -trans "Bot Name"
+      .control-group.field_extra_token_name
+        %input{name: 'extra_token_name', type: 'text', required: "true"}
+        %p.help-block
+          -trans "You can put any name for this bot"
 
     .control-group.field_extra_token
       %label.control-label
-        -trans "Bot key"
+        -trans "Bot Key"
       .control-group.field_extra_token
-        %input{name: 'extra_token', type: 'text'}
+        %input{name: 'extra_token', type: 'text', required: "true"}
         %p.help-block
           -trans "You can get key in your NLU Service website"
 
@@ -50,12 +50,25 @@
 
     -if extra_tokens
       %p
-        -trans "Extra tokens:"
+        %table{class: "table"}
+           %tbody
+            %tr
+              %th
+                -trans "Name"
+              %th
+                -trans "Token"
+              %th
+                -trans "Action"
+
           -for extra in extra_tokens
-            %p
-              {{extra.name}} - {{extra.token}} -
-              %a.posterize{href:'{% url "orgs.org_nlu_api" %}?delete_extra=true&token={{extra.token}}'}
-                -trans "Delete"
+            %tr
+              %td
+                {{extra.name}}
+              %td
+                {{extra.token}}
+              %td
+                %a{href:'{% url "orgs.org_nlu_api" %}?delete_extra=true&token={{extra.token}}'}
+                  -trans "Delete"
 
 -block form-buttons
 
@@ -89,6 +102,15 @@
   :javascript
     $(document).ready(function() {
       select2div('#id_api_name');
+      $('.field_name_bot').eq(0).hide()
+
+      $('#id_api_name').change(() => {
+        if($('#id_api_name').val() == 'WIT'){
+          $('.field_name_bot').eq(0).show()
+        }else{
+          $('.field_name_bot').eq(0).hide()
+        }
+      });
     });
     function confirmNluApiDisconnect() {
       removalConfirmation("disconnect-nlu-api", "Disconnect");
