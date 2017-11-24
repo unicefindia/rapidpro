@@ -242,11 +242,11 @@ class NluApiConsumer(object):
         assert api_name and api_key, _('Please, provide the follow args: api_name and api_key')
 
         if api_name == NLU_BOTHUB_TAG:
-            consumer = BothubConsumer(api_key, api_name).is_valid_token()
+            result = BothubConsumer(api_key, api_name).is_valid_token()
         elif api_name == NLU_WIT_AI_TAG:
-            consumer = WitConsumer(api_key, api_name).is_valid_token()
+            result = WitConsumer(api_key, api_name).is_valid_token()
         else:
-            consumer = None
+            result = False
             logging.warning(_('Consumer not found, please provide a valid'))
 
-        return consumer
+        return result
