@@ -1371,6 +1371,11 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
 
       @checkTerminal(actionset)
       @markDirty()
+
+    getIntentsFromEntity: (name, token) ->
+      $http.get('/flow/nlu/?token=' + name + '&name=' + token).success (data) ->
+        if data
+          return data
 ]
 
 ModalController = ($scope, $modalInstance, type, title, body, hideCancel=false, details=null, ok=null) ->

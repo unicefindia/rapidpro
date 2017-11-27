@@ -1316,16 +1316,25 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
     placeholder: "sort-placeholder"
 
   $scope.updateCategory = (rule) ->
-
     # only auto name things if our flag is set
     # we don't want to update categories if they've been set
-    if not rule.category._autoName
+    if not rule.category._autoName and rule._config.type != 'has_intent'
       return
 
     categoryName = $scope.getDefaultCategory(rule)
-    if not rule._config.type == 'has_intent'
+    if rule._config.type == 'has_intent'
+      if typeof(rule.test._base) != 'object'
+          rule.test._base = {}
+      if $scope.nluType == 'WIT' and rule.test._base.hasOwnProperty('intent')
+        Flow.getIntentsFromEntity(rule.test._base.intent.bot_id, rule.test._base.intent.name)
+    else
       if rule.test.hasOwnProperty('intent')
         delete rule.test.intent
+      if rule.test.hasOwnProperty('intent_from_entity')
+        delete rule.test.intent_from_entity
+      if typeof(rule.test._base) == 'object'
+        if rule.test._base.hasOwnProperty('intent') or rule.test._base.hasOwnProperty('intent_from_entity')
+          delete rule.test._base
 
     if rule.category
       rule.category._base = categoryName
@@ -1353,7 +1362,7 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
   $scope.getDefaultCategory = (rule) ->
 
     categoryName = ''
-    if rule.test and rule.test._base and rule._config.type != 'has_intent'
+    if rule.test and rule.test._base? and typeof(rule.test._base) == "string" and rule._config.type != 'has_intent'
       categoryName = rule.test._base.strip()
 
     op = rule._config.type
