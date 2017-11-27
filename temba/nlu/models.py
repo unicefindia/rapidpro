@@ -31,6 +31,7 @@ class BaseConsumer(object):
     def __init__(self, auth, nlu_type, extra_tokens=None):
         self.auth = auth
         self.name = "%s Consumer" % dict(NLU_API_CHOICES).get(nlu_type)
+        self.type = nlu_type
         self.extra_tokens = extra_tokens
 
     def __str__(self):

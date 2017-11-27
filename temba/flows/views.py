@@ -856,9 +856,9 @@ class FlowCRUDL(SmartCRUDL):
         def render_to_response(self, context, **response_kwargs):
             consumer = NluApiConsumer.factory(self.request.user.get_org())
             if consumer:
-                return JsonResponse(dict(intents=consumer.get_intents()))
+                return JsonResponse(dict(bots_intents=consumer.get_intents(), nlu_type=consumer.type))
             else:
-                return JsonResponse(dict(intents=None))
+                return JsonResponse(dict(bots_intents=None, nlu_type=None))
 
     class Completion(OrgPermsMixin, SmartListView):
         def render_to_response(self, context, **response_kwargs):
