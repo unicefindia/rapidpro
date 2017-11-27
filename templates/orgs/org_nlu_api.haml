@@ -25,6 +25,10 @@
 -block fields
   {{ block.super }}
 
+  -if api_name
+    %button{class: 'btn btn-add-token'}
+      -trans "Add token"
+
   -if extra_tokens
     %p
       %table{class: "table"}

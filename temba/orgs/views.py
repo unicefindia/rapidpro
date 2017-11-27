@@ -2092,10 +2092,6 @@ class OrgCRUDL(SmartCRUDL):
                 fields = ('api_name', 'name_bot', 'api_key', 'disconnect')
 
         class NluApiExtraForm(NluApiForm):
-            extra_token_name = forms.CharField(max_length=255, label=_("Bot Name"), required=True,
-                                               help_text="You can put any name for this bot")
-            extra_token = forms.CharField(max_length=255, label=_("API Key"), required=True,
-                                          help_text="You can get key in your NLU Service website")
             token = forms.CharField(widget=forms.HiddenInput, max_length=4, required=True, initial=True)
 
             def clean(self):
@@ -2104,10 +2100,7 @@ class OrgCRUDL(SmartCRUDL):
 
             class Meta:
                 model = Org
-                fields = ('api_name', 'name_bot', 'api_key', 'disconnect', 'extra_token_name', 'extra_token')
-                widgets = {'name_bot': forms.HiddenInput(),
-                           'api_key': forms.HiddenInput(),
-                           'api_name': forms.HiddenInput()}
+                fields = ('api_name', 'name_bot', 'api_key', 'disconnect', 'token')
 
         success_message = ''
         success_url = '@orgs.org_home'
