@@ -221,7 +221,7 @@
               .operation{ng-if:"rule._config.operands == 0"}
 
               .operation{ng-if:'rule._config.type == "has_intent" || len(listBotsIntents) > 0'}
-                %select{ng-options:"botIntent as botIntent.name group by botIntent.bot_name for botIntent in listBotsIntents", ng-model:"rule.test._base.intent", ng-init:"initHasIntent(rule)", ng-change:"updateCategory(rule)", style:"height:34px;width:159px", select2:""}
+                %select{ng-options:"botIntent as botIntent.name group by botIntent.bot_name for botIntent in listBotsIntents", ng-model:"rule.test._base.intent", ng-init:"initHasIntent(rule)", ng-change:"updateCategory(rule)", class:"intents-nlu", select2:""}
 
               .categorize
                 -trans "categorize as"
@@ -239,12 +239,12 @@
               %div{ng-if:'rule._config.type == "has_intent" || len(listBotsIntents) > 0'}
                 %span{ng-if:'nluType == "WIT"', class:"intents-wit"}
                   containing any of these intents
-                  %span{options:"rule.listBotsIntentsFromEntity", selected-model:"rule.test._base.intent_from_entity", extra-settings:"extraSettingsWitIntents", disabled:"rule.intentsFromEntityDisabled", ng-dropdown-multiselect:"", style:"height:34px;width:159px;"}
+                  %span{options:"rule.listBotsIntentsFromEntity", selected-model:"rule.test._base.intent_from_entity", extra-settings:"extraSettingsWitIntents", disabled:"rule.intentsFromEntityDisabled", ng-dropdown-multiselect:"", class:"intents-from-entity"}
 
                 %span{class:"accuracy-nlu"}
                   %span
                     -trans "with accuracy"
-                  %select{ng-options:"accuracy for accuracy in [10,20,30,40,50,60,70,80,90,100]", ng-model:"rule.test._base.accuracy", style:"height:34px;width:89px", select2:""}
+                  %select{ng-options:"accuracy for accuracy in [10,20,30,40,50,60,70,80,90,100]", ng-model:"rule.test._base.accuracy", class:"select2-accuracy", select2:""}
 
 .modal-footer
   .ussd-counter{ng-class:"{limit: characters < 0}", ng-if:'formData.rulesetConfig.type == "wait_menu" || formData.rulesetConfig.type == "wait_ussd"'}

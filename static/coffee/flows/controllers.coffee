@@ -1153,7 +1153,16 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
   $scope.flowFields = Flow.getFlowFields(ruleset)
   $scope.listBotsIntents = Flow.nluInformations.bots_intents
   $scope.nluType = Flow.nluInformations.nlu_type
-  $scope.extraSettingsWitIntents = {scrollableHeight: '100px', scrollable: true, smartButtonMaxItems: 3, styleActive: true, buttonClasses: 'btn multiselect-wit',template: '[[option.label]]'}
+  $scope.extraSettingsWitIntents = {
+                                      scrollableHeight: '100px',
+                                      buttonClasses: 'btn multiselect-wit',
+                                      template: '[[option.label]]',
+                                      styleActive: true,
+                                      smartButtonMaxItems: 3,
+                                      showCheckAll: false,
+                                      showUncheckAll: false,
+                                      scrollable: true
+                                   }
 
   $scope.fieldIndexOptions = [{text:'first', id: 0},
                               {text:'second', id: 1},
@@ -1319,12 +1328,15 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
   $scope.initHasIntent = (rule) ->
     if typeof(rule.test._base) != 'object'
       rule.test._base = {}
-    if $scope.nluType == 'WIT'
-      rule.intentsFromEntityDisabled = true
-      rule.listBotsIntentsFromEntity = []
-      Flow.getIntentsFromEntity(rule.test._base.intent.bot_id, rule.test._base.intent.name).success (data) ->
-        rule.listBotsIntentsFromEntity = data.intents_from_entity
-        rule.intentsFromEntityDisabled = false
+    else
+      if $scope.nluType == 'WIT' and rule.test._base.hasOwnProperty('intent')
+        rule.intentsFromEntityDisabled = true
+        rule.listBotsIntentsFromEntity = []
+        Flow.getIntentsFromEntity(rule.test._base.intent.bot_id, rule.test._base.intent.name).success (data) ->
+          rule.listBotsIntentsFromEntity = data.intents_from_entity
+          rule.intentsFromEntityDisabled = false
+      else
+        rule.intentsFromEntityDisabled = true
 
   $scope.removeHasIntentProp = (rule) ->
     if rule.test.hasOwnProperty('intent')
@@ -1349,12 +1361,17 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
     if rule._config.type != 'has_intent'
       $scope.removeHasIntentProp(rule)
     else
-      if $scope.nluType == 'WIT'
-        rule.test._base.intent_from_entity = []
-        rule.intentsFromEntityDisabled = true
-        Flow.getIntentsFromEntity(rule.test._base.intent.bot_id, rule.test._base.intent.name).success (data) ->
-          rule.listBotsIntentsFromEntity = data.intents_from_entity
-          rule.intentsFromEntityDisabled = false
+      if typeof(rule.test._base) != 'object' 
+        rule.test._base = {}
+      else
+        if $scope.nluType == 'WIT' and rule.test._base.hasOwnProperty('intent')
+          rule.test._base.intent_from_entity = []
+          rule.intentsFromEntityDisabled = true
+          Flow.getIntentsFromEntity(rule.test._base.intent.bot_id, rule.test._base.intent.name).success (data) ->
+            rule.listBotsIntentsFromEntity = data.intents_from_entity
+            rule.intentsFromEntityDisabled = false
+        else
+          rule.intentsFromEntityDisabled = true
 
     if rule.category
       rule.category._base = categoryName
