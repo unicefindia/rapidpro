@@ -217,6 +217,12 @@ class WitConsumer(BaseConsumer):
 
         return intents_list
 
+    def get_intents_from_entity(self, token, entity):
+        entity_url = '%s/entities/%s' % (self.BASE_URL, entity.replace('/', '$'))
+        response = self._request(entity_url, headers=self.get_headers(prefix=self.AUTH_PREFIX, token=token))
+        if response.status_code == 200:
+            return [{'id':idx, 'label': item.get('value')} for idx, item in enumerate(json.loads(response.content).get('values'))]
+
 
 class NluApiConsumer(object):
     """
