@@ -1153,6 +1153,7 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
   $scope.flowFields = Flow.getFlowFields(ruleset)
   $scope.listBotsIntents = Flow.nluInformations.bots_intents
   $scope.nluType = Flow.nluInformations.nlu_type
+  $scope.extraSettingsWitIntents = {scrollableHeight: '100px', scrollable: true, smartButtonMaxItems: 3, styleActive: true, buttonClasses: 'btn multiselect-wit',template: '[[option.label]]'}
 
   $scope.fieldIndexOptions = [{text:'first', id: 0},
                               {text:'second', id: 1},
@@ -1315,26 +1316,45 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
     scroll:false
     placeholder: "sort-placeholder"
 
+  $scope.initHasIntent = (rule) ->
+    if typeof(rule.test._base) != 'object'
+      rule.test._base = {}
+    if $scope.nluType == 'WIT'
+      rule.intentsFromEntityDisabled = true
+      rule.listBotsIntentsFromEntity = []
+      Flow.getIntentsFromEntity(rule.test._base.intent.bot_id, rule.test._base.intent.name).success (data) ->
+        rule.listBotsIntentsFromEntity = data.intents_from_entity
+        rule.intentsFromEntityDisabled = false
+
+  $scope.removeHasIntentProp = (rule) ->
+    if rule.test.hasOwnProperty('intent')
+      delete rule.test.intent
+    if rule.test.hasOwnProperty('intent_from_entity')
+      delete rule.test.intent_from_entity
+    if rule.hasOwnProperty('listBotsIntentsFromEntity')
+      delete rule.listBotsIntentsFromEntity
+    if rule.hasOwnProperty('intentsFromEntityDisabled')
+      delete rule.intentsFromEntityDisabled
+    if typeof(rule.test._base) == 'object'
+      if rule.test._base.hasOwnProperty('intent') or rule.test._base.hasOwnProperty('intent_from_entity')
+        delete rule.test._base
+
   $scope.updateCategory = (rule) ->
     # only auto name things if our flag is set
     # we don't want to update categories if they've been set
     if not rule.category._autoName and rule._config.type != 'has_intent'
       return
-
     categoryName = $scope.getDefaultCategory(rule)
-    if rule._config.type == 'has_intent'
-      if typeof(rule.test._base) != 'object'
-          rule.test._base = {}
-      if $scope.nluType == 'WIT' and rule.test._base.hasOwnProperty('intent')
-        Flow.getIntentsFromEntity(rule.test._base.intent.bot_id, rule.test._base.intent.name)
+
+    if rule._config.type != 'has_intent'
+      $scope.removeHasIntentProp(rule)
     else
-      if rule.test.hasOwnProperty('intent')
-        delete rule.test.intent
-      if rule.test.hasOwnProperty('intent_from_entity')
-        delete rule.test.intent_from_entity
-      if typeof(rule.test._base) == 'object'
-        if rule.test._base.hasOwnProperty('intent') or rule.test._base.hasOwnProperty('intent_from_entity')
-          delete rule.test._base
+      if $scope.nluType == 'WIT'
+        rule.test._base.intent_from_entity = []
+        rule.intentsFromEntityDisabled = true
+        Flow.getIntentsFromEntity(rule.test._base.intent.bot_id, rule.test._base.intent.name).success (data) ->
+          rule.listBotsIntentsFromEntity = data.intents_from_entity
+          rule.intentsFromEntityDisabled = false
 
     if rule.category
       rule.category._base = categoryName

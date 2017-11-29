@@ -221,7 +221,7 @@
               .operation{ng-if:"rule._config.operands == 0"}
 
               .operation{ng-if:'rule._config.type == "has_intent" || len(listBotsIntents) > 0'}
-                %select{ng-options:"botIntent as botIntent.name group by botIntent.bot_name for botIntent in listBotsIntents", ng-model:"rule.test._base.intent", ng-change:"updateCategory(rule)", style:"height:34px;width:159px", select2:""}
+                %select{ng-options:"botIntent as botIntent.name group by botIntent.bot_name for botIntent in listBotsIntents", ng-model:"rule.test._base.intent", ng-init:"initHasIntent(rule)", ng-change:"updateCategory(rule)", style:"height:34px;width:159px", select2:""}
 
               .categorize
                 -trans "categorize as"
@@ -237,13 +237,14 @@
               .error.ng-hide{ng-show:'inner.category.$error.required'}
                 -trans "Please enter a category name."
               %div{ng-if:'rule._config.type == "has_intent" || len(listBotsIntents) > 0'}
-                %span{ng-if:'nluType == "WIT"'}
+                %span{ng-if:'nluType == "WIT"', class:"intents-wit"}
                   containing any of these intents
-                %span{ng-if:'nluType == "WIT"'}
-                  %select{ng-options:"botIntent as botIntent.name group by botIntent.bot_name for botIntent in listBotsIntentsFromEntity", ng-model:"rule.test._base.intent_from_entity", ng-change:"updateCategory(rule)", style:"height:34px;width:159px;overflow:hidden;height:auto;", select2:"", diabled:"true"}
-                %span
-                  -trans "with accuracy"
-                  %select{ng-options:"accuracy * 10 for accuracy in [1,2,3,4,5,6,7,8,9,10]", ng-model:"rule.test._base.accuracy", ng-change:"updateCategory(rule)", style:"height:34px;width:70px", select2:""}
+                  %span{options:"rule.listBotsIntentsFromEntity", selected-model:"rule.test._base.intent_from_entity", extra-settings:"extraSettingsWitIntents", disabled:"rule.intentsFromEntityDisabled", ng-dropdown-multiselect:"", style:"height:34px;width:159px;"}
+
+                %span{class:"accuracy-nlu"}
+                  %span
+                    -trans "with accuracy"
+                  %select{ng-options:"accuracy for accuracy in [10,20,30,40,50,60,70,80,90,100]", ng-model:"rule.test._base.accuracy", style:"height:34px;width:89px", select2:""}
 
 .modal-footer
   .ussd-counter{ng-class:"{limit: characters < 0}", ng-if:'formData.rulesetConfig.type == "wait_menu" || formData.rulesetConfig.type == "wait_ussd"'}
