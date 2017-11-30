@@ -239,7 +239,7 @@
               %div{ng-if:'rule._config.type == "has_intent" || len(listBotsIntents) > 0'}
                 %span{ng-if:'nluType == "WIT"', class:"intents-wit"}
                   containing any of these intents
-                  %span{options:"rule.listBotsIntentsFromEntity", selected-model:"rule.test._base.intent_from_entity", extra-settings:"extraSettingsWitIntents", disabled:"rule.intentsFromEntityDisabled", ng-dropdown-multiselect:"", class:"intents-from-entity"}
+                  %span{options:"rule.listBotsIntentsFromEntity", selected-model:"rule.test._base.intents_from_entity", extra-settings:"extraSettingsWitIntents", disabled:"rule.intentsFromEntityDisabled", ng-dropdown-multiselect:"", class:"intents-from-entity"}
 
                 %span{class:"accuracy-nlu"}
                   %span
