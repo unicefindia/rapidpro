@@ -6725,14 +6725,14 @@ class HasIntentTest(Test):
         intent_informations = self.as_json().get('test', None).get('intent', None)
         if consumer:
             if consumer.type == NLU_WIT_AI_TAG:
-                intents_from_entity = [item.get('id') for item in self.as_json().get('test', None).get('intents_from_entity', None)]
+                intent_from_entity = self.as_json().get('test', None).get('intent_from_entity', None)
 
                 entities_returned = consumer.predict(text, intent_informations.get('bot_id', None))
 
                 for entity in entities_returned.keys():
                     if entity == intent_informations.get('name'):
                         for item in entities_returned.get(entity):
-                            if item.get('value') in intents_from_entity and item.get('confidence') * 100 >= accuracy:
+                            if item.get('value') == intent_from_entity and item.get('confidence') * 100 >= accuracy:
                                 response = dict(intent=item.get('value'), entities=consumer.get_entities(entities_returned))
                                 return 1, json.dumps(response)
             else:

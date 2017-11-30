@@ -1153,16 +1153,6 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
   $scope.flowFields = Flow.getFlowFields(ruleset)
   $scope.listBotsIntents = Flow.nluInformations.bots_intents
   $scope.nluType = Flow.nluInformations.nlu_type
-  $scope.extraSettingsWitIntents = {
-                                      scrollableHeight: '100px',
-                                      buttonClasses: 'btn multiselect-wit',
-                                      template: '[[option.label]]',
-                                      styleActive: true,
-                                      smartButtonMaxItems: 3,
-                                      showCheckAll: false,
-                                      showUncheckAll: false,
-                                      scrollable: true
-                                   }
 
   $scope.fieldIndexOptions = [{text:'first', id: 0},
                               {text:'second', id: 1},
@@ -1331,7 +1321,7 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
     else
       if $scope.nluType == 'WIT' and rule.test._base.hasOwnProperty('intent')
         if clearIntents
-          rule.test._base.intents_from_entity = []
+          rule.test._base.intent_from_entity = []
         rule.intentsFromEntityDisabled = true
         rule.listBotsIntentsFromEntity = []
         Flow.getIntentsFromEntity(rule.test._base.intent.bot_id, rule.test._base.intent.name).success (data) ->
@@ -1343,14 +1333,14 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
   $scope.removeHasIntentProp = (rule) ->
     if rule.test.hasOwnProperty('intent')
       delete rule.test.intent
-    if rule.test.hasOwnProperty('intents_from_entity')
-      delete rule.test.intents_from_entity
+    if rule.test.hasOwnProperty('intent_from_entity')
+      delete rule.test.intent_from_entity
     if rule.hasOwnProperty('listBotsIntentsFromEntity')
       delete rule.listBotsIntentsFromEntity
     if rule.hasOwnProperty('intentsFromEntityDisabled')
       delete rule.intentsFromEntityDisabled
     if typeof(rule.test._base) == 'object'
-      if rule.test._base.hasOwnProperty('intent') or rule.test._base.hasOwnProperty('intents_from_entity')
+      if rule.test._base.hasOwnProperty('intent') or rule.test._base.hasOwnProperty('intent_from_entity')
         delete rule.test._base
 
   $scope.updateCategory = (rule) ->
@@ -1418,7 +1408,7 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
     else if op == "has_email"
       categoryName = "email"
     else if op == "has_intent"
-      if rule.test._base.intent.name
+      if rule.test._base.hasOwnProperty('intent')
         categoryName = rule.test._base.intent.name
       else
         categoryName = "intent"
