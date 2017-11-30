@@ -35,7 +35,7 @@ from temba.channels.models import Channel, ChannelSession
 from temba.locations.models import AdminBoundary
 from temba.msgs.models import Broadcast, Msg, FLOW, INBOX, INCOMING, QUEUED, FAILED, INITIALIZING, HANDLED, Label
 from temba.msgs.models import PENDING, DELIVERED, USSD as MSG_TYPE_USSD, OUTGOING
-from temba.nlu.models import NluApiConsumer
+from temba.nlu.models import NluApiConsumer, NLU_WIT_AI_TAG
 from temba.orgs.models import Org, Language, UNREAD_FLOW_MSGS, get_current_export_version
 from temba.utils import get_datetime_format, str_to_datetime, datetime_to_str, analytics, json_date_to_datetime
 from temba.utils import chunk_list, on_transaction_commit
@@ -6720,14 +6720,27 @@ class HasIntentTest(Test):
         return json
 
     def evaluate(self, run, sms, context, text):
-        intent = self.as_json().get('test', None).get('intent', None)
         consumer = NluApiConsumer.factory(sms.org)
-        if consumer and intent:
-            intent_returned, accuracy, entities = consumer.predict(text, intent.get('bot_id', None))
+        accuracy = self.as_json().get('test', None).get('accuracy', None)
+        intent_informations = self.as_json().get('test', None).get('intent', None)
+        if consumer:
+            if consumer.type == NLU_WIT_AI_TAG:
+                intents_from_entity = [item.get('id') for item in self.as_json().get('test', None).get('intents_from_entity', None)]
 
-            if intent_returned == intent.get('name'):
-                response = dict(intent=intent_returned, entities=entities)
-                return 1, json.dumps(response)
+                entities_returned = consumer.predict(text, intent_informations.get('bot_id', None))
+
+                for entity in entities_returned.keys():
+                    if entity == intent_informations.get('name'):
+                        for item in entities_returned.get(entity):
+                            if item.get('value') in intents_from_entity and item.get('confidence') * 100 >= accuracy:
+                                response = dict(intent=item.get('value'), entities=consumer.get_entities(entities_returned))
+                                return 1, json.dumps(response)
+            else:
+                intent_returned, accuracy_returned, entities = consumer.predict(text, intent_informations.get('bot_id', None))
+
+                if intent_returned == intent_informations.get('name') and accuracy_returned >= accuracy:
+                    response = dict(intent=intent_returned, entities=entities)
+                    return 1, json.dumps(response)
 
         return 0, None
 

@@ -176,18 +176,11 @@ class WitConsumer(BaseConsumer):
         response = self._request(predict_url, data=data, headers=self.get_headers(token=bot, prefix=self.AUTH_PREFIX))
 
         if response.status_code != 200:
-            return None, 0, None
+            return None
 
         predict = json.loads(response.content)
-
         entities = predict.get('entities', {})
-        entities_keys = entities.keys()
-        key = entities_keys[0] if entities_keys else None
-        entity = entities.get(key) if key else None
-        priority_entity = entity[0] if entity else None
-
-        return (priority_entity.get('value'), priority_entity.get('confidence'), self.get_entities(entities)) \
-            if priority_entity else (None, 0, None)
+        return entities if entities else None
 
     def is_valid_token(self):
         intents_url = '%s/entities' % self.BASE_URL
