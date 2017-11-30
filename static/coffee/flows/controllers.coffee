@@ -1418,7 +1418,7 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
     else if op == "has_email"
       categoryName = "email"
     else if op == "has_intent"
-      if rule.test._base.intent.bot_name
+      if rule.test._base.intent.name
         categoryName = rule.test._base.intent.name
       else
         categoryName = "intent"
@@ -1731,6 +1731,10 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
       fieldChecks.push(formData.webhook)
     
     for rule in $scope.ruleset.rules
+      if rule.hasOwnProperty('intentsFromEntityDisabled')
+        delete rule.intentsFromEntityDisabled
+      if rule.hasOwnProperty('listBotsIntentsFromEntity')
+        delete rule.listBotsIntentsFromEntity
       if rule.test._base
         fieldChecks.push(rule.test._base)
     
