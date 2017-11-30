@@ -1325,11 +1325,13 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
     scroll:false
     placeholder: "sort-placeholder"
 
-  $scope.initHasIntent = (rule) ->
+  $scope.initHasIntent = (rule, clearIntents=false) ->
     if typeof(rule.test._base) != 'object'
       rule.test._base = {}
     else
       if $scope.nluType == 'WIT' and rule.test._base.hasOwnProperty('intent')
+        if clearIntents
+          rule.test._base.intent_from_entity = []
         rule.intentsFromEntityDisabled = true
         rule.listBotsIntentsFromEntity = []
         Flow.getIntentsFromEntity(rule.test._base.intent.bot_id, rule.test._base.intent.name).success (data) ->
@@ -1361,17 +1363,7 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
     if rule._config.type != 'has_intent'
       $scope.removeHasIntentProp(rule)
     else
-      if typeof(rule.test._base) != 'object' 
-        rule.test._base = {}
-      else
-        if $scope.nluType == 'WIT' and rule.test._base.hasOwnProperty('intent')
-          rule.test._base.intent_from_entity = []
-          rule.intentsFromEntityDisabled = true
-          Flow.getIntentsFromEntity(rule.test._base.intent.bot_id, rule.test._base.intent.name).success (data) ->
-            rule.listBotsIntentsFromEntity = data.intents_from_entity
-            rule.intentsFromEntityDisabled = false
-        else
-          rule.intentsFromEntityDisabled = true
+      $scope.initHasIntent(rule, true)
 
     if rule.category
       rule.category._base = categoryName
@@ -1426,7 +1418,10 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
     else if op == "has_email"
       categoryName = "email"
     else if op == "has_intent"
-      categoryName = "intent"
+      if rule.test._base.intent.bot_name
+        categoryName = rule.test._base.intent.name
+      else
+        categoryName = "intent"
     else if op == "regex"
       categoryName = "matches"
     else if op == "date"
