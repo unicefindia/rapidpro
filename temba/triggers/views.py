@@ -5,6 +5,7 @@ import regex
 
 from datetime import timedelta
 from django import forms
+from django.core.exceptions import ValidationError
 from django.core.urlresolvers import reverse
 from django.utils.timezone import get_current_timezone_name
 from django.views.decorators.csrf import csrf_exempt
@@ -22,7 +23,7 @@ from temba.schedules.views import BaseScheduleForm
 from temba.channels.models import Channel, ChannelType
 from temba.flows.models import Flow
 from temba.msgs.views import ModalMixin
-from temba.nlu.models import NLU_API_NAME, NluApiConsumer
+from temba.nlu.models import NLU_API_NAME, NLU_WIT_AI_TAG, NluApiConsumer
 from temba.utils import analytics, on_transaction_commit
 from temba.utils.views import BaseActionForm
 from .models import Trigger
@@ -371,14 +372,29 @@ class NluApiTriggerForm(GroupBasedTriggerForm):
     """
     accuracy = forms.IntegerField(max_value=100, min_value=0, required=True, label=_("Accuracy Rate"),
                                   help_text=_("The minimum accuracy rate between 0 and 100"))
-    bots = forms.MultipleChoiceField(label=_("Bot Interpreter"), required=True,
+    bots = forms.ChoiceField(label=_("Bot Interpreter"), required=True,
                                      help_text=_("Bot that will intepreter words and return intents"))
+
+    class MultiChoiceFieldNoValidation(forms.MultipleChoiceField):
+        def validate(self, value):
+            if not value:
+                raise ValidationError(
+                    self.error_messages['invalid_choice'],
+                    code='invalid_choice',
+                    params={'value': 'none'},
+                )
 
     def __init__(self, user, *args, **kwargs):
         org = user.get_org()
         flows = Flow.objects.filter(org=org, is_active=True, is_archived=False, flow_type__in=[Flow.FLOW])
         super(NluApiTriggerForm, self).__init__(user, flows, *args, **kwargs)
         self.fields['bots'].choices = NluApiTriggerForm.get_bots_by_org(org)
+        if org.nlu_api_config_json().get(NLU_API_NAME) == NLU_WIT_AI_TAG:
+            self.fields['intents_from_entity'] = self.MultiChoiceFieldNoValidation(label=_("Intent from entity"), required=True,
+                                                                                   help_text=_("This is the intent from your bot entity"))
+
+    def clean(self):
+        return super(BaseTriggerForm, self).clean()
 
     @staticmethod
     def get_bots_by_org(org):
@@ -499,6 +515,8 @@ class TriggerCRUDL(SmartCRUDL):
                     intent_bots_to_view.append("%s$%s$%s" % (intent_bot['intent'], intent_bot['token'], intent_bot['name']))
                 context['intent_bot'] = json.dumps(intent_bots_to_view)
                 context['accuracy'] = nlu_data.get('accuracy')
+                if context['api_name'] == NLU_WIT_AI_TAG:
+                    context['intents_from_entity'] = json.dumps(nlu_data.get('intents_from_entity'))
 
             context['user_tz'] = get_current_timezone_name()
             context['user_tz_offset'] = int(timezone.localtime(timezone.now()).utcoffset().total_seconds() / 60)
@@ -581,10 +599,13 @@ class TriggerCRUDL(SmartCRUDL):
                     on_transaction_commit(lambda: check_schedule_task.delay(trigger.schedule.pk))
 
             if trigger_type == Trigger.TYPE_NLU_API:
-                nlu_data = json.dumps(dict(intent_bot=TriggerCRUDL.NluApi.convert_intent_bot(form.cleaned_data['bots']),
-                                           accuracy=form.cleaned_data['accuracy']))
+                nlu_data = dict(intent_bot=TriggerCRUDL.NluApi.convert_intent_bot(form.cleaned_data['bots']),
+                                accuracy=form.cleaned_data['accuracy'])
 
-                trigger.nlu_data = nlu_data
+                if self.org.nlu_api_config_json().get(NLU_API_NAME) == NLU_WIT_AI_TAG:
+                    nlu_data.update(dict(intents_from_entity=form.cleaned_data['intents_from_entity']))
+
+                trigger.nlu_data = json.dumps(nlu_data)
 
             response = super(TriggerCRUDL.Update, self).form_valid(form)
             response['REDIRECT'] = self.get_success_url()
@@ -955,6 +976,8 @@ class TriggerCRUDL(SmartCRUDL):
 
         @staticmethod
         def convert_intent_bot(bots):
+            if isinstance(bots, unicode):
+                bots = [bots]
             intent_bot = []
             for bot in bots:
                 bot_splited = bot.split('$')
@@ -966,10 +989,13 @@ class TriggerCRUDL(SmartCRUDL):
             org = user.get_org()
             groups = form.cleaned_data['groups']
 
-            nlu_data = json.dumps(dict(intent_bot=TriggerCRUDL.NluApi.convert_intent_bot(form.cleaned_data['bots']),
-                                       accuracy=form.cleaned_data['accuracy']))
+            nlu_data = dict(intent_bot=TriggerCRUDL.NluApi.convert_intent_bot(form.cleaned_data['bots']),
+                            accuracy=form.cleaned_data['accuracy'])
 
-            self.object = Trigger.create(org, user, Trigger.TYPE_NLU_API, form.cleaned_data['flow'], nlu_data=nlu_data)
+            if org.nlu_api_config_json().get(NLU_API_NAME) == NLU_WIT_AI_TAG:
+                nlu_data.update(dict(intents_from_entity=form.cleaned_data['intents_from_entity']))
+
+            self.object = Trigger.create(org, user, Trigger.TYPE_NLU_API, form.cleaned_data['flow'], nlu_data=json.dumps(nlu_data))
             for group in groups:
                 self.object.groups.add(group)
 
