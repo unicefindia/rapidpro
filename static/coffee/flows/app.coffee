@@ -1,7 +1,7 @@
 #============================================================================
 # Configure our app
 #============================================================================
-app = angular.module('app', ['ui.sortable', 'ui.bootstrap', 'ngAnimate', 'angularFileUpload', 'angularjs-dropdown-multiselect', 'monospaced.elastic',
+app = angular.module('app', ['ui.sortable', 'ui.bootstrap', 'ngAnimate', 'angularFileUpload', 'monospaced.elastic',
                              'temba.validation', 'temba.services', 'temba.controllers',
                              'temba.directives', 'temba.widgets'])
 

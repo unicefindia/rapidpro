@@ -855,9 +855,9 @@ class FlowCRUDL(SmartCRUDL):
     class Nlu(OrgPermsMixin, SmartListView):
         def render_to_response(self, context, **response_kwargs):
             consumer = NluApiConsumer.factory(self.request.user.get_org())
-            if self.request.GET.get('token') and self.request.GET.get('name'):
+            if self.request.GET.get('token') and self.request.GET.get('entity'):
                 return JsonResponse(dict(intents_from_entity=consumer.get_intents_from_entity(self.request.GET.get('token'),
-                                                                                              self.request.GET.get('name'))))
+                                                                                              self.request.GET.get('entity'))))
             else:
                 if consumer:
                     return JsonResponse(dict(bots_intents=consumer.get_intents(), nlu_type=consumer.type))

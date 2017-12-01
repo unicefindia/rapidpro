@@ -1372,8 +1372,8 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
       @checkTerminal(actionset)
       @markDirty()
 
-    getIntentsFromEntity: (name, token) ->
-      return $http.get('/flow/nlu/?token=' + name + '&name=' + token).success (data) ->
+    getIntentsFromEntity: (token, entity) ->
+      return $http.get('/flow/nlu/?token=' + token + '&entity=' + entity).success (data) ->
 
 ]
 
