@@ -23,52 +23,33 @@
     %hr
 
 -block fields
-  -if not api_name
-    {{ block.super }}
-  -else
-    .hide
-      {{ block.super }}
-    .control-group.field_extra_token_name
-      %label.control-label
-        -trans "Bot Name"
-      .control-group.field_extra_token_name
-        %input{name: 'extra_token_name', type: 'text', required: "true"}
-        %p.help-block
-          -trans "You can put any name for this bot"
+  {{ block.super }}
 
-    .control-group.field_extra_token
-      %label.control-label
-        -trans "Bot Key"
-      .control-group.field_extra_token
-        %input{name: 'extra_token', type: 'text', required: "true"}
-        %p.help-block
-          -trans "You can get key in your NLU Service website"
-
-    %input{name: 'token', type: 'hidden', value: 'true'}
+  -if api_name
     %button{class: 'btn btn-add-token'}
       -trans "Add token"
 
-    -if extra_tokens
-      %p
-        %table{class: "table"}
-           %tbody
-            %tr
-              %th
-                -trans "Name"
-              %th
-                -trans "Token"
-              %th
-                -trans "Action"
+  -if extra_tokens
+    %p
+      %table{class: "table"}
+        %tbody
+          %tr
+            %th
+              -trans "Name"
+            %th
+              -trans "Token"
+            %th
+              -trans "Action"
 
-          -for extra in extra_tokens
-            %tr
-              %td
-                {{extra.name}}
-              %td
-                {{extra.token}}
-              %td
-                %a{href:'{% url "orgs.org_nlu_api" %}?delete_extra=true&token={{extra.token}}'}
-                  -trans "Delete"
+        -for extra in extra_tokens
+          %tr
+            %td
+              {{extra.name}}
+            %td
+              {{extra.token}}
+            %td
+              %a{href:'{% url "orgs.org_nlu_api" %}?delete_extra=true&token={{extra.token}}'}
+                -trans "Delete"
 
 -block form-buttons
 

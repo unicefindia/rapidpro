@@ -973,7 +973,7 @@ class Org(SmartModel):
 
     def remove_extra_token(self, user, token):
         nlu_api_config = self.nlu_api_config_json()
-        for extra_saved in nlu_api_config['extra_tokens']:
+        for extra_saved in nlu_api_config.get('extra_tokens', []):
             if extra_saved['token'] == token:
                 nlu_api_config['extra_tokens'].remove(extra_saved)
                 self.set_new_nlu_config(user, json.dumps(nlu_api_config))
