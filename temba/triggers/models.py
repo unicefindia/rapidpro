@@ -15,7 +15,7 @@ from temba.contacts.models import Contact, ContactGroup
 from temba.flows.models import Flow, FlowRun, FlowStart
 from temba.ivr.models import IVRCall
 from temba.msgs.models import Msg
-from temba.nlu.models import NluApiConsumer
+from temba.nlu.models import NluApiConsumer, NLU_WIT_AI_TAG
 from temba.orgs.models import Org
 from temba_expressions.utils import tokenize
 
@@ -473,14 +473,23 @@ class Trigger(SmartModel):
             consumer = NluApiConsumer.factory(entity.org)
             if consumer and nlu_data and nlu_data.get('bots', None):
                 for bot in nlu_data['bots']:
-                    intent, accuracy, entities = consumer.predict(entity, bot)
-                    accuracy *= 100
+                    if consumer.type == NLU_WIT_AI_TAG:
+                        entities = consumer.predict(entity, bot)
+                        for item in entities.keys():
+                            for intent in entities.get(item):
+                                if intent.get('value') in nlu_data['intents_from_entity'] and intent.get('confidence') * 100 >= nlu_data.get('accuracy'):
+                                    extra = dict(intent=intent.get('value'), entities=consumer.get_entities(entities))
+                                    trigger.flow.start([], [entity.contact], start_msg=entity, restart_participants=True, extra=extra)
+                                    return True
+                    else:
+                        intent, accuracy, entities = consumer.predict(entity, bot)
+                        accuracy *= 100
 
-                    if intent in nlu_data[bot] and accuracy >= nlu_data.get('accuracy'):
-                        extra = dict(intent=intent, entities=entities)
-                        trigger.flow.start([], [entity.contact], start_msg=entity, restart_participants=True,
-                                           extra=extra)
-                        return True
+                        if intent in nlu_data[bot] and accuracy >= nlu_data.get('accuracy'):
+                            extra = dict(intent=intent, entities=entities)
+                            trigger.flow.start([], [entity.contact], start_msg=entity, restart_participants=True,
+                                               extra=extra)
+                            return True
 
         return False
 

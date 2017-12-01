@@ -373,7 +373,7 @@ class NluApiTriggerForm(GroupBasedTriggerForm):
     accuracy = forms.IntegerField(max_value=100, min_value=0, required=True, label=_("Accuracy Rate"),
                                   help_text=_("The minimum accuracy rate between 0 and 100"))
     bots = forms.ChoiceField(label=_("Bot Interpreter"), required=True,
-                                     help_text=_("Bot that will intepreter words and return intents"))
+                             help_text=_("Bot that will intepreter words and return intents"))
 
     class MultiChoiceFieldNoValidation(forms.MultipleChoiceField):
         def validate(self, value):
