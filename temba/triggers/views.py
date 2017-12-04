@@ -373,7 +373,7 @@ class NluApiTriggerForm(GroupBasedTriggerForm):
     accuracy = forms.IntegerField(max_value=100, min_value=0, required=True, label=_("Accuracy Rate"),
                                   help_text=_("The minimum accuracy rate between 0 and 100"))
     bots = forms.MultipleChoiceField(label=_("Bot Interpreter"), required=True,
-                             help_text=_("Bot that will intepreter words and return intents"))
+                                     help_text=_("Bot that will intepreter words and return intents"))
 
     class MultiChoiceFieldNoValidation(forms.MultipleChoiceField):
         def validate(self, value):
@@ -394,7 +394,6 @@ class NluApiTriggerForm(GroupBasedTriggerForm):
             self.fields['bots'] = forms.ChoiceField(label=_("Bot Interpreter"), required=True,
                                                     help_text=_("Bot that will intepreter words and return intents"))
         self.fields['bots'].choices = NluApiTriggerForm.get_bots_by_org(org)
-
 
     def clean(self):
         return super(BaseTriggerForm, self).clean()
@@ -979,7 +978,7 @@ class TriggerCRUDL(SmartCRUDL):
 
         @staticmethod
         def convert_intent_bot(bots):
-            if isinstance(bots, unicode):
+            if not isinstance(bots, list):
                 bots = [bots]
             intent_bot = []
             for bot in bots:
