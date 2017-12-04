@@ -2060,10 +2060,9 @@ class OrgCRUDL(SmartCRUDL):
                                          help_text="Select the NLU Service", choices=NLU_API_CHOICES)
             name_bot = forms.CharField(max_length=255, label=_("Bot Name"), required=False,
                                        help_text="Enter the bot name")
-            api_key = forms.CharField(max_length=255, label=_("API Key"), required=False,
+            api_key_nlu = forms.CharField(max_length=255, label=_("API Key"), required=False,
                                       help_text="Enter the NLU API Key")
             disconnect = forms.CharField(widget=forms.HiddenInput, max_length=6, required=True)
-            extra = forms.CharField(widget=forms.HiddenInput, max_length=6, required=False)
 
             def clean(self):
                 super(OrgCRUDL.NluApi.NluApiForm, self).clean()
@@ -2076,20 +2075,20 @@ class OrgCRUDL(SmartCRUDL):
                 if 'true' not in actions:
                     api_name = self.cleaned_data.get('api_name')
                     name_bot = self.cleaned_data.get('name_bot')
-                    api_key = self.cleaned_data.get('api_key')
+                    api_key_nlu = self.cleaned_data.get('api_key_nlu')
 
                     if api_name == NLU_WIT_AI_TAG and not name_bot:
                         raise ValidationError(_("Missing data: Bot Name. "
                                                 "Please check them again and retry."))
 
-                    elif not api_name or not api_key or not NluApiConsumer.is_valid_token(api_name, api_key):
+                    elif not api_name or not api_key_nlu or not NluApiConsumer.is_valid_token(api_name, api_key_nlu):
                         raise ValidationError(_("Incorrect data. Please check if all fields that were sent."))
 
                 return self.cleaned_data
 
             class Meta:
                 model = Org
-                fields = ('api_name', 'name_bot', 'api_key', 'disconnect')
+                fields = ('api_name', 'name_bot', 'api_key_nlu', 'disconnect')
 
         class NluApiExtraForm(NluApiForm):
             token = forms.CharField(widget=forms.HiddenInput, max_length=4, required=True, initial=True)
@@ -2117,10 +2116,9 @@ class OrgCRUDL(SmartCRUDL):
             org = self.get_object()
             config = org.nlu_api_config_json()
             initial['api_name'] = config.get(NLU_API_NAME, '')
-            initial['api_key'] = config.get(NLU_API_KEY, '')
+            initial['api_key_nlu'] = config.get(NLU_API_KEY, '')
             initial['extra_tokens'] = config.get('extra_tokens', '')
             initial['disconnect'] = 'false'
-            initial['token'] = 'false'
             return initial
 
         def get_context_data(self, **kwargs):
@@ -2138,7 +2136,7 @@ class OrgCRUDL(SmartCRUDL):
             org = user.get_org()
             if self.request.GET.get('delete_extra', 'false') == 'true':
                 nlu_api_config = org.nlu_api_config_json()
-                if len(nlu_api_config.get('extra_tokens', [])) > 1:
+                if len(nlu_api_config.get('extra_tokens', [])) > 1 or org.nlu_api_config_json().get(NLU_API_NAME) == NLU_BOTHUB_TAG:
                     org.remove_extra_token(user, self.request.GET.get('token'))
                 else:
                     org.remove_nlu_api(user)
