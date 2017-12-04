@@ -6738,7 +6738,7 @@ class HasIntentTest(Test):
             else:
                 intent_returned, accuracy_returned, entities = consumer.predict(text, intent_informations.get('bot_id', None))
 
-                if intent_returned == intent_informations.get('name') and accuracy_returned >= accuracy:
+                if intent_returned == intent_informations.get('name') and accuracy_returned * 100 >= accuracy:
                     response = dict(intent=intent_returned, entities=entities)
                     return 1, json.dumps(response)
 
