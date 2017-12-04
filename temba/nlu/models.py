@@ -17,6 +17,7 @@ NLU_BOTHUB_TAG = 'BTH'
 NLU_WIT_AI_TAG = 'WIT'
 
 NLU_API_CHOICES = (
+    ('', ''),
     (NLU_BOTHUB_TAG, 'BotHub'),
     (NLU_WIT_AI_TAG, 'Wit.AI'),)
 
@@ -238,10 +239,11 @@ class NluApiConsumer(object):
         return consumer
 
     @staticmethod
-    def is_valid_token(api_name, api_key):
+    def is_valid_token(api_name, api_key, bot=None):
         assert api_name and api_key, _('Please, provide the follow args: api_name and api_key')
-
-        if api_name == NLU_BOTHUB_TAG:
+        if bot:
+            result = BothubConsumer(api_key, api_name).is_valid_bot(bot)
+        elif api_name == NLU_BOTHUB_TAG:
             result = BothubConsumer(api_key, api_name).is_valid_token()
         elif api_name == NLU_WIT_AI_TAG:
             result = WitConsumer(api_key, api_name).is_valid_token()
