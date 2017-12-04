@@ -39,7 +39,7 @@ from temba.campaigns.models import Campaign
 from temba.channels.models import Channel
 from temba.flows.models import Flow
 from temba.formax import FormaxMixin
-from temba.nlu.models import NLU_API_NAME, NLU_API_KEY, NLU_API_CHOICES, NluApiConsumer, NLU_WIT_AI_TAG
+from temba.nlu.models import NLU_API_NAME, NLU_API_KEY, NLU_API_CHOICES, NluApiConsumer, NLU_WIT_AI_TAG, NLU_BOTHUB_TAG
 from temba.utils import analytics, languages
 from temba.utils.timezones import TimeZoneFormField
 from temba.utils.email import is_valid_address
@@ -2090,16 +2090,32 @@ class OrgCRUDL(SmartCRUDL):
                 model = Org
                 fields = ('api_name', 'name_bot', 'api_key_nlu', 'disconnect')
 
-        class NluApiExtraForm(NluApiForm):
-            token = forms.CharField(widget=forms.HiddenInput, max_length=4, required=True, initial=True)
+        class NluApiExtraForm(forms.ModelForm):
+            extra_token_name = forms.CharField(max_length=255, label=_("Bot Name"), required=True,
+                                       help_text="Enter the bot name")
+            extra_token = forms.CharField(max_length=255, label=_("API Key"), required=True,
+                                      help_text="Enter the NLU API Key")
+            token = forms.CharField(widget=forms.HiddenInput, max_length=4, required=True, initial='true')
 
             def clean(self):
                 super(OrgCRUDL.NluApi.NluApiExtraForm, self).clean()
+                if self.cleaned_data.get('token', 'false') == 'true':
+                    api_name, api_key = self.instance.get_nlu_api_credentials()
+                    extra_token_name = self.cleaned_data.get('extra_token_name')
+                    extra_token = self.cleaned_data.get('extra_token')
+
+                    if api_name == NLU_BOTHUB_TAG:
+                        valid_token = NluApiConsumer.is_valid_token(api_name, api_key, extra_token)
+                    else:
+                        valid_token = NluApiConsumer.is_valid_token(api_name, extra_token)
+
+                    if not extra_token_name or not extra_token or not valid_token:
+                        raise ValidationError(_("Incorrect data. Please check if all fields that were sent."))
                 return self.cleaned_data
 
             class Meta:
                 model = Org
-                fields = ('api_name', 'name_bot', 'api_key', 'disconnect', 'token')
+                fields = ('extra_token_name', 'extra_token', 'token')
 
         success_message = ''
         success_url = '@orgs.org_home'
@@ -2153,13 +2169,8 @@ class OrgCRUDL(SmartCRUDL):
                 return HttpResponseRedirect(reverse('orgs.org_home'))
 
             if self.request.POST.get('token', 'false') == 'true':
-                api_name = self.request.POST.get('api_name')
                 extra_token_name = self.request.POST.get('extra_token_name')
                 extra_token = self.request.POST.get('extra_token')
-
-                if not extra_token_name or not extra_token or not NluApiConsumer.is_valid_token(api_name, extra_token):
-                    raise ValidationError(_("Incorrect data. Please check if all fields that were sent."))
-
                 org.add_extra_token(user, dict(name=extra_token_name, token=extra_token))
 
             return super(OrgCRUDL.NluApi, self).post(self, *args, **kwargs)
@@ -2167,15 +2178,15 @@ class OrgCRUDL(SmartCRUDL):
         def form_valid(self, form):
             user = self.request.user
             org = user.get_org()
+            if not form.cleaned_data.get('extra_token'):
+                api_name = form.cleaned_data.get('api_name')
+                api_key = form.cleaned_data.get('api_key_nlu')
+                name_bot = form.cleaned_data.get('name_bot')
 
-            api_name = form.cleaned_data.get('api_name')
-            api_key = form.cleaned_data.get('api_key')
-            name_bot = form.cleaned_data.get('name_bot')
-
-            if api_name == NLU_WIT_AI_TAG:
-                org.connect_nlu_api(user, api_name, api_key, name_bot)
-            else:
-                org.connect_nlu_api(user, api_name, api_key)
+                if api_name == NLU_WIT_AI_TAG:
+                    org.connect_nlu_api(user, api_name, api_key, name_bot)
+                else:
+                    org.connect_nlu_api(user, api_name, api_key)
 
             return super(OrgCRUDL.NluApi, self).form_valid(form)
 
