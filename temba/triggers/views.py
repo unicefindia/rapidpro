@@ -372,7 +372,7 @@ class NluApiTriggerForm(GroupBasedTriggerForm):
     """
     accuracy = forms.IntegerField(max_value=100, min_value=0, required=True, label=_("Accuracy Rate"),
                                   help_text=_("The minimum accuracy rate between 0 and 100"))
-    bots = forms.ChoiceField(label=_("Bot Interpreter"), required=True,
+    bots = forms.MultipleChoiceField(label=_("Bot Interpreter"), required=True,
                              help_text=_("Bot that will intepreter words and return intents"))
 
     class MultiChoiceFieldNoValidation(forms.MultipleChoiceField):
@@ -388,10 +388,13 @@ class NluApiTriggerForm(GroupBasedTriggerForm):
         org = user.get_org()
         flows = Flow.objects.filter(org=org, is_active=True, is_archived=False, flow_type__in=[Flow.FLOW])
         super(NluApiTriggerForm, self).__init__(user, flows, *args, **kwargs)
-        self.fields['bots'].choices = NluApiTriggerForm.get_bots_by_org(org)
         if org.nlu_api_config_json().get(NLU_API_NAME) == NLU_WIT_AI_TAG:
             self.fields['intents_from_entity'] = self.MultiChoiceFieldNoValidation(label=_("Intent from entity"), required=True,
                                                                                    help_text=_("This is the intent from your bot entity"))
+            self.fields['bots'] = forms.ChoiceField(label=_("Bot Interpreter"), required=True,
+                                                    help_text=_("Bot that will intepreter words and return intents"))
+        self.fields['bots'].choices = NluApiTriggerForm.get_bots_by_org(org)
+
 
     def clean(self):
         return super(BaseTriggerForm, self).clean()
