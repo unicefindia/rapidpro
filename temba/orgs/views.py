@@ -2061,7 +2061,7 @@ class OrgCRUDL(SmartCRUDL):
             name_bot = forms.CharField(max_length=255, label=_("Bot Name"), required=False,
                                        help_text="Enter the bot name")
             api_key_nlu = forms.CharField(max_length=255, label=_("API Key"), required=False,
-                                      help_text="Enter the NLU API Key")
+                                          help_text="Enter the NLU API Key")
             disconnect = forms.CharField(widget=forms.HiddenInput, max_length=6, required=True)
 
             def clean(self):
@@ -2092,9 +2092,9 @@ class OrgCRUDL(SmartCRUDL):
 
         class NluApiExtraForm(forms.ModelForm):
             extra_token_name = forms.CharField(max_length=255, label=_("Bot Name"), required=True,
-                                       help_text="Enter the bot name")
+                                               help_text="Enter the bot name")
             extra_token = forms.CharField(max_length=255, label=_("API Key"), required=True,
-                                      help_text="Enter the NLU API Key")
+                                          help_text="Enter the NLU API Key")
             token = forms.CharField(widget=forms.HiddenInput, max_length=4, required=True, initial='true')
 
             def clean(self):
