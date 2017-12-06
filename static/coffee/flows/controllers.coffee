@@ -1408,10 +1408,10 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
     else if op == "has_email"
       categoryName = "email"
     else if op == "has_intent"
-      if rule.test._base.hasOwnProperty('intent')
-        categoryName = rule.test._base.intent.name
-      else
-        categoryName = "intent"
+      categoryName = "intent"
+      if typeof(rule.test._base) == 'object'
+        if rule.test._base.hasOwnProperty('intent')
+          categoryName = rule.test._base.intent.name
     else if op == "regex"
       categoryName = "matches"
     else if op == "date"
