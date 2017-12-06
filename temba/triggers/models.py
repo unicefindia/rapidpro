@@ -475,6 +475,9 @@ class Trigger(SmartModel):
                 for bot in nlu_data['bots']:
                     if consumer.type == NLU_WIT_AI_TAG:
                         entities = consumer.predict(entity, bot)
+                        if not isinstance(entities, dict):
+                            return False
+
                         for item in entities.keys():
                             for intent in entities.get(item):
                                 if intent.get('value') in nlu_data['intents_from_entity'] and intent.get('confidence') * 100 >= nlu_data.get('accuracy'):

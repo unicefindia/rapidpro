@@ -6728,6 +6728,8 @@ class HasIntentTest(Test):
                 intent_from_entity = self.as_json().get('test', None).get('intent_from_entity', None)
 
                 entities_returned = consumer.predict(text, intent_informations.get('bot_id', None))
+                if not isinstance(entities_returned, dict):
+                    return 0, None
 
                 for entity in entities_returned.keys():
                     if entity == intent_informations.get('name'):
