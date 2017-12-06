@@ -85,7 +85,8 @@
       select2div('#id_api_name');
 
       if($('#id_api_name').val() != ""){
-        $('.field_api_name').eq(0).hide()
+        if($('#id_api_key').val() != "")
+          $('.field_api_name').eq(0).hide()
 
         if($('#id_api_name').val() == 'WIT')
           $('.field_name_bot').eq(0).show()
@@ -99,6 +100,7 @@
         else
           $('.field_name_bot').eq(0).hide()
       });
+
       $("a.posterize").click(function(event){
         event.preventDefault();
         event.stopPropagation();
