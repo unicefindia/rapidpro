@@ -99,6 +99,21 @@
         else
           $('.field_name_bot').eq(0).hide()
       });
+      $("a.posterize").click(function(event){
+        event.preventDefault();
+        event.stopPropagation();
+
+        var href = $(this).attr("href");
+        var url = $.url(href);
+
+        $("#posterizer").attr("action", url.attr("path"));
+
+        for (var key in url.param()){
+          $("#posterizer").append("<input type='hidden' name='" + key + "' value='" + url.param(key) + "'></input>");
+        }
+
+        $("#posterizer").submit();
+      });
 
     });
     function confirmNluApiDisconnect() {
