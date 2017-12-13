@@ -249,7 +249,7 @@ class Org(SmartModel):
 
     parent = models.ForeignKey('orgs.Org', null=True, blank=True, help_text=_('The parent org that manages this org'))
 
-    nlu_api_config = models.TextField(null=True, max_length=255, verbose_name=_("NLU API Configuration"),
+    nlu_api_config = models.TextField(null=True, verbose_name=_("NLU API Configuration"),
                                       help_text=_('Settings for Natural Language Understand API'))
 
     @classmethod
