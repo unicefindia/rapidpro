@@ -1215,3 +1215,9 @@ CHATBASE_API_URL = 'https://chatbase.com/api/message'
 
 # To allow manage fields to support up to 1000 fields
 DATA_UPLOAD_MAX_NUMBER_FIELDS = 4000
+
+# -----------------------------------------------------------------------------------
+# Bothub and WIT.AI integration url
+# -----------------------------------------------------------------------------------
+BOTHUB_BASE_URL = 'http://bothubapp-tornado-dev.us-east-1.elasticbeanstalk.com'
+WIT_AI_BASE_URL = 'https://api.wit.ai'

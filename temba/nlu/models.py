@@ -6,7 +6,7 @@ import json
 import logging
 
 from django.utils.translation import ugettext_lazy as _
-
+from django.conf import settings
 from temba.utils.http import http_headers
 
 
@@ -94,7 +94,7 @@ class BothubConsumer(BaseConsumer):
     Bothub consumer
     This consumer will call Bothub api.
     """
-    BASE_URL = 'http://api.bothub.it'
+    BASE_URL = settings.BOTHUB_BASE_URL
     AUTH_PREFIX = 'Bearer'
 
     def predict(self, msg, bot):
@@ -167,7 +167,7 @@ class WitConsumer(BaseConsumer):
     Wit AI consumer
     This consumer will call Wit Ai api.
     """
-    BASE_URL = 'https://api.wit.ai'
+    BASE_URL = settings.WIT_AI_BASE_URL
     AUTH_PREFIX = 'Bearer'
 
     def predict(self, msg, bot):
