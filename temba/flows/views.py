@@ -925,6 +925,9 @@ class FlowCRUDL(SmartCRUDL):
                     flow_variables.append(dict(name='flow.%s.category' % key, display='%s Category' % rule_set.label))
                     flow_variables.append(dict(name='flow.%s.text' % key, display='%s Text' % rule_set.label))
                     flow_variables.append(dict(name='flow.%s.time' % key, display='%s Time' % rule_set.label))
+                    if org.get_nlu_api_credentials()[0]:
+                        flow_variables.append(dict(name='flow.%s.intent' % key, display='%s Intent' % rule_set.label))
+                        flow_variables.append(dict(name='flow.%s.entities' % key, display='%s Entities' % rule_set.label))
 
             function_completions = get_function_listing()
             messages_completions = contact_variables + date_variables + flow_variables
