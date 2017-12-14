@@ -1340,16 +1340,17 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
     placeholder: "sort-placeholder"
 
   $scope.initHasIntent = (rule, clearIntents=false) ->
-    if typeof(rule.test._base) != 'object'
+    if typeof(rule.test._base) != 'object' or rule.test._base == null
       rule.test._base = {}
     else
       if $scope.nluType == 'WIT' and rule.test._base.hasOwnProperty('intent')
         if clearIntents
-          rule.test._base.intent_from_entity = []
+          rule.test._base.intent_from_entity = '------'
         rule.intentsFromEntityDisabled = true
         rule.listBotsIntentsFromEntity = []
         Flow.getIntentsFromEntity(rule.test._base.intent.bot_id, rule.test._base.intent.name).success (data) ->
           rule.listBotsIntentsFromEntity = data.intents_from_entity
+          rule.listBotsIntentsFromEntity.unshift('------')
           rule.intentsFromEntityDisabled = false
       else
         rule.intentsFromEntityDisabled = true
