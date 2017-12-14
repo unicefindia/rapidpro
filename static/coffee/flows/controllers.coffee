@@ -1165,8 +1165,18 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
 
   if typeof(Flow.nluInformations) == 'object'
     $scope.listBotsIntents = Flow.nluInformations.bots_intents
+    $scope.nluType = Flow.nluInformations.nlu_type
+    $scope.accuracyMapValues = [{label: '10%', value: 10},
+                                {label: '20%', value: 20},
+                                {label: '30%', value: 30},
+                                {label: '40%', value: 40},
+                                {label: '50%', value: 50},
+                                {label: '60%', value: 60},
+                                {label: '70%', value: 70},
+                                {label: '80%', value: 80},
+                                {label: '90%', value: 90},
+                                {label: '100%', value: 100}]
 
-  $scope.nluType = Flow.nluInformations.nlu_type
 
   $scope.fieldIndexOptions = [{text:'first', id: 0},
                               {text:'second', id: 1},
