@@ -15,6 +15,6 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name='org',
             name='nlu_api_config',
-            field=models.TextField(help_text='Settings for Natural Language Understand API', max_length=255, null=True, verbose_name='NLU API Configuration'),
+            field=models.TextField(help_text='Settings for Natural Language Understand API', null=True, verbose_name='NLU API Configuration'),
         ),
     ]
