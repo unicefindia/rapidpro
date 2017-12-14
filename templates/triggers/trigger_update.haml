@@ -159,6 +159,10 @@
           containerCssClass: "select2-temba-field"
         });
         $('#id_bots').val( {% autoescape off %} {{ intent_bot }} {% endautoescape %}).trigger('change');
+
+        $("#id_accuracy").select2({
+          containerCssClass: "select2-temba-field"
+        });
         $("#id_accuracy").val({{ accuracy }})
 
         {% if object.org.nlu_api_config_json.NLU_API_NAME == 'WIT' %}
