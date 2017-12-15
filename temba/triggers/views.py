@@ -403,7 +403,9 @@ class NluApiTriggerForm(GroupBasedTriggerForm):
         self.fields['bots'].choices = NluApiTriggerForm.get_bots_by_org(org)
 
     def clean(self):
-        return super(BaseTriggerForm, self).clean()
+        cleaned_data = super(BaseTriggerForm, self).clean()
+        cleaned_data['accuracy'] = int(cleaned_data['accuracy'])
+        return cleaned_data
 
     @staticmethod
     def get_bots_by_org(org):
