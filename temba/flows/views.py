@@ -858,11 +858,12 @@ class FlowCRUDL(SmartCRUDL):
             if self.request.GET.get('token') and self.request.GET.get('entity'):
                 return JsonResponse(dict(intents_from_entity=consumer.get_intents_from_entity(self.request.GET.get('token'),
                                                                                               self.request.GET.get('entity'))))
-            else:
-                if consumer:
+            if consumer:
+                try:
                     return JsonResponse(dict(bots_intents=consumer.get_intents(), nlu_type=consumer.type))
-                else:
-                    return JsonResponse(dict(bots_intents=None, nlu_type=None))
+                except:
+                    pass
+            return JsonResponse(dict(bots_intents=None, nlu_type=None))
 
     class Completion(OrgPermsMixin, SmartListView):
         def render_to_response(self, context, **response_kwargs):
