@@ -474,7 +474,10 @@ class Trigger(SmartModel):
             if consumer and nlu_data and nlu_data.get('bots', None):
                 for bot in nlu_data['bots']:
                     if consumer.type == NLU_WIT_AI_TAG:
-                        entities = consumer.predict(entity, bot)
+                        try:
+                            entities = consumer.predict(entity, bot)
+                        except:
+                            return False
                         if not isinstance(entities, dict):
                             return False
 
@@ -485,7 +488,11 @@ class Trigger(SmartModel):
                                     trigger.flow.start([], [entity.contact], start_msg=entity, restart_participants=True, extra=extra)
                                     return True
                     else:
-                        intent, accuracy, entities = consumer.predict(entity, bot)
+                        try:
+                            intent, accuracy, entities = consumer.predict(entity, bot)
+                        except:
+                            return False
+
                         accuracy *= 100
 
                         if intent in nlu_data[bot] and accuracy >= nlu_data.get('accuracy'):
