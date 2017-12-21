@@ -1163,20 +1163,10 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
 
   $scope.flowFields = Flow.getFlowFields(ruleset)
 
-  if typeof(Flow.nluInformations) == 'object'
+  if Flow.nluInformations instanceof Object
     $scope.listBotsIntents = Flow.nluInformations.bots_intents
     $scope.nluType = Flow.nluInformations.nlu_type
-    $scope.accuracyMapValues = [{label: '10%', value: 10},
-                                {label: '20%', value: 20},
-                                {label: '30%', value: 30},
-                                {label: '40%', value: 40},
-                                {label: '50%', value: 50},
-                                {label: '60%', value: 60},
-                                {label: '70%', value: 70},
-                                {label: '80%', value: 80},
-                                {label: '90%', value: 90},
-                                {label: '100%', value: 100}]
-
+    $scope.accuracyBaseList = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
 
   $scope.fieldIndexOptions = [{text:'first', id: 0},
                               {text:'second', id: 1},
@@ -1300,14 +1290,11 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
         if rule._config.localized
           rule.test._base = rule.test.test[Flow.flow.base_language]
         else
-          if rule.test.type == 'has_intent'
-            index = $scope.listBotsIntents.map((x) -> return x.name ).indexOf(rule.test.test.intent.name)
-            rule.test =
-              _base: rule.test.test
+          type = rule.test.type
+          rule.test = _base: rule.test.test
+          if type == 'has_intent'
+            index = $scope.listBotsIntents.map((x) -> return x.name).indexOf(rule.test._base.intent.name)
             rule.test._base.intent = $scope.listBotsIntents[index]
-          else
-            rule.test =
-              _base: rule.test.test
 
     # and finally the category name
     rule.category._base = rule.category[Flow.flow.base_language]
@@ -1340,7 +1327,7 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
     placeholder: "sort-placeholder"
 
   $scope.initHasIntent = (rule, clearIntents=false) ->
-    if typeof(rule.test._base) != 'object' or rule.test._base == null
+    if not (rule.test._base instanceof Object)
       rule.test._base = {}
     else
       if $scope.nluType == 'WIT' and rule.test._base.hasOwnProperty('intent')
@@ -1364,7 +1351,7 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
       delete rule.listBotsIntentsFromEntity
     if rule.hasOwnProperty('intentsFromEntityDisabled')
       delete rule.intentsFromEntityDisabled
-    if typeof(rule.test._base) == 'object'
+    if rule.test._base instanceof Object
       if rule.test._base.hasOwnProperty('intent') or rule.test._base.hasOwnProperty('intent_from_entity')
         delete rule.test._base
 
@@ -1434,7 +1421,7 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
       categoryName = "email"
     else if op == "has_intent"
       categoryName = "intent"
-      if typeof(rule.test._base) == 'object'
+      if rule.test._base instanceof Object
         if rule.test._base.hasOwnProperty('intent')
           categoryName = rule.test._base.intent.name
     else if op == "regex"
