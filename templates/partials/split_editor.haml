@@ -244,7 +244,7 @@
                 %span{class:"accuracy-nlu"}
                   %span
                     -trans "with accuracy"
-                  %select{ng-init:"rule.test._base.accuracy = rule.test._base.accuracy || accuracyMapValues[5]",  ng-model:"rule.test._base.accuracy", ng-options:"accuracy.label for accuracy in accuracyMapValues track by accuracy.value ", required:"", class:"select-accuracy"}
+                  %select{ng-init:"rule.test._base.accuracy = rule.test._base.accuracy || accuracyBaseList[5]",  ng-model:"rule.test._base.accuracy", ng-options:'accuracy as (accuracy+"%") for accuracy in accuracyBaseList track by accuracy', required:"", class:"select-accuracy"}
 
 .modal-footer
   .ussd-counter{ng-class:"{limit: characters < 0}", ng-if:'formData.rulesetConfig.type == "wait_menu" || formData.rulesetConfig.type == "wait_ussd"'}
