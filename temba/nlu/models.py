@@ -42,11 +42,13 @@ class BaseConsumer(object):
         """
         Abstract funciton to list bots
         """
+        raise NotImplementedError
 
     def predict(self, msg, bot):
         """
         Abstract funciton to predict
         """
+        raise NotImplementedError
 
     def get_headers(self, token=None, prefix=None, prefix_separator=None, **kwargs):
         if not token:
@@ -67,16 +69,19 @@ class BaseConsumer(object):
         """
         Abstract funciton to get entities
         """
+        raise NotImplementedError
 
     def get_intents(self):
         """
         Abstract function to get bot intents
         """
+        raise NotImplementedError
 
     def is_valid_token(self):
         """
         Abstract function to check if token is valid
         """
+        raise NotImplementedError
 
     def _request(self, base_url, method='GET', data=None, headers=None):
         kwargs = dict(headers=headers)
