@@ -85,8 +85,8 @@
     $(document).ready(function() {
       select2div('#id_api_name');
 
-      if($('#id_api_name').val() != ""){
-        if($('#id_api_key').val() != "")
+      if($('#id_api_name').val()){
+        if($('#id_api_key').val())
           $('.field_api_name').eq(0).hide()
 
         if($('#id_api_name').val() == 'WIT')
