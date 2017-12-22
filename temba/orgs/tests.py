@@ -1416,7 +1416,7 @@ class OrgTest(TembaTest):
 
         # Bothub.it test connect
         # Without name
-        payload = dict(disconnect='false', token='false')
+        payload = dict(disconnect='false')
         response = self.client.post(nlu_api_url, payload, follow=True)
         self.assertContains(response, "Incorrect data. Please check if all fields that were sent.")
 
@@ -1426,7 +1426,7 @@ class OrgTest(TembaTest):
         self.assertContains(response, "Incorrect data. Please check if all fields that were sent.")
         with patch("temba.nlu.models.NluApiConsumer.is_valid_token") as mock:
             mock.return_value = True
-            payload.update(dict(api_key='673d4c5f35be4d1e9e76eaafe56704c1'))
+            payload.update(dict(api_key_nlu='673d4c5f35be4d1e9e76eaafe56704c1'))
             response = self.client.post(nlu_api_url, payload, follow=True)
             self.assertNotContains(response, "Incorrect data. Please check if all fields that were sent.")
 
@@ -1452,7 +1452,7 @@ class OrgTest(TembaTest):
         self.assertContains(response, 'NLU')
 
         # Wit.AI test connect
-        payload = dict(disconnect='false', token='false')
+        payload = dict(disconnect='false')
         response = self.client.post(nlu_api_url, payload, follow=True)
         self.assertContains(response, "Incorrect data. Please check if all fields that were sent.")
 
@@ -1466,7 +1466,7 @@ class OrgTest(TembaTest):
         self.assertContains(response, "Incorrect data. Please check if all fields that were sent.")
 
         with patch("temba.nlu.models.NluApiConsumer.is_valid_token") as mock:
-            payload.update(dict(api_key='WIT_BOT_KEY'))
+            payload.update(dict(api_key_nlu='WIT_BOT_KEY'))
             mock.return_value = True
             response = self.client.post(nlu_api_url, payload, follow=True)
             self.assertNotContains(response, "Incorrect data. Please check if all fields that were sent.")
