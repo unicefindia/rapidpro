@@ -6743,12 +6743,13 @@ class HasIntentTest(Test):
 
     def evaluate(self, run, sms, context, text):
         consumer = NluApiConsumer.factory(sms.org)
-        accuracy = self.as_json().get('test', None).get('accuracy', None)
+        test = self.as_json().get('test', None)
+        accuracy = test.get('accuracy', None)
 
-        intent_informations = self.as_json().get('test', None).get('intent', None)
+        intent_informations = test.get('intent', None)
         if consumer:
             if consumer.type == NLU_WIT_AI_TAG:
-                intent_from_entity = self.as_json().get('test', None).get('intent_from_entity', None)
+                intent_from_entity = test.get('intent_from_entity', None)
                 try:
                     entities_returned = consumer.predict(text, intent_informations.get('bot_id', None))
                 except:
