@@ -17,7 +17,7 @@ class NluTest(TembaTest):
             'User-agent': 'RapidPro'
         }
         self.assertEqual(base_consumer.get_headers(prefix='Token', prefix_separator="=", header_x='value_header_x'), headers)
-        self.assertEqual(NluApiConsumer.is_valid_token('OTHER', 'OTHER'), None)
+        self.assertFalse(NluApiConsumer.is_valid_token('OTHER', 'OTHER'))
 
         with patch('requests.request') as mock:
             mock.return_value = MockResponse(200, '{}')
@@ -28,8 +28,8 @@ class NluTest(TembaTest):
     def test_nlu_api_bothub_consumer(self):
         self.login(self.admin)
 
-        payload = dict(api_name=NLU_BOTHUB_TAG, api_key='BOT_KEY_STRING', disconnect='false', token='false')
-        with patch('temba.nlu.models.BothubConsumer.is_valid_token') as mock_validation:
+        payload = dict(api_name=NLU_BOTHUB_TAG, api_key_nlu='BOT_KEY_STRING', disconnect='false')
+        with patch('temba.nlu.models.NluApiConsumer.is_valid_token') as mock_validation:
             mock_validation.return_value = True
             self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
         self.org.refresh_from_db()
@@ -113,7 +113,7 @@ class NluTest(TembaTest):
     def test_nlu_api_wit_consumer(self):
         self.login(self.admin)
 
-        payload = dict(api_name=NLU_WIT_AI_TAG, api_key='BOT_KEY_STRING', name_bot="Bot name", disconnect='false', token='token')
+        payload = dict(api_name=NLU_WIT_AI_TAG, api_key_nlu='BOT_KEY_STRING', name_bot="Bot name", disconnect='false')
         with patch('temba.nlu.models.WitConsumer.is_valid_token') as mock_validation:
             mock_validation.return_value = True
             self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
@@ -124,11 +124,10 @@ class NluTest(TembaTest):
 
         with patch('requests.request') as mock_get:
             mock_get.return_value = MockResponse(403, "")
-            intent, accuracy, entities = consumer.predict("I am looking for a Mexican restaurant in the center of town",
-                                                          "e5bf3007-2629-44e3-8cbe-4505ecb130e2")
-            self.assertEqual(intent, None)
-            self.assertEqual(accuracy, 0)
-            self.assertEqual(entities, None)
+            wit_predict_data = consumer.predict("I am looking for a Mexican restaurant in the center of town",
+                                                "e5bf3007-2629-44e3-8cbe-4505ecb130e2")
+            print(wit_predict_data)
+            self.assertEqual(wit_predict_data, None)
             mock_get.return_value = MockResponse(200, """
             {
                 "msg_id": "0j1thaYcCT2iJX7dB",
@@ -157,12 +156,11 @@ class NluTest(TembaTest):
                 }
             }
             """)
-            intent, accuracy, entities = consumer.predict("Eu quero um exame com um ortopedista", None)
-            self.assertEqual(intent, 'ortopedista')
-            self.assertEqual(accuracy, 0.87037789125963)
+            entities = consumer.predict("Eu quero um exame com um ortopedista", None)
+
             self.assertEqual(type(entities), dict)
-            self.assertEqual(entities.get('exames'), 'exame')
-            self.assertEqual(entities.get('medico'), 'ortopedista')
+            self.assertEqual(entities.get('medico')[0].get('value'), 'ortopedista')
+            self.assertEqual(entities.get('medico')[0].get('confidence'), 0.87037789125963)
 
             mock_get.return_value = MockResponse(200, """
             {
@@ -171,7 +169,5 @@ class NluTest(TembaTest):
                 "entities": {}
             }
             """)
-            intent, accuracy, entities = consumer.predict("Test none intents or entities", None)
-            self.assertEqual(intent, None)
-            self.assertEqual(accuracy, 0)
-            self.assertEqual(entities, None)
+            no_wit_entities = consumer.predict("Test none intents or entities", None)
+            self.assertEqual(no_wit_entities, None)
