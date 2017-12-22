@@ -5067,7 +5067,7 @@ class FlowsTest(FlowFileTest):
 
         with patch('temba.nlu.models.BothubConsumer.is_valid_token') as mock_is_valid_token:
             mock_is_valid_token.return_value = True
-            payload = dict(api_name=NLU_BOTHUB_TAG, api_key='673d4c5f35be4d1e9e76eaafe56704c1', disconnect='false', token='false')
+            payload = dict(api_name=NLU_BOTHUB_TAG, api_key_nlu='673d4c5f35be4d1e9e76eaafe56704c1', disconnect='false', token='false')
             response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
 
         self.org.refresh_from_db()
@@ -5079,7 +5079,8 @@ class FlowsTest(FlowFileTest):
                 mock_get_intents.return_value = MockResponse(200, '{"private": false, "intents": [ "greet", "affirm", "restaurant_search", "goodbye"], "slug": "bot-slug-92"}')
                 response = self.client.get(reverse('flows.flow_nlu'))
                 data = {
-                    "intents": [
+                    "nlu_type": NLU_BOTHUB_TAG,
+                    "bots_intents": [
                         {"bot_name": "bot-slug-92", "name": "greet", "bot_id": "706e1467-fa55-4562-b909-e09caca9b198"},
                         {"bot_name": "bot-slug-92", "name": "affirm", "bot_id": "706e1467-fa55-4562-b909-e09caca9b198"},
                         {"bot_name": "bot-slug-92", "name": "restaurant_search", "bot_id": "706e1467-fa55-4562-b909-e09caca9b198"},
@@ -5098,7 +5099,7 @@ class FlowsTest(FlowFileTest):
 
         with patch('temba.nlu.models.WitConsumer.is_valid_token') as mock_is_valid_token:
             mock_is_valid_token.return_value = True
-            payload = dict(api_name=NLU_WIT_AI_TAG, api_key='WIT_BOT_KEY', name_bot='bot name', disconnect='false', token='false')
+            payload = dict(api_name=NLU_WIT_AI_TAG, api_key_nlu='WIT_BOT_KEY', name_bot='bot name', disconnect='false', token='false')
             response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
 
         self.org.refresh_from_db()
@@ -5116,7 +5117,8 @@ class FlowsTest(FlowFileTest):
             mock_get_intents.return_value = MockResponse(200, data)
             response = self.client.get(reverse('flows.flow_nlu'))
             data = {
-                "intents": [
+                "nlu_type": NLU_WIT_AI_TAG,
+                "bots_intents": [
                     {"bot_name": "bot name", "name": "greet", "bot_id": "WIT_BOT_KEY"},
                     {"bot_name": "bot name", "name": "affirm", "bot_id": "WIT_BOT_KEY"},
                     {"bot_name": "bot name", "name": "restaurant_search", "bot_id": "WIT_BOT_KEY"},
