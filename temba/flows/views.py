@@ -861,7 +861,7 @@ class FlowCRUDL(SmartCRUDL):
             if consumer:
                 try:
                     return JsonResponse(dict(bots_intents=consumer.get_intents(), nlu_type=consumer.type))
-                except Exception as e:  # pragma: needs cover
+                except Exception:  # pragma: needs cover
                     pass
             return JsonResponse(dict(bots_intents=None, nlu_type=None))
 

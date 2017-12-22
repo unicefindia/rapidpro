@@ -6752,7 +6752,7 @@ class HasIntentTest(Test):
                 intent_from_entity = test.get('intent_from_entity', None)
                 try:
                     entities_returned = consumer.predict(text, intent_informations.get('bot_id', None))
-                except Exception as e:  # pragma: needs cover
+                except Exception:  # pragma: needs cover
                     return 0, None
 
                 if not isinstance(entities_returned, dict):
@@ -6771,7 +6771,7 @@ class HasIntentTest(Test):
             else:
                 try:
                     intent_returned, accuracy_returned, entities = consumer.predict(text, intent_informations.get('bot_id', None))
-                except Exception as e:  # pragma: needs cover
+                except Exception:  # pragma: needs cover
                     return 0, None
 
                 if intent_returned == intent_informations.get('name') and accuracy_returned * 100 >= accuracy:

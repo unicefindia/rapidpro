@@ -476,7 +476,7 @@ class Trigger(SmartModel):
                     if consumer.type == NLU_WIT_AI_TAG:
                         try:
                             entities = consumer.predict(entity, bot)
-                        except Exception as e:  # pragma: needs cover
+                        except Exception:  # pragma: needs cover
                             return False
                         if not isinstance(entities, dict):
                             return False
@@ -490,7 +490,7 @@ class Trigger(SmartModel):
                     else:
                         try:
                             intent, accuracy, entities = consumer.predict(entity, bot)
-                        except Exception as e:  # pragma: needs cover
+                        except Exception:  # pragma: needs cover
                             return False
 
                         accuracy *= 100
