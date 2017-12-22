@@ -958,9 +958,6 @@ class TriggerTest(TembaTest):
             response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
         self.org.refresh_from_db()
 
-        response = self.client.get(trigger_url)
-        self.assertEqual(response.status_code, 200)
-        group = self.create_group("Trigger Group", [])
         with patch('temba.nlu.models.WitConsumer.get_intents') as mock_get_intents:
             mock_get_intents.return_value = [
                 {
@@ -981,6 +978,10 @@ class TriggerTest(TembaTest):
                     "bot_id": "WIT_AI_TOKEN"
                 }
             ]
+
+            response = self.client.get(trigger_url)
+            self.assertEqual(response.status_code, 200)
+            group = self.create_group("Trigger Group", [])
 
             post_data = dict(flow=flow.pk, accuracy=60, bots=['intent$WIT_AI_TOKEN$BotName'], intents_from_entity='greet', groups=[group.pk])
             response = self.client.post(trigger_url, post_data)
