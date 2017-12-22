@@ -952,7 +952,7 @@ class TriggerTest(TembaTest):
         response = self.client.get(trigger_url)
         self.assertEqual(response.status_code, 302)
 
-        payload = dict(api_name=NLU_WIT_AI_TAG, api_key='WIT_BOT_KEY', name_bot='Bot name', disconnect='false', token='false')
+        payload = dict(api_name=NLU_WIT_AI_TAG, api_key_nlu='WIT_BOT_KEY', name_bot='Bot name', disconnect='false')
         with patch('temba.nlu.models.WitConsumer.is_valid_token') as mock_validation:
             mock_validation.return_value = True
             response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
@@ -965,7 +965,7 @@ class TriggerTest(TembaTest):
             mock_get_intents.return_value = [
                 {
                     "bot_name": "BotName",
-                    "name": "greet",
+                    "name": "intent",
                     "bot_id": "WIT_AI_TOKEN"
                 }, {
                     "bot_name": "BotName",
@@ -982,7 +982,7 @@ class TriggerTest(TembaTest):
                 }
             ]
 
-            post_data = dict(flow=flow.pk, accuracy=65, bots=['greet$WIT_AI_TOKEN$BotName'], groups=[group.pk])
+            post_data = dict(flow=flow.pk, accuracy=60, bots=['intent$WIT_AI_TOKEN$BotName'], intents_from_entity='greet', groups=[group.pk])
             response = self.client.post(trigger_url, post_data)
 
         trigger = Trigger.objects.all().order_by('-pk')[0]
@@ -990,9 +990,9 @@ class TriggerTest(TembaTest):
         self.assertEqual(trigger.trigger_type, Trigger.TYPE_NLU_API)
         self.assertEqual(trigger.flow.pk, flow.pk)
         get_nlu_data = trigger.get_nlu_data()
-        self.assertEqual(get_nlu_data['intents_replaced'], 'greet - BotName')
-        self.assertEqual(get_nlu_data['intents_splited'], ['greet'])
-        self.assertEqual(get_nlu_data['accuracy'], 65)
+        self.assertEqual(get_nlu_data['intents_replaced'], 'intent - BotName')
+        self.assertEqual(get_nlu_data['intents_splited'], ['intent'])
+        self.assertEqual(get_nlu_data['accuracy'], 60)
 
         trigger_nlu = Trigger.get_triggers_of_type(self.org, Trigger.TYPE_NLU_API).first()
 
