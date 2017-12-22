@@ -370,7 +370,7 @@ class NluApiTriggerForm(GroupBasedTriggerForm):
     """
     For for catch NLU triggers
     """
-    accuracy_choice = tuple(((n*10, '{0}%'.format(n*10)) for n in range(1,11)))
+    accuracy_choice = tuple(((n * 10, '{0}%'.format(n * 10)) for n in range(1, 11)))
     accuracy = forms.ChoiceField(accuracy_choice, initial=60, required=True, label=_("Accuracy Rate"),
                                  help_text=_("The minimum accuracy rate between 10 and 100"))
     bots = forms.MultipleChoiceField(label=_("Bot Interpreter"), required=True,
