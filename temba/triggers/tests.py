@@ -1036,7 +1036,7 @@ class TriggerTest(TembaTest):
         response = self.client.get(trigger_url)
         self.assertEqual(response.status_code, 302)
 
-        payload = dict(api_name=NLU_BOTHUB_TAG, api_key='BOTHUB_KEY', disconnect='false', token='false')
+        payload = dict(api_name=NLU_BOTHUB_TAG, api_key_nlu='BOTHUB_KEY', disconnect='false')
         with patch('temba.nlu.models.BothubConsumer.is_valid_token') as mock_validation:
             mock_validation.return_value = True
             self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
@@ -1069,17 +1069,15 @@ class TriggerTest(TembaTest):
             response = self.client.get(trigger_url)
             self.assertEqual(response.status_code, 200)
 
-            post_data = dict(flow=flow.pk, accuracy=75, bots=['restaurant_search$4a3f085a-d4d0-4fb8-bdb2-ba0e4a87b6ca$bot-slug-232232222'])
+            post_data = dict(flow=flow.pk, accuracy=70, bots=['restaurant_search$4a3f085a-d4d0-4fb8-bdb2-ba0e4a87b6ca$bot-slug-232232222'])
             response = self.client.post(trigger_url, post_data)
-
-            print(response)
 
             trigger_nlu = Trigger.get_triggers_of_type(self.org, Trigger.TYPE_NLU_API).first()
 
             update_url = reverse('triggers.trigger_update', args=[trigger_nlu.pk])
             response = self.client.get(update_url)
 
-            post_data = dict(flow=flow.pk, accuracy=65, bots=['goodbye$4a3f085a-d4d0-4fb8-bdb2-ba0e4a87b6ca$bot-slug-232232222', 'restaurant_search$4a3f085a-d4d0-4fb8-bdb2-ba0e4a87b6ca$bot-slug-232232222'])
+            post_data = dict(flow=flow.pk, accuracy=60, bots=['goodbye$4a3f085a-d4d0-4fb8-bdb2-ba0e4a87b6ca$bot-slug-232232222', 'restaurant_search$4a3f085a-d4d0-4fb8-bdb2-ba0e4a87b6ca$bot-slug-232232222'])
             response = self.client.post(update_url, post_data)
             self.assertEqual(response.status_code, 302)
 
