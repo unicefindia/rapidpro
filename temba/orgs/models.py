@@ -432,11 +432,7 @@ class Org(SmartModel):
 
     def nlu_api_config_json(self):
         if self.nlu_api_config:
-            try:
-                return json.loads(self.nlu_api_config)
-            except ValueError as e:
-                logging.error(e.args)
-                return dict()
+            return json.loads(self.nlu_api_config)
         else:
             return dict()
 
