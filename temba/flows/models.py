@@ -2676,9 +2676,9 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
             try:
                 res_json = json.loads(res[FlowRun.RESULT_VALUE])
                 if 'intent' in res_json.keys():
-                    res['intent'] = res_json.get('intent', None)
+                    result['intent'] = res_json.get('intent', None)
                 if 'entities' in res_json.keys():
-                    res['entities'] = res_json.get('entities', None)
+                    result['entities'] = res_json.get('entities', None)
             except Exception:
                 pass
 
