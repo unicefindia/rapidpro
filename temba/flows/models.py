@@ -2673,12 +2673,14 @@ class FlowRun(RequireUpdateFieldsMixin, models.Model):
                 'category': res.get(FlowRun.RESULT_CATEGORY_LOCALIZED, res[FlowRun.RESULT_CATEGORY]),
                 'value': res[FlowRun.RESULT_VALUE]
             }
-
-            res_json = json.loads(res[FlowRun.RESULT_VALUE])
-            if 'intent' in res[FlowRun.RESULT_VALUE]:
-                res['intent'] = res_json.get('intent', None)
-            if 'entities' in res[FlowRun.RESULT_VALUE]:
-                res['entities'] = res_json.get('entities', None)
+            try:
+                res_json = json.loads(res[FlowRun.RESULT_VALUE])
+                if 'intent' in res_json.keys():
+                    res['intent'] = res_json.get('intent', None)
+                if 'entities' in res_json.keys():
+                    res['entities'] = res_json.get('entities', None)
+            except Exception:
+                pass
 
             return result
 
