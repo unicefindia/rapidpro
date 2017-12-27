@@ -2059,12 +2059,14 @@ class OrgCRUDL(SmartCRUDL):
     class NluApi(InferOrgMixin, OrgPermsMixin, SmartUpdateView):
 
         class NluApiForm(forms.ModelForm):
-            api_name = forms.ChoiceField(label=_("NLU Service"), required=True,
-                                         help_text="Select the NLU Service", choices=NLU_API_CHOICES)
-            name_bot = forms.CharField(max_length=255, label=_("Bot Name"), required=False,
-                                       help_text="Enter the bot name")
-            api_key_nlu = forms.CharField(max_length=255, label=_("API Key"), required=False,
-                                          help_text="Enter the NLU API Key")
+            api_name = forms.ChoiceField(label=_('NLU Service'), required=True,
+                                         help_text=_('Select the NLU Service'), choices=NLU_API_CHOICES)
+            bot_name = forms.CharField(max_length=255, label=_('Bot Name'), required=False,
+                                       help_text=_('Enter the bot name'))
+            bot_id = forms.CharField(max_length=255, label=_('Bot ID'), required=False,
+                                     help_text=_('Enter the bot ID'))
+            api_key_nlu = forms.CharField(max_length=255, label=_('API Key'), required=False,
+                                          help_text=_('Enter the NLU API Key'))
             disconnect = forms.CharField(widget=forms.HiddenInput, max_length=6, required=True)
 
             def clean(self):
@@ -2077,10 +2079,10 @@ class OrgCRUDL(SmartCRUDL):
 
                 if 'true' not in actions:
                     api_name = self.cleaned_data.get('api_name')
-                    name_bot = self.cleaned_data.get('name_bot')
+                    bot_name = self.cleaned_data.get('bot_name')
                     api_key_nlu = self.cleaned_data.get('api_key_nlu')
 
-                    if api_name == NLU_WIT_AI_TAG and not name_bot:
+                    if api_name == NLU_WIT_AI_TAG and not bot_name:
                         raise ValidationError(_("Missing data: Bot Name. "
                                                 "Please check them again and retry."))
 
@@ -2091,14 +2093,21 @@ class OrgCRUDL(SmartCRUDL):
 
             class Meta:
                 model = Org
-                fields = ('api_name', 'name_bot', 'api_key_nlu', 'disconnect')
+                fields = ('api_name', 'bot_name', 'bot_id', 'api_key_nlu', 'disconnect')
 
         class NluApiExtraForm(forms.ModelForm):
-            extra_token_name = forms.CharField(max_length=255, label=_("Bot Name"), required=True,
-                                               help_text="Enter the bot name")
-            extra_token = forms.CharField(max_length=255, label=_("API Key"), required=True,
-                                          help_text="Enter the NLU API Key")
+            extra_token_name = forms.CharField(max_length=255, label=_('Bot Name'), required=True,
+                                               help_text=_('Enter the bot name'))
+            extra_token = forms.CharField(max_length=255, label=_('API Key'), required=True,
+                                          help_text=_('Enter the NLU API Key'))
             token = forms.CharField(widget=forms.HiddenInput, max_length=4, required=True, initial='true')
+
+            def __init__(self, *args, **kwargs):
+                super(OrgCRUDL.NluApi.NluApiExtraForm, self).__init__(*args, **kwargs)
+                api_name, api_key = self.instance.get_nlu_api_credentials()
+                if api_name == NLU_BOTHUB_TAG:
+                    self.fields['extra_token'].label = _('Bot ID')
+                    self.fields['extra_token'].help_text = _('Enter the bot ID')
 
             def clean(self):
                 super(OrgCRUDL.NluApi.NluApiExtraForm, self).clean()
@@ -2184,12 +2193,14 @@ class OrgCRUDL(SmartCRUDL):
             if not form.cleaned_data.get('extra_token'):
                 api_name = form.cleaned_data.get('api_name')
                 api_key = form.cleaned_data.get('api_key_nlu')
-                name_bot = form.cleaned_data.get('name_bot')
+                bot_name = form.cleaned_data.get('bot_name')
+                bot_id = form.cleaned_data.get('bot_id')
 
                 if api_name == NLU_WIT_AI_TAG:
-                    org.connect_nlu_api(user, api_name, api_key, name_bot)
+                    org.connect_nlu_api(user, api_name, api_key, bot_name)
                 else:
                     org.connect_nlu_api(user, api_name, api_key)
+                    org.add_extra_token(user, dict(name=bot_name, token=bot_id))
 
             return super(OrgCRUDL.NluApi, self).form_valid(form)
 

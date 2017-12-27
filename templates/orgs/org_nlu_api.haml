@@ -21,6 +21,17 @@
   -if not api_name
     -blocktrans
       Connecting a Natural Language Understanding service allows you to get entities and intents from contacts messages.
+    %br
+    .doc-bothub.hide
+      -blocktrans
+        Documentation link:
+        %a{href: 'https://github.com/push-flow/bothub-nlp/wiki/Bothub-API-Documentation', target: '_blank'}=
+          https://github.com/push-flow/bothub-nlp/wiki/Bothub-API-Documentation
+    .doc-wit.hide
+      -blocktrans
+        Documentation link:
+        %a{href: 'https://wit.ai/docs/quickstart', target: '_blank'}=
+          https://wit.ai/docs/quickstart
     %hr
 
 -block fields
@@ -82,24 +93,32 @@
 
 -block extra-script
   :javascript
+
+    function hideAndShow(botType) {
+      if(botType == 'WIT') {
+        $('.field_bot_id').eq(0).hide()
+        $('.doc-wit').eq(0).show()
+        $('.doc-bothub').eq(0).hide()
+      } else {
+        $('.field_bot_id').eq(0).show()
+        $('.doc-wit').eq(0).hide()
+        $('.doc-bothub').eq(0).show()
+      }
+    }
+
     $(document).ready(function() {
       select2div('#id_api_name');
 
-      if($('#id_api_name').val()){
-        if($('#id_api_key').val())
+      if($('#id_api_name').val()) {
+        if($('#id_api_key').val()) {
           $('.field_api_name').eq(0).hide()
+        }
 
-        if($('#id_api_name').val() == 'WIT')
-          $('.field_name_bot').eq(0).show()
-        else
-          $('.field_name_bot').eq(0).hide()
+        hideAndShow($('#id_api_name').val());
       }
 
       $('#id_api_name').change(() => {
-        if($('#id_api_name').val() == 'WIT')
-          $('.field_name_bot').eq(0).show()
-        else
-          $('.field_name_bot').eq(0).hide()
+        hideAndShow($('#id_api_name').val());
       });
 
       $("a.posterize").click((event) => {
