@@ -1380,7 +1380,7 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
   $scope.getDefaultCategory = (rule) ->
 
     categoryName = ''
-    if rule.test and rule.test._base? and typeof(rule.test._base) == "string" and rule._config.type != 'has_intent'
+    if rule.test and rule.test._base? and typeof(rule.test._base) == "string" and rule._config.type != "has_intent"
       categoryName = rule.test._base.strip()
 
     op = rule._config.type
