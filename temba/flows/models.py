@@ -6693,20 +6693,19 @@ class HasIntentTest(Test):
         return cls(json[cls.TEST])
 
     def as_json(self):
-        json = dict(type=HasIntentTest.TYPE, test=self.test)
-        return json
+        return dict(type=HasIntentTest.TYPE, test=self.test)
 
     def evaluate(self, run, sms, context, text):
         consumer = NluApiConsumer.factory(sms.org)
         test = self.as_json().get('test', None)
         accuracy = test.get('accuracy', None)
 
-        intent_informations = test.get('intent', None)
+        intent_data = test.get('intent', {})
         if consumer:
             if consumer.type == NLU_WIT_AI_TAG:
                 intent_from_entity = test.get('intent_from_entity', None)
                 try:
-                    entities_returned = consumer.predict(text, intent_informations.get('bot_id', None))
+                    entities_returned = consumer.predict(text, intent_data.get('bot_id', None))
                 except Exception:  # pragma: needs cover
                     return 0, None
 
@@ -6714,7 +6713,7 @@ class HasIntentTest(Test):
                     return 0, None
 
                 for entity in entities_returned.keys():
-                    if entity == intent_informations.get('name'):
+                    if entity == intent_data.get('name'):
                         if '--' in intent_from_entity:
                             response = dict(intent=intent_from_entity, entities=consumer.get_entities(entities_returned))
                             return 1, json.dumps(response)
@@ -6725,11 +6724,11 @@ class HasIntentTest(Test):
                                     return 1, json.dumps(response)
             else:
                 try:
-                    intent_returned, accuracy_returned, entities = consumer.predict(text, intent_informations.get('bot_id', None))
+                    intent_returned, accuracy_returned, entities = consumer.predict(text, intent_data.get('bot_id', None))
                 except Exception:  # pragma: needs cover
                     return 0, None
 
-                if intent_returned == intent_informations.get('name') and accuracy_returned * 100 >= accuracy:
+                if intent_returned == intent_data.get('name') and accuracy_returned * 100 >= accuracy:
                     response = dict(intent=intent_returned, entities=entities)
                     return 1, json.dumps(response)
 
