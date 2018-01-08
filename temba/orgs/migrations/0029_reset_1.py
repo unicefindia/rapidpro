@@ -110,7 +110,6 @@ class Migration(migrations.Migration):
                 ('surveyors', models.ManyToManyField(help_text='The users can login via Android for your organization', related_name='org_surveyors', to=settings.AUTH_USER_MODEL, verbose_name='Surveyors')),
                 ('viewers', models.ManyToManyField(help_text='The viewers in your organization', related_name='org_viewers', to=settings.AUTH_USER_MODEL, verbose_name='Viewers')),
                 ('nlu_api_config', models.TextField(help_text='Settings for Natural Language Understand API', null=True, verbose_name='NLU API Configuration')),
-                
             ],
             options={
                 'abstract': False,
