@@ -1454,7 +1454,7 @@ class OrgTest(TembaTest):
 
         self.org.refresh_from_db()
         self.assertEqual((NLU_BOTHUB_TAG, '673d4c5f35be4d1e9e76eaafe56704c1'), self.org.get_nlu_api_credentials())
-        self.assertEqual({NLU_API_NAME: NLU_BOTHUB_TAG, NLU_API_KEY: '673d4c5f35be4d1e9e76eaafe56704c1'}, self.org.nlu_api_config_json())
+        self.assertEqual({NLU_API_NAME: NLU_BOTHUB_TAG, NLU_API_KEY: '673d4c5f35be4d1e9e76eaafe56704c1', 'extra_tokens': []}, self.org.nlu_api_config_json())
 
         # Bothub.it test disconnect
         payload.update(disconnect='true')
