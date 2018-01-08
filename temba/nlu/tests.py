@@ -113,7 +113,7 @@ class NluTest(TembaTest):
     def test_nlu_api_wit_consumer(self):
         self.login(self.admin)
 
-        payload = dict(api_name=NLU_WIT_AI_TAG, api_key_nlu='BOT_KEY_STRING', name_bot="Bot name", disconnect='false')
+        payload = dict(api_name=NLU_WIT_AI_TAG, api_key_nlu='BOT_KEY_STRING', bot_name="Bot name", disconnect='false')
         with patch('temba.nlu.models.WitConsumer.is_valid_token') as mock_validation:
             mock_validation.return_value = True
             self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)

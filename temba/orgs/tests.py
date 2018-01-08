@@ -1482,7 +1482,7 @@ class OrgTest(TembaTest):
         response = self.client.post(nlu_api_url, payload, follow=True)
         self.assertContains(response, "Missing data: Bot Name. Please check them again and retry.")
 
-        payload.update(dict(name_bot='Name bot'))
+        payload.update(dict(bot_name='Name bot'))
         response = self.client.post(nlu_api_url, payload, follow=True)
         self.assertNotContains(response, "Missing data: Bot Name. Please check them again and retry.")
         self.assertContains(response, "Incorrect data. Please check if all fields that were sent.")

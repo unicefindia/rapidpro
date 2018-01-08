@@ -4925,7 +4925,7 @@ class FlowsTest(FlowFileTest):
 
         with patch('temba.nlu.models.WitConsumer.is_valid_token') as mock_is_valid_token:
             mock_is_valid_token.return_value = True
-            payload = dict(api_name=NLU_WIT_AI_TAG, api_key_nlu='WIT_BOT_KEY', name_bot='bot name', disconnect='false', token='false')
+            payload = dict(api_name=NLU_WIT_AI_TAG, api_key_nlu='WIT_BOT_KEY', bot_name='bot name', disconnect='false', token='false')
             response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
 
         self.org.refresh_from_db()

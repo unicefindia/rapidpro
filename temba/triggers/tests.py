@@ -951,7 +951,7 @@ class TriggerTest(TembaTest):
         response = self.client.get(trigger_url)
         self.assertEqual(response.status_code, 302)
 
-        payload = dict(api_name=NLU_WIT_AI_TAG, api_key_nlu='WIT_BOT_KEY', name_bot='Bot name', disconnect='false')
+        payload = dict(api_name=NLU_WIT_AI_TAG, api_key_nlu='WIT_BOT_KEY', bot_name='Bot name', disconnect='false')
         with patch('temba.nlu.models.WitConsumer.is_valid_token') as mock_validation:
             mock_validation.return_value = True
             response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
