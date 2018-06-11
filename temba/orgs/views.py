@@ -2063,8 +2063,6 @@ class OrgCRUDL(SmartCRUDL):
                                          help_text=_('Select the NLU Service'), choices=NLU_API_CHOICES)
             bot_name = forms.CharField(max_length=255, label=_('Bot Name'), required=False,
                                        help_text=_('Enter the bot name'))
-            bot_id = forms.CharField(max_length=255, label=_('Bot ID'), required=False,
-                                     help_text=_('Enter the bot ID'))
             api_key_nlu = forms.CharField(max_length=255, label=_('API Key'), required=False,
                                           help_text=_('Enter the NLU API Key'))
             disconnect = forms.CharField(widget=forms.HiddenInput, max_length=6, required=True)
@@ -2093,7 +2091,7 @@ class OrgCRUDL(SmartCRUDL):
 
             class Meta:
                 model = Org
-                fields = ('api_name', 'bot_name', 'bot_id', 'api_key_nlu', 'disconnect')
+                fields = ('api_name', 'bot_name', 'api_key_nlu', 'disconnect')
 
         class NluApiExtraForm(forms.ModelForm):
             extra_token_name = forms.CharField(max_length=255, label=_('Bot Name'), required=True,
@@ -2194,13 +2192,8 @@ class OrgCRUDL(SmartCRUDL):
                 api_name = form.cleaned_data.get('api_name')
                 api_key = form.cleaned_data.get('api_key_nlu')
                 bot_name = form.cleaned_data.get('bot_name')
-                bot_id = form.cleaned_data.get('bot_id')
 
-                if api_name == NLU_WIT_AI_TAG:
-                    org.connect_nlu_api(user, api_name, api_key, bot_name)
-                else:
-                    org.connect_nlu_api(user, api_name, api_key)
-                    org.add_extra_token(user, dict(name=bot_name, token=bot_id))
+                org.connect_nlu_api(user, api_name, api_key, bot_name)
 
             return super(OrgCRUDL.NluApi, self).form_valid(form)
 
