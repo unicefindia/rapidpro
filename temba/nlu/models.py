@@ -7,6 +7,8 @@ import logging
 
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
+
+from temba.settings import BOTHUB_USER_TOKEN
 from temba.utils.http import http_headers
 
 
@@ -37,12 +39,6 @@ class BaseConsumer(object):
 
     def __str__(self):
         return self.name
-
-    def list_bots(self):
-        """
-        Abstract funciton to list bots
-        """
-        raise NotImplementedError
 
     def predict(self, msg, bot):
         """
@@ -103,9 +99,7 @@ class BothubConsumer(BaseConsumer):
     AUTH_PREFIX = 'Bearer'
 
     def predict(self, msg, bot):
-        predict_url = '%s/v1/message' % self.BASE_URL
-        data = dict(bot=bot, msg=msg)
-        response = self._request(predict_url, data=data, headers=self.get_headers(prefix=self.AUTH_PREFIX))
+        response = self.predict_msg(msg)
 
         if response.status_code != 200:
             return None, 0, None
@@ -118,31 +112,16 @@ class BothubConsumer(BaseConsumer):
 
         return intent.get('name', None), intent.get('confidence', None), entities
 
-    def is_valid_bot(self, bot):
-        list_intents_url = '%s/v1/bots' % self.BASE_URL
-        data = dict(uuid=bot)
-        response = self._request(list_intents_url, data=data, headers=self.get_headers(prefix=self.AUTH_PREFIX))
-        return True if response.status_code == 200 else False
+    def predict_msg(self, msg):
+        predict_url = '%s/v1/message' % self.BASE_URL
+        data = dict(language='en', msg=msg)
+        response = self._request(predict_url, method='POST', data=data,
+                                 headers=self.get_headers(prefix=self.AUTH_PREFIX))
+        return response
 
     def is_valid_token(self):
-        auth_url = '%s/v1/auth' % self.BASE_URL
-        response = self._request(auth_url, headers=self.get_headers(prefix=self.AUTH_PREFIX))
+        response = self.predict_msg('ping')
         return True if response.status_code == 200 else False
-
-    def list_bots(self):
-        list_bots_url = '%s/v1/auth' % self.BASE_URL
-        response = self._request(list_bots_url, headers=self.get_headers(prefix=self.AUTH_PREFIX))
-        list_bots = []
-
-        if response.status_code == 200:
-            content = json.loads(response.content)
-            bots = content.get('bots', [])
-            list_bots += [dict(uuid=bot.get('uuid'), slug=bot.get('slug')) for bot in bots]
-
-        if self.extra_tokens:
-            list_bots += [dict(uuid=bot.get('token'), slug=bot.get('name')) for bot in self.extra_tokens]
-
-        return list_bots
 
     def get_entities(self, entities):
         entity = dict()
@@ -151,18 +130,39 @@ class BothubConsumer(BaseConsumer):
         return entity
 
     def get_intents(self):
-        list_intents_url = '%s/v1/bots' % self.BASE_URL
-        bots = self.list_bots()
         intents_list = []
+        repo_url = 'https://bothub.it/api/my-repositories/'
 
-        for bot in bots:
-            data = dict(uuid=bot.get('uuid'))
-            response = self._request(list_intents_url, data=data, headers=self.get_headers(prefix=self.AUTH_PREFIX))
+        response = self._request(repo_url, headers={'Authorization': BOTHUB_USER_TOKEN})
+        repository = None
+
+        if response.status_code == 200:
+            content = json.loads(response.content)
+            repositories = content.get('results', [])
+
+            for repo in repositories:
+                if 'authorization' in repo and self.auth in repo['authorization']['uuid']:
+                    repository = repo
+                    break
+
+        if repository:
+            examples_url = 'https://bothub.it/api/examples/'
+            repository_uuid = repository['uuid']
+
+            response = self._request(examples_url, data=dict(repository_uuid=repository_uuid),
+                                     headers=self.get_headers(prefix=self.AUTH_PREFIX))
+
             if response.status_code == 200:
                 content = json.loads(response.content)
-                intents = content.get('intents', [])
-                intents_list += [dict(name=intent, bot_id=bot.get('uuid'), bot_name=bot.get('slug'))
-                                 for intent in intents]
+                examples = content.get('results', [])
+                intents = set()
+
+                for example in examples:
+                    if example['intent'] not in intents:
+                        intents.add(example['intent'])
+                        intents_list += [dict(name=example['intent'],
+                                              bot_id=repository_uuid,
+                                              bot_name=repository.get('slug'))]
 
         return intents_list
 
@@ -246,9 +246,7 @@ class NluApiConsumer(object):
     @staticmethod
     def is_valid_token(api_name, api_key, bot=None):
         assert api_name and api_key, _('Please, provide the follow args: api_name and api_key')
-        if bot:
-            result = BothubConsumer(api_key, api_name).is_valid_bot(bot)
-        elif api_name == NLU_BOTHUB_TAG:
+        if api_name == NLU_BOTHUB_TAG:
             result = BothubConsumer(api_key, api_name).is_valid_token()
         elif api_name == NLU_WIT_AI_TAG:
             result = WitConsumer(api_key, api_name).is_valid_token()
