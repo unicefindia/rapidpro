@@ -1,0 +1,110 @@
+-extends 'smartmin/form.html'
+
+-load compress temba smartmin i18n
+
+-block form-span
+
+-block title-text
+  .title-text
+    %h1
+      -trans "Bothub Service"
+
+-block summary
+  -trans "Connect your Bothub repository"
+
+-block pre-form
+  -blocktrans
+    Connecting a repository allows you to get entities and intents from contacts messages.
+  %br
+  -blocktrans
+    Documentation link:
+    %a{href: 'https://github.com/push-flow/bothub-nlp/wiki/Bothub-API-Documentation', target: '_blank'}=
+      https://github.com/push-flow/bothub-nlp/wiki/Bothub-API-Documentation
+  %hr
+
+-block fields
+  {{ block.super }}
+
+  %button{class: 'btn btn-add-token'}
+    -trans "Add token"
+
+  -if repositories
+    %p
+      %table{class: "table"}
+        %tbody
+          %tr
+            %th
+              -trans "Name"
+            %th
+              -trans "Token"
+            %th
+              -trans "Action"
+
+        -for repository in repositories
+          %tr
+            %td
+              {{ repository.name }}
+            %td
+              {{ repository.authorization_key }}
+            %td
+              %a{href:'{% url "orgs.org_bothub" %}?delete_extra=true&authorization_key={{ repository.authorization_key }}'}
+                -trans "Delete"
+
+-block form-buttons
+
+-block post-form
+  %p
+    -trans "Your NLU Service is connected"
+    %b
+      {{api_name}}.
+
+  %p
+    -trans "If you no longer want it connected, you can"
+    %a{href:'javascript:confirmNluApiDisconnect();'}
+      %b
+        -trans "disconnect"
+
+    -trans "your NLU Service."
+    %p
+      %b
+        -trans "Doing so will interrupt flows that use NLU."
+
+  .disconnect-nlu-api.hide
+    .title
+      -trans "Disconnect NLU Service"
+    .body
+      -blocktrans
+        This will disconnect your NLU Service. Are you sure you want to proceed?
+  %a#disconnect-nlu-api-form.posterize{href:'{% url "orgs.org_bothub" %}?disconnect=true'}
+
+-block extra-script
+  :javascript
+    $(document).ready(function() {
+      select2div('#id_api_name');
+
+      $("a.posterize").click((event) => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        var href = $(this).attr("href");
+        var url = $.url(href);
+
+        $("#posterizer").attr("action", url.attr("path"));
+
+        for (var key in url.param()){
+          $("#posterizer").append("<input type='hidden' name='" + key + "' value='" + url.param(key) + "'></input>");
+        }
+
+        $("#posterizer").submit();
+      });
+
+    });
+    function confirmNluApiDisconnect() {
+      removalConfirmation("disconnect-nlu-api", "Disconnect");
+    }
+
+-block extra-style
+  :css
+    .btn-add-token {
+      margin: 0 0 10px 0;
+    }

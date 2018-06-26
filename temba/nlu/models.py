@@ -90,13 +90,19 @@ class BaseConsumer(object):
         return requests.request(method=method, url=base_url, **kwargs)
 
 
-class BothubConsumer(BaseConsumer):
+class BothubConsumer(object):
     """
     Bothub consumer
     This consumer will call Bothub api.
     """
     BASE_URL = settings.BOTHUB_BASE_URL
     AUTH_PREFIX = 'Bearer'
+
+    def __init__(self, authorization_key):
+        self.bothub_authorization_key = authorization_key
+
+    def __str__(self):
+        return self.bothub_authorization_key
 
     def predict(self, msg, bot):
         response = self.predict_msg(msg)
@@ -120,8 +126,15 @@ class BothubConsumer(BaseConsumer):
         return response
 
     def is_valid_token(self):
-        response = self.predict_msg('ping')
-        return True if response.status_code == 200 else False
+        return True
+        # response = self.predict_msg('ping')
+        # return True if response.status_code == 200 else False
+
+    def get_repository_info(self):
+        return {
+            'uuid': '47557e40-b072-4969-a912-f1acc85eb705',
+            'name': 'Falta pegar o nome de repositorio do bothub'
+        }
 
     def get_entities(self, entities):
         entity = dict()
@@ -230,7 +243,7 @@ class NluApiConsumer(object):
     """
     @staticmethod
     def factory(org):
-        api_name, api_key = org.get_nlu_api_credentials()
+        api_name, api_key = org.get_bothub_repositories()
         extra_tokens = org.nlu_api_config_json().get('extra_tokens', None)
 
         if api_name == NLU_BOTHUB_TAG:
