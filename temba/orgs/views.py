@@ -39,7 +39,6 @@ from temba.campaigns.models import Campaign
 from temba.channels.models import Channel
 from temba.flows.models import Flow
 from temba.formax import FormaxMixin
-from temba.nlu.models import NLU_API_NAME, NLU_API_KEY, NLU_API_CHOICES, NLU_BOTHUB_TAG
 from temba.utils import analytics, languages
 from temba.utils.timezones import TimeZoneFormField
 from temba.utils.email import is_valid_address
