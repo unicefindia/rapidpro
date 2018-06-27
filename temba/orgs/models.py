@@ -927,22 +927,6 @@ class Org(SmartModel):
         else:
             return None, None
 
-    # def connect_nlu_api(self, user, api_name, api_key, bot_name=None):
-    #     nlu_api_config = {
-    #         NLU_API_NAME: api_name,
-    #         NLU_API_KEY: api_key
-    #     }
-    #     if api_name == NLU_WIT_AI_TAG:
-    #         nlu_api_config[NLU_API_KEY] = ''
-    #         nlu_api_config['extra_tokens'] = [{'name': bot_name, 'token': api_key}]
-
-    #     self.set_new_nlu_config(user, json.dumps(nlu_api_config))
-
-    def remove_nlu_api(self, user):
-        from temba.triggers.models import Trigger
-        Trigger.remove_all_triggers_nlu(user)
-        self.set_new_nlu_config(user, None)
-
     def bothub_add_repository(self, authorization_key, user):
         bothub_config = self.bothub_config_json()
 
@@ -958,16 +942,17 @@ class Org(SmartModel):
                     repository.get('uuid'): {
                         'name': repository.get('name'),
                         'authorization_key': authorization_key,
+                        'uuid': repository.get('uuid'),
                     }
                 })
                 self.save_nlu_config(user, json.dumps(bothub_config))
 
-    def remove_extra_token(self, user, token):
-        nlu_api_config = self.bothub_config_json()
-        for extra_saved in nlu_api_config.get('extra_tokens', []):
-            if extra_saved['token'] == token:
-                nlu_api_config['extra_tokens'].remove(extra_saved)
-                self.save_nlu_config(user, json.dumps(nlu_api_config))
+    def bothub_remove_repository(self, repository_uuid, user):
+        bothub_config = self.bothub_config_json()
+
+        if repository_uuid in bothub_config.get('repositories', {}):
+            bothub_config.get('repositories').pop(repository_uuid)
+            self.save_nlu_config(user, json.dumps(bothub_config))
 
     def save_nlu_config(self, user, config):
         self.nlu_api_config = config

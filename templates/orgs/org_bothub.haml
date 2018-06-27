@@ -47,61 +47,10 @@
             %td
               {{ repository.authorization_key }}
             %td
-              %a{href:'{% url "orgs.org_bothub" %}?delete_extra=true&authorization_key={{ repository.authorization_key }}'}
+              %a{href:'{% url "orgs.org_bothub" %}?delete=true&repository_uuid={{ repository.uuid }}'}
                 -trans "Delete"
 
 -block form-buttons
-
--block post-form
-  %p
-    -trans "Your NLU Service is connected"
-    %b
-      {{api_name}}.
-
-  %p
-    -trans "If you no longer want it connected, you can"
-    %a{href:'javascript:confirmNluApiDisconnect();'}
-      %b
-        -trans "disconnect"
-
-    -trans "your NLU Service."
-    %p
-      %b
-        -trans "Doing so will interrupt flows that use NLU."
-
-  .disconnect-nlu-api.hide
-    .title
-      -trans "Disconnect NLU Service"
-    .body
-      -blocktrans
-        This will disconnect your NLU Service. Are you sure you want to proceed?
-  %a#disconnect-nlu-api-form.posterize{href:'{% url "orgs.org_bothub" %}?disconnect=true'}
-
--block extra-script
-  :javascript
-    $(document).ready(function() {
-      select2div('#id_api_name');
-
-      $("a.posterize").click((event) => {
-        event.preventDefault();
-        event.stopPropagation();
-
-        var href = $(this).attr("href");
-        var url = $.url(href);
-
-        $("#posterizer").attr("action", url.attr("path"));
-
-        for (var key in url.param()){
-          $("#posterizer").append("<input type='hidden' name='" + key + "' value='" + url.param(key) + "'></input>");
-        }
-
-        $("#posterizer").submit();
-      });
-
-    });
-    function confirmNluApiDisconnect() {
-      removalConfirmation("disconnect-nlu-api", "Disconnect");
-    }
 
 -block extra-style
   :css

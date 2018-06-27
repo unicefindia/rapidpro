@@ -2061,22 +2061,14 @@ class OrgCRUDL(SmartCRUDL):
         class BothubForm(forms.ModelForm):
             bothub_authorization_key = forms.CharField(max_length=255, label=_('Bothub Repository Key'), 
                                                        required=False, help_text=_('Enter the Bothub Repository Key'))
-            disconnect = forms.CharField(widget=forms.HiddenInput, max_length=6, required=False, initial='')
-            token = forms.CharField(widget=forms.HiddenInput, max_length=4, required=False, initial='')
 
             def clean(self):
                 super(OrgCRUDL.Bothub.BothubForm, self).clean()
                 bothub_authorization_key = self.cleaned_data.get('bothub_authorization_key')
 
-                actions = [
-                    self.cleaned_data.get('disconnect', 'false'),
-                    self.cleaned_data.get('token', 'false')
-                ]
-
-                if 'true' not in actions:
-                    if not bothub_authorization_key:
-                        raise ValidationError(_("Missing data: Bothub Authorization Key."
-                                                "Please check them again and retry"))
+                if not bothub_authorization_key:
+                    raise ValidationError(_("Missing data: Bothub Authorization Key."
+                                            "Please check them again and retry"))
 
                 return self.cleaned_data
 
@@ -2104,36 +2096,24 @@ class OrgCRUDL(SmartCRUDL):
 
             return context
 
-        # def get(self, *args, **kwargs):
-        #     user = self.request.user
-        #     org = user.get_org()
-        #     if self.request.GET.get('delete_extra', 'false') == 'true':
-        #         nlu_api_config = org.bothub_config_json()
-        #         if len(nlu_api_config.get('extra_tokens', [])) > 1 or org.bothub_config_json().get(NLU_API_NAME) == NLU_BOTHUB_TAG:
-        #             org.remove_extra_token(user, self.request.GET.get('token'))
-        #         else:
-        #             org.remove_nlu_api(user)
-        #         return HttpResponseRedirect(reverse('orgs.org_home'))
+        def get(self, *args, **kwargs):
+            user = self.request.user
+            org = user.get_org()
 
-        #     return super(OrgCRUDL.Bothub, self).get(self, *args, **kwargs)
+            delete = self.request.GET.get('delete', False) == 'true'
+            repository_uuid = self.request.GET.get('repository_uuid', None)
+
+            if delete and repository_uuid:
+                org.bothub_remove_repository(repository_uuid, user)
+                return HttpResponseRedirect(reverse('orgs.org_home'))
+
+            return super(OrgCRUDL.Bothub, self).get(self, *args, **kwargs)
 
         def form_valid(self, form):
             user = self.request.user
             org = user.get_org()
-
             bothub_authorization_key = form.cleaned_data.get('bothub_authorization_key')
-            disconnect = form.cleaned_data.get('disconnect', 'false') == 'true'
-            token = form.cleaned_data.get('token', 'false')
-
-            print(disconnect)
-            print(token)
-
-            if disconnect:
-                # org.remove_chatbase_account(user)
-                return HttpResponseRedirect(reverse('orgs.org_home'))
-            else:
-                org.bothub_add_repository(bothub_authorization_key, user)
-
+            org.bothub_add_repository(bothub_authorization_key, user)
             return super(OrgCRUDL.Bothub, self).form_valid(form)
 
     class Home(FormaxMixin, InferOrgMixin, OrgPermsMixin, SmartReadView):
