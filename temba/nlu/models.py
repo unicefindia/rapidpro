@@ -100,9 +100,21 @@ class BothubConsumer(object):
 
     def __init__(self, authorization_key):
         self.bothub_authorization_key = authorization_key
+        self.bothub_header = {
+            'Authorization': '{} {}'.format(self.AUTH_PREFIX, self.bothub_authorization_key),
+            'Content-type': 'application/json; charset=utf-8'
+        }
 
     def __str__(self):
         return self.bothub_authorization_key
+
+    def request(self, url, method='GET', payload=None):
+        response = requests.request(
+            method=method,
+            url='{}/{}/'.format(self.BASE_URL, url),
+            headers=self.bothub_header,
+            data=payload)
+        return response
 
     def predict(self, msg, bot):
         response = self.predict_msg(msg)
@@ -126,15 +138,12 @@ class BothubConsumer(object):
         return response
 
     def is_valid_token(self):
-        return True
-        # response = self.predict_msg('ping')
-        # return True if response.status_code == 200 else False
+        response = self.request('info')
+        return True if response.status_code == 200 else False
 
     def get_repository_info(self):
-        return {
-            'uuid': '47557e40-b072-4969-a912-f1acc85eb705',
-            'name': 'Falta pegar o nome de repositorio do bothub'
-        }
+        response = self.request('info')
+        return json.loads(response.content)
 
     def get_entities(self, entities):
         entity = dict()

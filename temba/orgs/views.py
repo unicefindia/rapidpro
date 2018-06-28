@@ -42,6 +42,7 @@ from temba.formax import FormaxMixin
 from temba.utils import analytics, languages
 from temba.utils.timezones import TimeZoneFormField
 from temba.utils.email import is_valid_address
+from temba.nlu.models import BothubConsumer
 from twilio.rest import TwilioRestClient
 from .models import Org, OrgCache, TopUp, Invitation, UserSettings, get_stripe_credentials, ACCOUNT_SID, ACCOUNT_TOKEN
 from .models import MT_SMS_EVENTS, MO_SMS_EVENTS, MT_CALL_EVENTS, MO_CALL_EVENTS, ALARM_EVENTS
@@ -2068,6 +2069,10 @@ class OrgCRUDL(SmartCRUDL):
                 if not bothub_authorization_key:
                     raise ValidationError(_("Missing data: Bothub Authorization Key."
                                             "Please check them again and retry"))
+                else:
+                    bothub = BothubConsumer(bothub_authorization_key)
+                    if not bothub.is_valid_token():
+                        raise ValidationError(_("Incorrect data. Please check Bothub Authorization Key."))
 
                 return self.cleaned_data
 
