@@ -23,7 +23,7 @@ from temba.schedules.views import BaseScheduleForm
 from temba.channels.models import Channel, ChannelType
 from temba.flows.models import Flow
 from temba.msgs.views import ModalMixin
-from temba.nlu.models import NLU_API_NAME, NLU_WIT_AI_TAG, NluApiConsumer
+from temba.nlu.models import NLU_API_NAME, NLU_WIT_AI_TAG, BothubConsumer
 from temba.utils import analytics, on_transaction_commit
 from temba.utils.views import BaseActionForm
 from .models import Trigger
@@ -366,7 +366,7 @@ class UssdTriggerForm(BaseTriggerForm):
         fields = ('keyword', 'channel', 'flow')
 
 
-class NluApiTriggerForm(GroupBasedTriggerForm):
+class BothubTriggerForm(GroupBasedTriggerForm):
     """
     For for catch NLU triggers
     """
@@ -388,13 +388,13 @@ class NluApiTriggerForm(GroupBasedTriggerForm):
     def __init__(self, user, *args, **kwargs):
         org = user.get_org()
         flows = Flow.objects.filter(org=org, is_active=True, is_archived=False, flow_type__in=[Flow.FLOW])
-        super(NluApiTriggerForm, self).__init__(user, flows, *args, **kwargs)
-        if org.nlu_api_config_json().get(NLU_API_NAME) == NLU_WIT_AI_TAG:
-            self.fields['intents_from_entity'] = self.MultiChoiceFieldNoValidation(label=_("Intent from entity"), required=False,
-                                                                                   help_text=_("This is the intent from your bot entity"))
-            self.fields['bots'] = forms.ChoiceField(label=_("Bot Interpreter"), required=True,
-                                                    help_text=_("Bot that will intepreter words and return intents"))
-        self.fields['bots'].choices = NluApiTriggerForm.get_bots_by_org(org)
+        super(BothubTriggerForm, self).__init__(user, flows, *args, **kwargs)
+        # if org.nlu_api_config_json().get(NLU_API_NAME) == NLU_WIT_AI_TAG:
+        #     self.fields['intents_from_entity'] = self.MultiChoiceFieldNoValidation(label=_("Intent from entity"), required=False,
+        #                                                                            help_text=_("This is the intent from your bot entity"))
+        #     self.fields['bots'] = forms.ChoiceField(label=_("Bot Interpreter"), required=True,
+        #                                             help_text=_("Bot that will intepreter words and return intents"))
+        self.fields['bots'].choices = BothubTriggerForm.get_repositories_by_org(org)
 
     def clean(self):
         cleaned_data = super(BaseTriggerForm, self).clean()
@@ -402,18 +402,26 @@ class NluApiTriggerForm(GroupBasedTriggerForm):
         return cleaned_data
 
     @staticmethod
-    def get_bots_by_org(org):
-        """
-        This function will return all data bots of specific token organization (NLU API Token)
-        """
-        consumer = NluApiConsumer.factory(org)
-        intents = consumer.get_intents() if consumer else []
-        intents_dict = dict()
-        for intent in intents:
-            if intent.get('bot_name') not in intents_dict.keys():
-                intents_dict[intent.get('bot_name')] = ()
-            intents_dict[intent.get('bot_name')] += (("%s$%s$%s" % (intent.get('name'), intent.get('bot_id'), intent.get('bot_name')), intent.get('name')),)
-        return tuple(intents_dict.items())
+    def get_repositories_by_org(org):
+        repositories = org.get_bothub_repositories()
+        intents_items = dict()
+
+        if repositories:
+            repositories = repositories.values()
+
+            for repository in repositories:
+                bothub = BothubConsumer(repository.get('authorization_key'))
+                intents = bothub.get_intents()
+
+                for intent in intents:
+                    repository_name = repository.get('name')
+                    if repository_name not in intents_items.keys():
+                        intents_items[repository_name] = ()
+
+                    if intent:
+                        intents_items[repository_name] += (('{}${}${}'.format(intent, repository.get('uuid'), repository_name), intent),)
+
+        return intents_items.items()
 
     class Meta(BaseTriggerForm.Meta):
         fields = ('flow', 'groups', 'accuracy')
@@ -450,7 +458,7 @@ class TriggerCRUDL(SmartCRUDL):
     model = Trigger
     actions = ('list', 'create', 'update', 'archived',
                'keyword', 'register', 'schedule', 'inbound_call', 'missed_call', 'catchall', 'follow',
-               'new_conversation', 'referral', 'ussd', 'nlu_api')
+               'new_conversation', 'referral', 'ussd', 'bothub')
 
     class OrgMixin(OrgPermsMixin):
         def derive_queryset(self, *args, **kwargs):
@@ -487,9 +495,8 @@ class TriggerCRUDL(SmartCRUDL):
                 add_section('trigger-ussd', 'triggers.trigger_ussd', 'icon-mobile')
             add_section('trigger-catchall', 'triggers.trigger_catchall', 'icon-bubble')
 
-            api_name, api_key = self.org.get_nlu_api_credentials()
-            if api_name:
-                add_section('trigger-nlu-api', 'triggers.trigger_nlu_api', 'icon-robot-nlu')
+            if self.org.get_bothub_repositories():
+                add_section('trigger-nlu-api', 'triggers.trigger_bothub', 'icon-bothub')
 
     class Update(ModalMixin, OrgMixin, SmartUpdateView):
         success_message = ''
@@ -502,7 +509,7 @@ class TriggerCRUDL(SmartCRUDL):
                          Trigger.TYPE_NEW_CONVERSATION: NewConversationTriggerForm,
                          Trigger.TYPE_USSD_PULL: UssdTriggerForm,
                          Trigger.TYPE_REFERRAL: ReferralTriggerForm,
-                         Trigger.TYPE_NLU_API: NluApiTriggerForm}
+                         Trigger.TYPE_NLU_API: BothubTriggerForm}
 
         def get_form_class(self):
             trigger_type = self.object.trigger_type
@@ -604,7 +611,7 @@ class TriggerCRUDL(SmartCRUDL):
                     on_transaction_commit(lambda: check_schedule_task.delay(trigger.schedule.pk))
 
             if trigger_type == Trigger.TYPE_NLU_API:
-                nlu_data = dict(intent_bot=TriggerCRUDL.NluApi.convert_intent_bot(form.cleaned_data['bots']),
+                nlu_data = dict(intent_bot=TriggerCRUDL.Bothub.convert_intent_bot(form.cleaned_data['bots']),
                                 accuracy=form.cleaned_data['accuracy'])
 
                 if self.org.nlu_api_config_json().get(NLU_API_NAME) == NLU_WIT_AI_TAG:
@@ -971,13 +978,13 @@ class TriggerCRUDL(SmartCRUDL):
             kwargs['auto_id'] = "id_ussd_%s"
             return kwargs
 
-    class NluApi(CreateTrigger):
-        form_class = NluApiTriggerForm
+    class Bothub(CreateTrigger):
+        form_class = BothubTriggerForm
 
         def pre_process(self, request, *args, **kwargs):
-            if not request.user.get_org().nlu_api_config_json().get(NLU_API_NAME, None):
+            if not request.user.get_org().get_bothub_repositories():
                 return HttpResponseRedirect(reverse("triggers.trigger_create"))
-            return super(TriggerCRUDL.NluApi, self).pre_process(request, *args, **kwargs)
+            return super(TriggerCRUDL.Bothub, self).pre_process(request, *args, **kwargs)
 
         @staticmethod
         def convert_intent_bot(bots):
@@ -994,7 +1001,7 @@ class TriggerCRUDL(SmartCRUDL):
             org = user.get_org()
             groups = form.cleaned_data['groups']
 
-            nlu_data = dict(intent_bot=TriggerCRUDL.NluApi.convert_intent_bot(form.cleaned_data['bots']),
+            nlu_data = dict(intent_bot=TriggerCRUDL.Bothub.convert_intent_bot(form.cleaned_data['bots']),
                             accuracy=form.cleaned_data['accuracy'])
 
             if org.nlu_api_config_json().get(NLU_API_NAME) == NLU_WIT_AI_TAG:
@@ -1011,6 +1018,6 @@ class TriggerCRUDL(SmartCRUDL):
             return response
 
         def get_form_kwargs(self):
-            kwargs = super(TriggerCRUDL.NluApi, self).get_form_kwargs()
+            kwargs = super(TriggerCRUDL.Bothub, self).get_form_kwargs()
             kwargs['auto_id'] = "id_nlu_api_%s"
             return kwargs

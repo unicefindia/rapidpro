@@ -5,28 +5,23 @@
   -trans "Start a flow based on NLU intent"
 
 -block extra-script
-  {{block.super}}
-  %script
+  :javascript
     $(document).ready(function() {
       select2div("#id_nlu_api_flow", "520px");
       select2div("#id_nlu_api_accuracy", "520px");
 
-      $("#id_nlu_api_bots").select2({
+      $("#id_nlu_api_bots, #id_nlu_api_groups").select2({
         containerCssClass: "select2-temba-field"
       });
 
-      $("#id_nlu_api_groups").select2({
-        containerCssClass: "select2-temba-field"
-      });
-
-      $("#id_nlu_api_bots").change(() => {
+      /* $("#id_nlu_api_bots").change(() => {
         updateSelectFunc()
       });
 
       updateSelectFunc = () => {
         updateSelect = $('#id_nlu_api_intents_from_entity')
         updateSelect.select2('destroy').empty()
-
+        console.log($("#id_nlu_api_bots").val());
         selectSplited = $("#id_nlu_api_bots").val().split('$')
 
         entity = selectSplited[0]
@@ -49,5 +44,5 @@
         updateSelect.select2("enable", false)
       }
 
-      updateSelectFunc()
+      updateSelectFunc()*/
     });

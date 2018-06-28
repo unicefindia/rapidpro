@@ -152,41 +152,45 @@ class BothubConsumer(object):
         return entity
 
     def get_intents(self):
-        intents_list = []
-        repo_url = 'https://bothub.it/api/my-repositories/'
+        response = self.get_repository_info()
+        return response.get('intents', {})
 
-        response = self._request(repo_url, headers={'Authorization': BOTHUB_USER_TOKEN})
-        repository = None
+    # def get_intents(self):
+    #     intents_list = []
+    #     repo_url = 'https://bothub.it/api/my-repositories/'
 
-        if response.status_code == 200:
-            content = json.loads(response.content)
-            repositories = content.get('results', [])
+    #     response = self._request(repo_url, headers={'Authorization': BOTHUB_USER_TOKEN})
+    #     repository = None
 
-            for repo in repositories:
-                if 'authorization' in repo and self.auth in repo['authorization']['uuid']:
-                    repository = repo
-                    break
+    #     if response.status_code == 200:
+    #         content = json.loads(response.content)
+    #         repositories = content.get('results', [])
 
-        if repository:
-            examples_url = 'https://bothub.it/api/examples/'
-            repository_uuid = repository['uuid']
+    #         for repo in repositories:
+    #             if 'authorization' in repo and self.auth in repo['authorization']['uuid']:
+    #                 repository = repo
+    #                 break
 
-            response = self._request(examples_url, data=dict(repository_uuid=repository_uuid),
-                                     headers=self.get_headers(prefix=self.AUTH_PREFIX))
+    #     if repository:
+    #         examples_url = 'https://bothub.it/api/examples/'
+    #         repository_uuid = repository['uuid']
 
-            if response.status_code == 200:
-                content = json.loads(response.content)
-                examples = content.get('results', [])
-                intents = set()
+    #         response = self._request(examples_url, data=dict(repository_uuid=repository_uuid),
+    #                                  headers=self.get_headers(prefix=self.AUTH_PREFIX))
 
-                for example in examples:
-                    if example['intent'] not in intents:
-                        intents.add(example['intent'])
-                        intents_list += [dict(name=example['intent'],
-                                              bot_id=repository_uuid,
-                                              bot_name=repository.get('slug'))]
+    #         if response.status_code == 200:
+    #             content = json.loads(response.content)
+    #             examples = content.get('results', [])
+    #             intents = set()
 
-        return intents_list
+    #             for example in examples:
+    #                 if example['intent'] not in intents:
+    #                     intents.add(example['intent'])
+    #                     intents_list += [dict(name=example['intent'],
+    #                                           bot_id=repository_uuid,
+    #                                           bot_name=repository.get('slug'))]
+
+    #     return intents_list
 
 
 class WitConsumer(BaseConsumer):
