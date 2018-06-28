@@ -2204,7 +2204,7 @@ class OrgCRUDL(SmartCRUDL):
                                        action='redirect', nobutton=True)
 
             if self.has_org_perm('orgs.org_bothub'):
-                formax.add_section('bothub', reverse('orgs.org_bothub'), icon='icon-robot-nlu',
+                formax.add_section('bothub', reverse('orgs.org_bothub'), icon='icon-bothub',
                                    action='redirect', nobutton=True)
 
             if self.has_org_perm('orgs.org_webhook'):
