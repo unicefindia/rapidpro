@@ -2059,7 +2059,7 @@ class OrgCRUDL(SmartCRUDL):
     class Bothub(InferOrgMixin, OrgPermsMixin, SmartUpdateView):
 
         class BothubForm(forms.ModelForm):
-            bothub_authorization_key = forms.CharField(max_length=255, label=_('Bothub Repository Key'), 
+            bothub_authorization_key = forms.CharField(max_length=255, label=_('Bothub Repository Key'),
                                                        required=False, help_text=_('Enter the Bothub Repository Key'))
 
             def clean(self):
