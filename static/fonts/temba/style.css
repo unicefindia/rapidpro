@@ -1,10 +1,10 @@
 @font-face {
   font-family: 'temba';
-  src:  url('fonts/temba.eot?6as0sd');
-  src:  url('fonts/temba.eot?6as0sd#iefix') format('embedded-opentype'),
-    url('fonts/temba.ttf?6as0sd') format('truetype'),
-    url('fonts/temba.woff?6as0sd') format('woff'),
-    url('fonts/temba.svg?6as0sd#temba') format('svg');
+  src:  url('fonts/temba.eot?s4mimf');
+  src:  url('fonts/temba.eot?s4mimf#iefix') format('embedded-opentype'),
+    url('fonts/temba.ttf?s4mimf') format('truetype'),
+    url('fonts/temba.woff?s4mimf') format('woff'),
+    url('fonts/temba.svg?s4mimf#temba') format('svg');
   font-weight: normal;
   font-style: normal;
 }
