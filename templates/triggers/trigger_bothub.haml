@@ -9,14 +9,37 @@
     $(document).ready(function() {
       select2div("#id_nlu_api_flow", "520px");
       select2div("#id_nlu_api_accuracy", "520px");
+      var intentsToSave = {};
 
       $("#id_nlu_api_bots, #id_nlu_api_groups").select2({
         containerCssClass: "select2-temba-field"
       });
 
-      /* $("#id_nlu_api_bots").change(() => {
-        updateSelectFunc()
+      $('#id_nlu_api_bots').change((event) => {
+        if (event.added) {
+          var data = event.added.id.split('$');
+          intentsToSave[event.added.id] = {
+            intent: data[0],
+            token: data[1],
+          };
+        } else if (event.removed) {
+          // console.log(intentsToSave.indexOf(item));
+        }
+        console.log(event);
+        console.log('AAA');
+        /*$(event.currentTarget).find('option:selected').each(function(i, selected) {
+          var value = $(selected).val().split('$');
+          intentsToSave.push({
+            intent: value[0],
+            uuid: value[1],
+            name: value[2],
+          });
+        });*/
+
+        console.log(intentsToSave);
       });
+
+      /* 
 
       updateSelectFunc = () => {
         updateSelect = $('#id_nlu_api_intents_from_entity')

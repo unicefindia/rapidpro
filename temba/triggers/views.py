@@ -389,11 +389,6 @@ class BothubTriggerForm(GroupBasedTriggerForm):
         org = user.get_org()
         flows = Flow.objects.filter(org=org, is_active=True, is_archived=False, flow_type__in=[Flow.FLOW])
         super(BothubTriggerForm, self).__init__(user, flows, *args, **kwargs)
-        # if org.nlu_api_config_json().get(NLU_API_NAME) == NLU_WIT_AI_TAG:
-        #     self.fields['intents_from_entity'] = self.MultiChoiceFieldNoValidation(label=_("Intent from entity"), required=False,
-        #                                                                            help_text=_("This is the intent from your bot entity"))
-        #     self.fields['bots'] = forms.ChoiceField(label=_("Bot Interpreter"), required=True,
-        #                                             help_text=_("Bot that will intepreter words and return intents"))
         self.fields['bots'].choices = BothubTriggerForm.get_repositories_by_org(org)
 
     def clean(self):
@@ -419,7 +414,7 @@ class BothubTriggerForm(GroupBasedTriggerForm):
                         intents_items[repository_name] = ()
 
                     if intent:
-                        intents_items[repository_name] += (('{}${}${}'.format(intent, repository.get('uuid'), repository_name), intent),)
+                        intents_items[repository_name] += (('{}${}${}'.format(intent, repository.get('authorization_key')), intent),)
 
         return intents_items.items()
 
@@ -1003,9 +998,6 @@ class TriggerCRUDL(SmartCRUDL):
 
             nlu_data = dict(intent_bot=TriggerCRUDL.Bothub.convert_intent_bot(form.cleaned_data['bots']),
                             accuracy=form.cleaned_data['accuracy'])
-
-            if org.nlu_api_config_json().get(NLU_API_NAME) == NLU_WIT_AI_TAG:
-                nlu_data.update(dict(intents_from_entity=form.cleaned_data['intents_from_entity']))
 
             self.object = Trigger.create(org, user, Trigger.TYPE_NLU_API, form.cleaned_data['flow'], nlu_data=json.dumps(nlu_data))
             for group in groups:
