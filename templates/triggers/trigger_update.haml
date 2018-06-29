@@ -158,51 +158,36 @@
         $("#id_bots").select2({
           containerCssClass: "select2-temba-field"
         });
-        $('#id_bots').val( {% autoescape off %} {{ intent_bot }} {% endautoescape %}).trigger('change');
+
+        var intentsToSave = {};
+        $('#id_bots').val( {% autoescape off %} {{ intents }} {% endautoescape %}).trigger('change');
+        $('#id_bots option:selected').each(function() {
+          var selectSplited = $(this).val().split('$');
+          intentsToSave[$(this).val()] = {
+            intent: selectSplited[0],
+            repository_uuid: selectSplited[1],
+          };
+        }).promise().done(function() {
+          $('#bothub_trigger_intents').val(JSON.stringify(intentsToSave));
+        });
 
         $("#id_accuracy").select2({
           containerCssClass: "select2-temba-field"
         });
-        $("#id_accuracy").val({{ accuracy }})
+        $('#id_accuracy').val({{ accuracy }}).trigger('change');
 
-        {% if object.org.nlu_api_config_json.NLU_API_NAME == 'WIT' %}
-          $("#id_bots").change(() => {
-            updateSelectFunc()
-          });
-
-          updateSelectFunc = () => {
-            updateSelect = $('#id_intents_from_entity')
-            updateSelect.select2('destroy').empty()
-
-            selectSplited = $("#id_bots").val().split('$')
-
-            entity = selectSplited[0]
-            token = selectSplited[1]
-
-            $.get("/flow/nlu?token="+ token +"&entity="+ entity, (data) => {
-              intentsFromEntity = data.intents_from_entity ? data.intents_from_entity : []
-              $.each(intentsFromEntity, function (i, item) {
-                updateSelect.append($('<option>', {
-                    value: item,
-                    text: item
-                }));
-              });
-              intentsFromEntity = {% autoescape off %} {{intents_from_entity}} {% endautoescape %}
-
-              if(intentsFromEntity.length > 0){
-                updateSelect.val(intentsFromEntity).trigger("change");
-              }
-              updateSelect.select2("enable", true)
-            });
-
-            updateSelect.select2({
-              containerCssClass: "select2-temba-field"
-            });
-            updateSelect.select2("enable", false)
+        $('#id_bots').change((event) => {
+          if (event.added) {
+            var selectSplited = event.added.id.split('$');
+            intentsToSave[event.added.id] = {
+              intent: selectSplited[0],
+              repository_uuid: selectSplited[1],
+            };
+          } else if (event.removed) {
+            delete intentsToSave[event.removed.id];
           }
-
-          updateSelectFunc()
-        {% endif %}
+          $('#bothub_trigger_intents').val(JSON.stringify(intentsToSave));
+        });
       {% endif %}
 
       new AutoComplete({{completions|safe}}, {{function_completions|safe}}).bind($('#id_response'));

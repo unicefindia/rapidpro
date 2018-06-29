@@ -8,7 +8,6 @@ import logging
 from django.utils.translation import ugettext_lazy as _
 from django.conf import settings
 
-from temba.settings import BOTHUB_USER_TOKEN
 from temba.utils.http import http_headers
 
 

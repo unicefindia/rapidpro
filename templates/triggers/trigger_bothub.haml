@@ -17,55 +17,14 @@
 
       $('#id_nlu_api_bots').change((event) => {
         if (event.added) {
-          var data = event.added.id.split('$');
+          var selectSplited = event.added.id.split('$');
           intentsToSave[event.added.id] = {
-            intent: data[0],
-            token: data[1],
+            intent: selectSplited[0],
+            repository_uuid: selectSplited[1],
           };
         } else if (event.removed) {
-          // console.log(intentsToSave.indexOf(item));
+          delete intentsToSave[event.removed.id];
         }
-        console.log(event);
-        console.log('AAA');
-        /*$(event.currentTarget).find('option:selected').each(function(i, selected) {
-          var value = $(selected).val().split('$');
-          intentsToSave.push({
-            intent: value[0],
-            uuid: value[1],
-            name: value[2],
-          });
-        });*/
-
-        console.log(intentsToSave);
+        $('#bothub_trigger_intents').val(JSON.stringify(intentsToSave));
       });
-
-      /* 
-
-      updateSelectFunc = () => {
-        updateSelect = $('#id_nlu_api_intents_from_entity')
-        updateSelect.select2('destroy').empty()
-        console.log($("#id_nlu_api_bots").val());
-        selectSplited = $("#id_nlu_api_bots").val().split('$')
-
-        entity = selectSplited[0]
-        token = selectSplited[1]
-
-        $.get("/flow/nlu?token="+ token +"&entity="+ entity, (data) => {
-          intentsFromEntity = data.intents_from_entity ? data.intents_from_entity : []
-          $.each(intentsFromEntity, function (i, item) {
-            updateSelect.append($('<option>', { 
-                value: item,
-                text: item
-            }));
-          });
-          updateSelect.select2("enable", true)
-        });
-
-        updateSelect.select2({
-          containerCssClass: "select2-temba-field"
-        });
-        updateSelect.select2("enable", false)
-      }
-
-      updateSelectFunc()*/
     });

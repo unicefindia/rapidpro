@@ -489,30 +489,26 @@ class Trigger(SmartModel):
 
     def get_nlu_data(self):
         nlu_data = json.loads(self.nlu_data) if self.nlu_data else {}
-        intents = nlu_data.get('intent_bot', [])
+        repositories = self.org.get_bothub_repositories()
+        intents = nlu_data.get('intents', [])
 
         for counter, intent in enumerate(intents):
-
             if 'intents_replaced' not in nlu_data:
                 nlu_data['intents_replaced'] = ''
 
-            if 'intents_splited' not in nlu_data:
-                nlu_data['intents_splited'] = []
+            if 'repositories' not in nlu_data:
+                nlu_data['repositories'] = []
 
-            if 'bots' not in nlu_data:
-                nlu_data['bots'] = []
-
-            nlu_data['bots'].append(intent.get('token'))
-
+            nlu_data['repositories'].append(intent.get('repository_uuid'))
             sufix = ', ' if counter + 1 < len(intents) else ''
 
-            nlu_data['intents_replaced'] += "%s - %s%s" % (intent.get('intent'), intent.get('name'), sufix)
-            nlu_data['intents_splited'].append(intent.get('intent'))
+            repository = repositories[intent.get('repository_uuid')]
+            nlu_data['intents_replaced'] += '{} - {}{}'.format(intent.get('intent'), repository.get('name'), sufix)
 
-        if 'bots' in nlu_data:
-            nlu_data['bots'] = set(nlu_data['bots'])
-            for bot in nlu_data['bots']:
-                nlu_data[bot] = [intent.get('intent') for intent in nlu_data.get('intent_bot') if bot == intent.get('token')]
+        if 'repositories' in nlu_data:
+            nlu_data['repositories'] = set(nlu_data['repositories'])
+            for repository in nlu_data['repositories']:
+                nlu_data[repository] = [intent.get('intent') for intent in nlu_data.get('intents') if repository == intent.get('repository_uuid')]
 
         return nlu_data
 
