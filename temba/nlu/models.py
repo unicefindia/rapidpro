@@ -154,99 +154,6 @@ class BothubConsumer(object):
         response = self.get_repository_info()
         return response.get('intents', {})
 
-    # def get_intents(self):
-    #     intents_list = []
-    #     repo_url = 'https://bothub.it/api/my-repositories/'
-
-    #     response = self._request(repo_url, headers={'Authorization': BOTHUB_USER_TOKEN})
-    #     repository = None
-
-    #     if response.status_code == 200:
-    #         content = json.loads(response.content)
-    #         repositories = content.get('results', [])
-
-    #         for repo in repositories:
-    #             if 'authorization' in repo and self.auth in repo['authorization']['uuid']:
-    #                 repository = repo
-    #                 break
-
-    #     if repository:
-    #         examples_url = 'https://bothub.it/api/examples/'
-    #         repository_uuid = repository['uuid']
-
-    #         response = self._request(examples_url, data=dict(repository_uuid=repository_uuid),
-    #                                  headers=self.get_headers(prefix=self.AUTH_PREFIX))
-
-    #         if response.status_code == 200:
-    #             content = json.loads(response.content)
-    #             examples = content.get('results', [])
-    #             intents = set()
-
-    #             for example in examples:
-    #                 if example['intent'] not in intents:
-    #                     intents.add(example['intent'])
-    #                     intents_list += [dict(name=example['intent'],
-    #                                           bot_id=repository_uuid,
-    #                                           bot_name=repository.get('slug'))]
-
-    #     return intents_list
-
-
-class WitConsumer(BaseConsumer):
-    """
-    Wit AI consumer
-    This consumer will call Wit Ai api.
-    """
-    BASE_URL = settings.WIT_AI_BASE_URL
-    AUTH_PREFIX = 'Bearer'
-
-    def predict(self, msg, bot):
-        predict_url = '%s/message' % self.BASE_URL
-        data = dict(q=msg)
-
-        response = self._request(predict_url, data=data, headers=self.get_headers(token=bot, prefix=self.AUTH_PREFIX))
-
-        if response.status_code != 200:
-            return None
-
-        predict = json.loads(response.content)
-        entities = predict.get('entities', {})
-        return entities if entities else None
-
-    def is_valid_token(self):
-        intents_url = '%s/entities' % self.BASE_URL
-        response = self._request(intents_url, headers=self.get_headers(prefix=self.AUTH_PREFIX))
-        return True if response.status_code == 200 else False
-
-    def get_entities(self, entities):
-        entity = dict()
-        for key in entities.keys():
-            intents = entities.get(key, [])
-            ent = intents[0] if intents else {}
-            entity[key] = ent.get('value')
-        return entity
-
-    def get_intents(self):
-        intents_url = '%s/entities' % self.BASE_URL
-        intents_list = []
-
-        for item in self.extra_tokens:
-            response = self._request(intents_url, data=None, headers=self.get_headers(prefix=self.AUTH_PREFIX,
-                                                                                      token=item.get('token')))
-
-            if response.status_code == 200:
-                entities = json.loads(response.content)
-                intents_list += [dict(name=intent.replace('$', '/'), bot_id=item.get('token'), bot_name=item.get('name'))
-                                 for intent in entities]
-
-        return intents_list
-
-    def get_intents_from_entity(self, token, entity):
-        entity_url = '%s/entities/%s' % (self.BASE_URL, entity.replace('/', '$'))
-        response = self._request(entity_url, headers=self.get_headers(prefix=self.AUTH_PREFIX, token=token))
-        if response.status_code == 200:
-            return [item.get('value') for item in json.loads(response.content).get('values')]
-
 
 class NluApiConsumer(object):
     """
@@ -260,8 +167,8 @@ class NluApiConsumer(object):
 
         if api_name == NLU_BOTHUB_TAG:
             consumer = BothubConsumer(api_key, api_name, extra_tokens)
-        elif api_name == NLU_WIT_AI_TAG:
-            consumer = WitConsumer(api_key, api_name, extra_tokens)
+        # elif api_name == NLU_WIT_AI_TAG:
+        #     consumer = WitConsumer(api_key, api_name, extra_tokens)
         else:
             consumer = None
             logging.warning(_('Consumer not found, please provide a valid'))
@@ -273,8 +180,8 @@ class NluApiConsumer(object):
         assert api_name and api_key, _('Please, provide the follow args: api_name and api_key')
         if api_name == NLU_BOTHUB_TAG:
             result = BothubConsumer(api_key, api_name).is_valid_token()
-        elif api_name == NLU_WIT_AI_TAG:
-            result = WitConsumer(api_key, api_name).is_valid_token()
+        # elif api_name == NLU_WIT_AI_TAG:
+        #     result = WitConsumer(api_key, api_name).is_valid_token()
         else:
             result = False
             logging.warning(_('Consumer not found, please provide a valid'))

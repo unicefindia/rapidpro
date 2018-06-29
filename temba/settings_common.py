@@ -1232,7 +1232,6 @@ DATA_UPLOAD_MAX_NUMBER_FIELDS = 4000
 # Bothub and WIT.AI integration url
 # -----------------------------------------------------------------------------------
 BOTHUB_BASE_URL = 'https://nlp.bothub.it'
-WIT_AI_BASE_URL = 'https://api.wit.ai'
 
 # When reporting metrics we use the hostname of the physical machine, not the hostname of the service
 MACHINE_HOSTNAME = socket.gethostname().split('.')[0]
