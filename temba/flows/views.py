@@ -755,9 +755,8 @@ class FlowCRUDL(SmartCRUDL):
                     flow_variables.append(dict(name='flow.%s.text' % key, display='%s Text' % rule_set.label))
                     flow_variables.append(dict(name='flow.%s.time' % key, display='%s Time' % rule_set.label))
 
-                    nlu_api_name, nlu_api_key = org.get_nlu_api_credentials()
-
-                    if nlu_api_name is not None:
+                    repositories = org.get_bothub_repositories()
+                    if repositories is not None:
                         flow_variables.append(dict(name='flow.%s.intent' % key, display='%s Intent' % rule_set.label))
                         flow_variables.append(dict(name='flow.%s.entities' % key, display='%s Entities' % rule_set.label))
 

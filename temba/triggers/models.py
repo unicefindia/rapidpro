@@ -15,7 +15,7 @@ from temba.contacts.models import Contact, ContactGroup
 from temba.flows.models import Flow, FlowRun, FlowStart
 from temba.ivr.models import IVRCall
 from temba.msgs.models import Msg
-from temba.nlu.models import NluApiConsumer, NLU_WIT_AI_TAG
+from temba.nlu.models import BothubConsumer
 from temba.orgs.models import Org
 from temba_expressions.utils import tokenize
 
@@ -453,38 +453,26 @@ class Trigger(SmartModel):
 
         for trigger in triggers:
             nlu_data = trigger.get_nlu_data()
+            repositories = entity.org.get_bothub_repositories()
 
-            consumer = NluApiConsumer.factory(entity.org)
-            if consumer and nlu_data and nlu_data.get('bots', None):
-                for bot in nlu_data['bots']:
-                    if consumer.type == NLU_WIT_AI_TAG:
-                        try:
-                            entities = consumer.predict(entity, bot)
-                        except Exception:  # pragma: needs cover
-                            return False
-                        if not isinstance(entities, dict):
-                            return False
+            if repositories and nlu_data and nlu_data.get('intents', None):
+                for nlu_bot in nlu_data.get('intents'):
+                    try:
+                        repository = repositories[nlu_bot.get('repository_uuid')]
+                        bothub = BothubConsumer(repository.get('authorization_key'))
+                        intent, accuracy, entities = bothub.predict(entity, entity.contact.language)
+                    except Exception:  # pragma: needs cover
+                        return False
 
-                        for item in entities.keys():
-                            for intent in entities.get(item):
-                                if intent.get('value') in nlu_data['intents_from_entity'] and intent.get('confidence') * 100 >= nlu_data.get('accuracy'):
-                                    extra = dict(intent=intent.get('value'), entities=consumer.get_entities(entities))
-                                    trigger.flow.start([], [entity.contact], start_msg=entity, restart_participants=True, extra=extra)
-                                    return True
-                    else:
-                        try:
-                            intent, accuracy, entities = consumer.predict(entity, bot)
-                        except Exception:  # pragma: needs cover
-                            return False
+                    accuracy *= 100
 
-                        accuracy *= 100
-
-                        if intent in nlu_data[bot] and accuracy >= nlu_data.get('accuracy'):
-                            extra = dict(intent=intent, entities=entities)
-                            trigger.flow.start([], [entity.contact], start_msg=entity, restart_participants=True,
-                                               extra=extra)
-                            return True
-
+                    if intent in nlu_bot.get('intent') and accuracy >= nlu_data.get('accuracy'):
+                        extra = dict(intent=intent, entities=entities)
+                        trigger.flow.start([], [entity.contact],
+                                           start_msg=entity,
+                                           restart_participants=True,
+                                           extra=extra)
+                        return True
         return False
 
     def get_nlu_data(self):

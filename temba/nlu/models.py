@@ -99,10 +99,6 @@ class BothubConsumer(object):
 
     def __init__(self, authorization_key):
         self.bothub_authorization_key = authorization_key
-        self.bothub_header = {
-            'Authorization': '{} {}'.format(self.AUTH_PREFIX, self.bothub_authorization_key),
-            'Content-type': 'application/json; charset=utf-8'
-        }
 
     def __str__(self):
         return self.bothub_authorization_key
@@ -111,30 +107,29 @@ class BothubConsumer(object):
         response = requests.request(
             method=method,
             url='{}/{}/'.format(self.BASE_URL, url),
-            headers=self.bothub_header,
+            headers={
+                'Authorization': '{} {}'.format(self.AUTH_PREFIX, self.bothub_authorization_key),
+            },
             data=payload)
         return response
 
-    def predict(self, msg, bot):
-        response = self.predict_msg(msg)
+    def predict(self, text, language=None):
+        payload = {
+            'text': str(text)
+        }
+        if language:
+            payload.update({'language': language})
+
+        response = self.request('parse', method='POST', payload=payload)
 
         if response.status_code != 200:
             return None, 0, None
 
         predict = json.loads(response.content)
-
         answer = predict.get('answer', {})
         intent = answer.get('intent', {})
         entities = self.get_entities(answer.get('entities')) if 'entities' in answer else None
-
-        return intent.get('name', None), intent.get('confidence', None), entities
-
-    def predict_msg(self, msg):
-        predict_url = '%s/v1/message' % self.BASE_URL
-        data = dict(language='en', msg=msg)
-        response = self._request(predict_url, method='POST', data=data,
-                                 headers=self.get_headers(prefix=self.AUTH_PREFIX))
-        return response
+        return intent.get('name', None), intent.get('confidence', 0), entities
 
     def is_valid_token(self):
         response = self.request('info')
