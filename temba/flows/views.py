@@ -682,15 +682,8 @@ class FlowCRUDL(SmartCRUDL):
 
     class Nlu(OrgPermsMixin, SmartListView):
         def render_to_response(self, context, **response_kwargs):
-            print('@@@@@')
-            print(self.request.GET.get('token'))
-            print(self.request.GET.get('entity'))
-            print('@@@@@')
             repositories = self.request.user.get_org().get_bothub_repositories()
             intents = []
-            # if self.request.GET.get('token') and self.request.GET.get('entity'):
-            #     return JsonResponse(dict(intents_from_entity=consumer.get_intents_from_entity(self.request.GET.get('token'),
-            #                                                                                   self.request.GET.get('entity'))))
             if repositories:
                 repositories = repositories.values()
                 for repository in repositories:
