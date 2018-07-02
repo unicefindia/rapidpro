@@ -276,10 +276,6 @@
               .error.ng-hide{ng-show:'inner.category.$error.required'}
                 -trans "Please enter a category name."
               %div{ng-if:'rule._config.type == "has_intent" || len(listBotsIntents) > 0'}
-                %span{ng-if:'nluType == "WIT"', class:"complement-text-wit"}
-                  containing values
-                %span{ng-if:'nluType == "WIT"', class:"intents-wit"}
-                  %select{ng-options:"intent for intent in rule.listBotsIntentsFromEntity track by intent", ng-model:"rule.test._base.intent_from_entity", ng-disabled:"rule.intentsFromEntityDisabled", class:"intents-from-entity"}
                 %span{class:"accuracy-nlu"}
                   %span
                     -trans "with accuracy"
