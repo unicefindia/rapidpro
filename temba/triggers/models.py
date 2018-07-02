@@ -456,22 +456,22 @@ class Trigger(SmartModel):
             repositories = entity.org.get_bothub_repositories()
 
             if repositories and nlu_data and nlu_data.get('intents', None):
+                responses = {}
                 for nlu_bot in nlu_data.get('intents'):
+                    repository_uuid = nlu_bot.get('repository_uuid')
                     try:
-                        repository = repositories[nlu_bot.get('repository_uuid')]
-                        bothub = BothubConsumer(repository.get('authorization_key'))
-                        intent, accuracy, entities = bothub.predict(entity, entity.contact.language)
+                        if repository_uuid not in responses.keys():
+                            bothub = BothubConsumer(repositories[repository_uuid].get('authorization_key'))
+                            responses[repository_uuid] = bothub.predict(entity, entity.contact.language)
                     except Exception:  # pragma: needs cover
                         return False
 
-                    accuracy *= 100
-
-                    if intent in nlu_bot.get('intent') and accuracy >= nlu_data.get('accuracy'):
-                        extra = dict(intent=intent, entities=entities)
+                    intent, accuracy, entities = responses[repository_uuid]
+                    if intent in nlu_bot.get('intent') and accuracy * 100 >= nlu_data.get('accuracy'):
                         trigger.flow.start([], [entity.contact],
                                            start_msg=entity,
                                            restart_participants=True,
-                                           extra=extra)
+                                           extra=dict(intent=intent, entities=entities))
                         return True
         return False
 
@@ -480,23 +480,24 @@ class Trigger(SmartModel):
         repositories = self.org.get_bothub_repositories()
         intents = nlu_data.get('intents', [])
 
-        for counter, intent in enumerate(intents):
-            if 'intents_replaced' not in nlu_data:
-                nlu_data['intents_replaced'] = ''
+        if repositories:
+            for counter, intent in enumerate(intents):
+                if 'intents_replaced' not in nlu_data:
+                    nlu_data['intents_replaced'] = ''
 
-            if 'repositories' not in nlu_data:
-                nlu_data['repositories'] = []
+                if 'repositories' not in nlu_data:
+                    nlu_data['repositories'] = []
 
-            nlu_data['repositories'].append(intent.get('repository_uuid'))
-            sufix = ', ' if counter + 1 < len(intents) else ''
+                nlu_data['repositories'].append(intent.get('repository_uuid'))
+                sufix = ', ' if counter + 1 < len(intents) else ''
 
-            repository = repositories[intent.get('repository_uuid')]
-            nlu_data['intents_replaced'] += '{} - {}{}'.format(intent.get('intent'), repository.get('name'), sufix)
+                repository = repositories[intent.get('repository_uuid')]
+                nlu_data['intents_replaced'] += '{} - {}{}'.format(intent.get('intent'), repository.get('name'), sufix)
 
-        if 'repositories' in nlu_data:
-            nlu_data['repositories'] = set(nlu_data['repositories'])
-            for repository in nlu_data['repositories']:
-                nlu_data[repository] = [intent.get('intent') for intent in nlu_data.get('intents') if repository == intent.get('repository_uuid')]
+            if 'repositories' in nlu_data:
+                nlu_data['repositories'] = set(nlu_data['repositories'])
+                for repository in nlu_data['repositories']:
+                    nlu_data[repository] = [intent.get('intent') for intent in nlu_data.get('intents') if repository == intent.get('repository_uuid')]
 
         return nlu_data
 

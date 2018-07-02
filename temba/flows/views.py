@@ -34,7 +34,7 @@ from temba.orgs.views import OrgPermsMixin, OrgObjPermsMixin, ModalMixin
 from temba.flows.models import Flow, FlowRun, FlowRevision, FlowRunCount
 from temba.flows.tasks import export_flow_results_task
 from temba.msgs.models import Msg, PENDING
-from temba.nlu.models import NluApiConsumer
+from temba.nlu.models import BothubConsumer
 from temba.triggers.models import Trigger
 from temba.utils import analytics, on_transaction_commit, chunk_list
 from temba.utils.dates import datetime_to_str
@@ -682,16 +682,21 @@ class FlowCRUDL(SmartCRUDL):
 
     class Nlu(OrgPermsMixin, SmartListView):
         def render_to_response(self, context, **response_kwargs):
-            consumer = NluApiConsumer.factory(self.request.user.get_org())
-            if self.request.GET.get('token') and self.request.GET.get('entity'):
-                return JsonResponse(dict(intents_from_entity=consumer.get_intents_from_entity(self.request.GET.get('token'),
-                                                                                              self.request.GET.get('entity'))))
-            if consumer:
-                try:
-                    return JsonResponse(dict(bots_intents=consumer.get_intents(), nlu_type=consumer.type))
-                except Exception:  # pragma: needs cover
-                    pass
-            return JsonResponse(dict(bots_intents=None, nlu_type=None))
+            print('@@@@@')
+            print(self.request.GET.get('token'))
+            print(self.request.GET.get('entity'))
+            print('@@@@@')
+            repositories = self.request.user.get_org().get_bothub_repositories()
+            intents = []
+            # if self.request.GET.get('token') and self.request.GET.get('entity'):
+            #     return JsonResponse(dict(intents_from_entity=consumer.get_intents_from_entity(self.request.GET.get('token'),
+            #                                                                                   self.request.GET.get('entity'))))
+            if repositories:
+                repositories = repositories.values()
+                for repository in repositories:
+                    bothub = BothubConsumer(repository.get('authorization_key'))
+                    intents += [dict(name=intent, bot_id=repository.get('uuid'), bot_name=repository.get('name')) for intent in bothub.get_intents()]
+            return JsonResponse(dict(bots_intents=intents))
 
     class Completion(OrgPermsMixin, SmartListView):
         def render_to_response(self, context, **response_kwargs):

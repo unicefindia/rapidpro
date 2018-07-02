@@ -40,7 +40,7 @@ from temba.channels.models import Channel, ChannelSession
 from temba.locations.models import AdminBoundary
 from temba.msgs.models import Broadcast, Msg, FLOW, INBOX, INCOMING, QUEUED, FAILED, INITIALIZING, HANDLED, Label
 from temba.msgs.models import PENDING, DELIVERED, USSD as MSG_TYPE_USSD, OUTGOING
-from temba.nlu.models import NluApiConsumer, NLU_WIT_AI_TAG
+from temba.nlu.models import BothubConsumer
 from temba.orgs.models import Org, Language, get_current_export_version
 from temba.utils import analytics, chunk_list, on_transaction_commit
 from temba.utils.dates import get_datetime_format, str_to_datetime, datetime_to_str, json_date_to_datetime
@@ -6475,41 +6475,22 @@ class HasIntentTest(Test):
         return dict(type=HasIntentTest.TYPE, test=self.test)
 
     def evaluate(self, run, sms, context, text):
-        consumer = NluApiConsumer.factory(sms.org)
-        test = self.as_json().get('test', None)
-        accuracy = test.get('accuracy', None)
+        repositories = sms.org.get_bothub_repositories()
+        if repositories:
+            test = self.as_json().get('test', None)
+            accuracy = test.get('accuracy', None)
+            intent_data = test.get('intent', {})
 
-        intent_data = test.get('intent', {})
-        if consumer:
-            if consumer.type == NLU_WIT_AI_TAG:
-                intent_from_entity = test.get('intent_from_entity', None)
-                try:
-                    entities_returned = consumer.predict(text, intent_data.get('bot_id', None))
-                except Exception:  # pragma: needs cover
-                    return 0, None
+            try:
+                repository_uuid = intent_data.get('bot_id', None)
+                repository = repositories[repository_uuid]
+                bothub = BothubConsumer(repository.get('authorization_key'))
+                predicted_intent, predicted_accuracy, entities = bothub.predict(text)
+            except Exception:  # pragma: needs cover
+                return 0, None
 
-                if not isinstance(entities_returned, dict):
-                    return 0, None
-
-                for entity in entities_returned.keys():
-                    if entity == intent_data.get('name'):
-                        if '--' in intent_from_entity:
-                            response = dict(intent=intent_from_entity, entities=consumer.get_entities(entities_returned))
-                            return 1, json.dumps(response)
-                        else:
-                            for item in entities_returned.get(entity):
-                                if item.get('value') == intent_from_entity and item.get('confidence') * 100 >= accuracy:
-                                    response = dict(intent=item.get('value'), entities=consumer.get_entities(entities_returned))
-                                    return 1, json.dumps(response)
-            else:
-                try:
-                    intent_returned, accuracy_returned, entities = consumer.predict(text, intent_data.get('bot_id', None))
-                except Exception:  # pragma: needs cover
-                    return 0, None
-
-                if intent_returned == intent_data.get('name') and accuracy_returned * 100 >= accuracy:
-                    response = dict(intent=intent_returned, entities=entities)
-                    return 1, json.dumps(response)
+            if predicted_intent == intent_data.get('name') and predicted_accuracy * 100 >= accuracy:
+                return 1, json.dumps(dict(intent=predicted_intent, entities=entities))
 
         return 0, None
 
