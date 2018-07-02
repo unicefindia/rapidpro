@@ -1155,7 +1155,6 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
 
   if Flow.nluInformations instanceof Object
     $scope.listBotsIntents = Flow.nluInformations.bots_intents
-    $scope.nluType = Flow.nluInformations.nlu_type
     $scope.accuracyBaseList = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]
 
   $scope.fieldIndexOptions = [{text:'first', id: 0},
@@ -1320,17 +1319,7 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
     if not (rule.test._base instanceof Object)
       rule.test._base = {}
     else
-      if $scope.nluType == 'WIT' and rule.test._base.hasOwnProperty('intent')
-        if clearIntents
-          rule.test._base.intent_from_entity = '------'
-        rule.intentsFromEntityDisabled = true
-        rule.listBotsIntentsFromEntity = []
-        Flow.getIntentsFromEntity(rule.test._base.intent.bot_id, rule.test._base.intent.name).success (data) ->
-          rule.listBotsIntentsFromEntity = data.intents_from_entity
-          rule.listBotsIntentsFromEntity.unshift('------')
-          rule.intentsFromEntityDisabled = false
-      else
-        rule.intentsFromEntityDisabled = true
+      rule.intentsFromEntityDisabled = true
 
   $scope.removeHasIntentProp = (rule) ->
     if rule.test.hasOwnProperty('intent')

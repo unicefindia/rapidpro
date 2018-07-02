@@ -1013,10 +1013,7 @@ app.factory 'Flow', ['$rootScope', '$window', '$http', '$timeout', '$interval', 
       Flow = @
 
       $http.get('/flow/nlu/').success (data) ->
-        if data.nlu_type
-          Flow.nluInformations = data
-        else
-          Flow.nluInformations = {bots_intents: [], nlu_type: null}
+        Flow.nluInformations = data
 
       $http.get('/flow/json/' + flowId + '/').success (data) ->
 
