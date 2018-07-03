@@ -500,10 +500,3 @@ class Trigger(SmartModel):
                     nlu_data[repository] = [intent.get('intent') for intent in nlu_data.get('intents') if repository == intent.get('repository_uuid')]
 
         return nlu_data
-
-    @classmethod
-    def remove_all_triggers_nlu(cls, user):
-        triggers = Trigger.get_triggers_of_type(user.get_org(), Trigger.TYPE_NLU_API)
-        for trigger in triggers:
-            trigger.archive(user)
-        return True
