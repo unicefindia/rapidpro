@@ -1125,9 +1125,10 @@ SEND_CALLS = False
 
 MESSAGE_HANDLERS = [
     'temba.triggers.handlers.TriggerHandler',
+    'temba.triggers.handlers.TriggerNluHandler',
     'temba.flows.handlers.FlowHandler',
     'temba.triggers.handlers.NluApiHandler',
-    'temba.triggers.handlers.CatchAllHandler'
+    'temba.triggers.handlers.CatchAllHandler',
 ]
 
 CHANNEL_TYPES = [
