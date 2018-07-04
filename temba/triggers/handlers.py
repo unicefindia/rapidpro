@@ -25,4 +25,12 @@ class NluApiHandler(MessageHandler):
         super(NluApiHandler, self).__init__('triggers nlu')
 
     def handle(self, msg):
-        return Trigger.catch_nlu_triggers(msg, Trigger.TYPE_NLU_API)
+        return Trigger.catch_nlu_triggers(msg)
+
+
+class TriggerNluHandler(MessageHandler):
+    def __init__(self):
+        super(TriggerNluHandler, self).__init__('triggers nlu')
+
+    def handle(self, msg):
+        return Trigger.nlu_find_and_handle(msg)

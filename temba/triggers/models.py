@@ -357,14 +357,14 @@ class Trigger(SmartModel):
         matching = Trigger.objects.filter(is_archived=False, is_active=True, org=contact.org,
                                           trigger_type=Trigger.TYPE_INBOUND_CALL, flow__is_archived=False,
                                           flow__is_active=True, groups__in=groups_ids).order_by('groups__name')\
-                                  .prefetch_related('groups', 'groups__contacts')
+            .prefetch_related('groups', 'groups__contacts')
 
         # If no trigger for contact groups find there is a no group trigger
         if not matching:
             matching = Trigger.objects.filter(is_archived=False, is_active=True, org=contact.org,
                                               trigger_type=Trigger.TYPE_INBOUND_CALL, flow__is_archived=False,
                                               flow__is_active=True, groups=None)\
-                                      .prefetch_related('groups', 'groups__contacts')
+                .prefetch_related('groups', 'groups__contacts')
 
         if not matching:
             return None
@@ -448,8 +448,9 @@ class Trigger(SmartModel):
         self.save()
 
     @classmethod
-    def catch_nlu_triggers(cls, entity, trigger_type):
-        triggers = Trigger.get_triggers_of_type(entity.org, trigger_type)
+    def catch_nlu_triggers(cls, entity, triggers=None, ensure_contact=False):
+        if triggers is None:
+            triggers = Trigger.get_triggers_of_type(entity.org, Trigger.TYPE_NLU_API)
 
         for trigger in triggers:
             nlu_data = trigger.get_nlu_data()
@@ -468,7 +469,11 @@ class Trigger(SmartModel):
 
                     intent, accuracy, entities = responses[repository_uuid]
                     if intent in nlu_bot.get('intent') and accuracy * 100 >= nlu_data.get('accuracy'):
-                        trigger.flow.start([], [entity.contact],
+                        contact = entity.contact
+                        if ensure_contact:
+                            contact.ensure_unstopped()
+
+                        trigger.flow.start([], [contact],
                                            start_msg=entity,
                                            restart_participants=True,
                                            extra=dict(intent=intent, entities=entities))
@@ -500,3 +505,34 @@ class Trigger(SmartModel):
                     nlu_data[repository] = [intent.get('intent') for intent in nlu_data.get('intents') if repository == intent.get('repository_uuid')]
 
         return nlu_data
+
+    @classmethod
+    def nlu_find_and_handle(cls, msg):
+        words = tokenize(msg.text)
+
+        # skip if message doesn't have any words
+        if not words:
+            return False
+
+        # skip if message contact is currently active in a flow
+        active_run_qs = FlowRun.objects.filter(is_active=True, contact=msg.contact,
+                                               flow__is_active=True, flow__is_archived=False)
+        active_run = active_run_qs.prefetch_related('steps').order_by("-created_on", "-pk").first()
+
+        if active_run and active_run.flow.ignore_triggers and not active_run.is_completed():
+            return False
+
+        # find a matching keyword trigger with an active flow
+        trigger = Trigger.objects.filter(org=msg.org, is_archived=False, is_active=True,
+                                         trigger_type=cls.TYPE_NLU_API,
+                                         flow__is_archived=False, flow__is_active=True)
+
+        # trigger needs to match the contact's groups or be non-group specific
+        trigger = trigger.filter(Q(groups__in=msg.contact.user_groups.all()) | Q(groups=None))
+        trigger = trigger.prefetch_related('groups', 'groups__contacts').order_by('groups__name').first()
+
+        # if no trigger for contact groups find there is a no group trigger
+        if not trigger:
+            return False
+
+        return cls.catch_nlu_triggers(msg, [trigger], True)
