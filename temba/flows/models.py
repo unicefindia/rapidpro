@@ -244,7 +244,7 @@ class Flow(TembaModel):
                                                 help_text=_("Minutes of inactivity that will cause expiration from flow"))
 
     ignore_triggers = models.BooleanField(default=False,
-                                          help_text=_("Ignore keyword triggers while in this flow"))
+                                          help_text=_("Ignore keyword and NLU triggers while in this flow"))
 
     saved_on = models.DateTimeField(auto_now_add=True,
                                     help_text=_("When this item was saved"))
