@@ -5536,54 +5536,95 @@ class FlowsTest(FlowFileTest):
     def test_has_intent(self):
         flow = self.get_flow('rules_has_intent')
         with patch('requests.request') as mock_get:
+            from temba.nlu.models import BothubConsumer
+            bothub = BothubConsumer('706e1467-fa55-4562-b909-e09caca9b198')
             mock_get.return_value = MockResponse(200, """
-                        {
-                            "bot_uuid": "e5bf3007-2629-44e3-8cbe-4505ecb130e2",
-                            "answer": {
-                                "text": "I am looking for a Mexican restaurant in the center of town",
-                                "entities": [
-                                    {
-                                        "start": 19,
-                                        "value": "Mexican",
-                                        "end": 26,
-                                        "entity": "cuisine",
-                                        "extractor": "ner_crf"
-                                    },
-                                    {
-                                        "start": 45,
-                                        "value": "center",
-                                        "end": 51,
-                                        "entity": "location",
-                                        "extractor": "ner_crf"
-                                    }
-                                ],
-                                "intent_ranking": [
-                                    {
+            {
+                "uuid": "706e1467-fa55-4562-b909-e09caca9b198",
+                "owner": 2,
+                "owner__nickname": "bob",
+                "name": "Binary Answers",
+                "slug": "binary",
+                "language": "en",
+                "available_languages": [
+                    "pt",
+                    "en"
+                ],
+                "categories": [
+                    3
+                ],
+                "categories_list": [
+                    {
+                        "id": 3,
+                        "name": "Tools"
+                    }
+                ],
+                "description": "",
+                "is_private": false,
+                "intents": [
+                    "restaurant_search",
+                    "goodbye",
+                    "greet"
+                ],
+                "entities": [],
+                "examples__count": 23,
+                "authorization": null,
+                "ready_for_train": false,
+                "votes_sum": 2,
+                "created_at": "2018-06-11T22:02:42.185098Z"
+            }
+            """)
+            bothub.get_repository_info()
+            self.org.bothub_add_repository('706e1467-fa55-4562-b909-e09caca9b198', self.user)
+
+            with patch('requests.request') as mock_get:
+                mock_get.return_value = MockResponse(200, """
+                            {
+                                "bot_uuid": "706e1467-fa55-4562-b909-e09caca9b198",
+                                "answer": {
+                                    "text": "I am looking for a Mexican restaurant in the center of town",
+                                    "entities": [
+                                        {
+                                            "start": 19,
+                                            "value": "Mexican",
+                                            "end": 26,
+                                            "entity": "cuisine",
+                                            "extractor": "ner_crf"
+                                        },
+                                        {
+                                            "start": 45,
+                                            "value": "center",
+                                            "end": 51,
+                                            "entity": "location",
+                                            "extractor": "ner_crf"
+                                        }
+                                    ],
+                                    "intent_ranking": [
+                                        {
+                                            "confidence": 0.731929302865667,
+                                            "name": "restaurant_search"
+                                        },
+                                        {
+                                            "confidence": 0.14645046976303883,
+                                            "name": "goodbye"
+                                        },
+                                        {
+                                            "confidence": 0.07863577626166107,
+                                            "name": "greet"
+                                        },
+                                        {
+                                            "confidence": 0.04298445110963322,
+                                            "name": "affirm"
+                                        }
+                                    ],
+                                    "intent": {
                                         "confidence": 0.731929302865667,
                                         "name": "restaurant_search"
-                                    },
-                                    {
-                                        "confidence": 0.14645046976303883,
-                                        "name": "goodbye"
-                                    },
-                                    {
-                                        "confidence": 0.07863577626166107,
-                                        "name": "greet"
-                                    },
-                                    {
-                                        "confidence": 0.04298445110963322,
-                                        "name": "affirm"
                                     }
-                                ],
-                                "intent": {
-                                    "confidence": 0.731929302865667,
-                                    "name": "restaurant_search"
                                 }
                             }
-                        }
-                        """)
-            self.org.bothub_add_repository('API_KEY', self.user)
-            self.assertEqual("restaurant_search", self.send_message(flow, "I am looking for a Mexican restaurant in the center of town"))
+                            """)
+                self.assertEqual("restaurant_search", self.send_message(flow, "I am looking for a Mexican restaurant in the center of town"))
 
     def test_rules_first(self):
         flow = self.get_flow('rules_first')
