@@ -29,7 +29,6 @@ from temba.ivr.models import IVRCall
 from temba.ussd.models import USSDSession
 from temba.locations.models import AdminBoundary, BoundaryAlias
 from temba.msgs.models import Broadcast, Label, Msg, INCOMING, PENDING, WIRED, OUTGOING, FAILED
-from temba.nlu.models import NLU_BOTHUB_TAG, NLU_WIT_AI_TAG
 from temba.orgs.models import Language, get_current_export_version
 from temba.tests import TembaTest, MockResponse, FlowFileTest
 from temba.triggers.models import Trigger
@@ -1656,7 +1655,7 @@ class FlowTest(TembaTest):
         # has intents test
         bot = {u'intent': {u'bot_name': u'bot-slug-92', u'name': u'restaurant_search', u'bot_id': u'706e1467-fa55-4562-b909-e09caca9b198'}}
         sms.text = "I want food"
-        sms.org.connect_nlu_api(self.user, NLU_BOTHUB_TAG, 'API_KEY')
+        # sms.org.connect_nlu_api(self.user, NLU_BOTHUB_TAG, 'API_KEY')
         test = HasIntentTest(test=bot)
         self.assertEqual(type(HasIntentTest.from_json(self.org, test.as_json())), HasIntentTest)
         with patch('temba.nlu.models.BothubConsumer._request') as mock_get:
@@ -4891,68 +4890,22 @@ class FlowsTest(FlowFileTest):
         response = self.client.get(reverse('flows.flow_nlu'))
         self.assertEqual(response.get('intents'), None)
 
-        with patch('temba.nlu.models.BothubConsumer.is_valid_token') as mock_is_valid_token:
-            mock_is_valid_token.return_value = True
-            payload = dict(api_name=NLU_BOTHUB_TAG, api_key_nlu='673d4c5f35be4d1e9e76eaafe56704c1', disconnect='false', token='false')
-            response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
+        from temba.nlu.models import BothubConsumer
+        authorization_key = '673d4c5f35be4d1e9e76eaafe56704c1'
 
-        self.org.refresh_from_db()
-        self.assertEqual((NLU_BOTHUB_TAG, '673d4c5f35be4d1e9e76eaafe56704c1'), self.org.get_nlu_api_credentials())
+        with patch.object(BothubConsumer, 'is_valid_token', return_value=True):
+            bothub = BothubConsumer(authorization_key)
+            self.assertEqual(bothub.is_valid_token(), True)
 
-        with patch('temba.nlu.models.BothubConsumer.list_bots') as mock_list_bots:
-            mock_list_bots.return_value = [{"uuid": "706e1467-fa55-4562-b909-e09caca9b198", "slug": "bot-slug-92"}]
-            with patch('requests.request') as mock_get_intents:
-                mock_get_intents.return_value = MockResponse(200, '{"private": false, "intents": [ "greet", "affirm", "restaurant_search", "goodbye"], "slug": "bot-slug-92"}')
-                response = self.client.get(reverse('flows.flow_nlu'))
-                data = {
-                    "nlu_type": NLU_BOTHUB_TAG,
-                    "bots_intents": [
-                        {"bot_name": "bot-slug-92", "name": "greet", "bot_id": "706e1467-fa55-4562-b909-e09caca9b198"},
-                        {"bot_name": "bot-slug-92", "name": "affirm", "bot_id": "706e1467-fa55-4562-b909-e09caca9b198"},
-                        {"bot_name": "bot-slug-92", "name": "restaurant_search", "bot_id": "706e1467-fa55-4562-b909-e09caca9b198"},
-                        {"bot_name": "bot-slug-92", "name": "goodbye", "bot_id": "706e1467-fa55-4562-b909-e09caca9b198"}
-                    ]
-                }
-                self.assertEqual(response.json(), data)
+            if bothub.is_valid_token():
+                payload = dict(bothub_authorization_key=authorization_key)
+                response = self.client.post(reverse('orgs.org_bothub'), payload, follow=True)
 
-    def test_nlu_wit(self):
-        self.login(self.admin)
+                self.org.refresh_from_db()
+                repositories = self.org.get_bothub_repositories().values()
 
-        self.org.refresh_from_db()
-
-        response = self.client.get(reverse('flows.flow_nlu'))
-        self.assertEqual(response.get('intents'), None)
-
-        with patch('temba.nlu.models.WitConsumer.is_valid_token') as mock_is_valid_token:
-            mock_is_valid_token.return_value = True
-            payload = dict(api_name=NLU_WIT_AI_TAG, api_key_nlu='WIT_BOT_KEY', bot_name='bot name', disconnect='false', token='false')
-            response = self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
-
-        self.org.refresh_from_db()
-        self.assertEqual((NLU_WIT_AI_TAG, ''), self.org.get_nlu_api_credentials())
-
-        with patch('requests.request') as mock_get_intents:
-            data = """
-            [
-                "greet",
-                "affirm",
-                "restaurant_search",
-                "goodbye"
-            ]
-            """
-            mock_get_intents.return_value = MockResponse(200, data)
-            response = self.client.get(reverse('flows.flow_nlu'))
-            data = {
-                "nlu_type": NLU_WIT_AI_TAG,
-                "bots_intents": [
-                    {"bot_name": "bot name", "name": "greet", "bot_id": "WIT_BOT_KEY"},
-                    {"bot_name": "bot name", "name": "affirm", "bot_id": "WIT_BOT_KEY"},
-                    {"bot_name": "bot name", "name": "restaurant_search", "bot_id": "WIT_BOT_KEY"},
-                    {"bot_name": "bot name", "name": "goodbye", "bot_id": "WIT_BOT_KEY"}
-                ]
-            }
-
-            self.assertEqual(response.json(), data)
+                self.assertEqual(1, len(repositories))
+                self.assertEqual(repositories[0].get('authorization_key'), authorization_key)
 
     def test_completion(self):
 
@@ -5629,8 +5582,7 @@ class FlowsTest(FlowFileTest):
                             }
                         }
                         """)
-
-            self.org.connect_nlu_api(self.user, NLU_BOTHUB_TAG, 'API_KEY')
+            self.org.bothub_add_repository('API_KEY', self.user)
             self.assertEqual("restaurant_search", self.send_message(flow, "I am looking for a Mexican restaurant in the center of town"))
 
     def test_rules_first(self):
