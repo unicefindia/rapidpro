@@ -4925,8 +4925,7 @@ class FlowsTest(FlowFileTest):
         assert_recent(response, ["blue"])
 
     def test_nlu_bothub(self):
-        self.login(self.admin)
-
+        self.login(self.admin)  
         self.org.refresh_from_db()
 
         response = self.client.get(reverse('flows.flow_nlu'))
@@ -4935,11 +4934,48 @@ class FlowsTest(FlowFileTest):
         from temba.nlu.models import BothubConsumer
         authorization_key = '673d4c5f35be4d1e9e76eaafe56704c1'
 
-        with patch.object(BothubConsumer, 'is_valid_token', return_value=True):
-            bothub = BothubConsumer(authorization_key)
-            self.assertEqual(bothub.is_valid_token(), True)
+        with patch("temba.nlu.models.BothubConsumer.is_valid_token") as mock:
+            mock.return_value = True
+            with patch('requests.request') as mock_get:
+                mock_get.return_value = MockResponse(200, """
+                {
+                    "uuid": "673d4c5f35be4d1e9e76eaafe56704c1",
+                    "owner": 2,
+                    "owner__nickname": "bob",
+                    "name": "Binary Answers",
+                    "slug": "binary",
+                    "language": "en",
+                    "available_languages": [
+                        "pt",
+                        "en"
+                    ],
+                    "categories": [
+                        3
+                    ],
+                    "categories_list": [
+                        {
+                            "id": 3,
+                            "name": "Tools"
+                        }
+                    ],
+                    "description": "",
+                    "is_private": false,
+                    "intents": [
+                        "restaurant_search",
+                        "goodbye",
+                        "greet"
+                    ],
+                    "entities": [],
+                    "examples__count": 23,
+                    "authorization": null,
+                    "ready_for_train": false,
+                    "votes_sum": 2,
+                    "created_at": "2018-06-11T22:02:42.185098Z"
+                }
+                """)
+                bothub = BothubConsumer(authorization_key)
+                self.assertEqual(bothub.is_valid_token(), True)
 
-            if bothub.is_valid_token():
                 payload = dict(bothub_authorization_key=authorization_key)
                 response = self.client.post(reverse('orgs.org_bothub'), payload, follow=True)
 
