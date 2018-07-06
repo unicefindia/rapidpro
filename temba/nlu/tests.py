@@ -5,8 +5,6 @@ from temba.tests import TembaTest, MockResponse
 from .models import BothubConsumer
 from django.core.urlresolvers import reverse
 
-import six
-
 
 class NluTest(TembaTest):
 
