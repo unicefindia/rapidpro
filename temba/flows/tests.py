@@ -4925,7 +4925,7 @@ class FlowsTest(FlowFileTest):
         assert_recent(response, ["blue"])
 
     def test_nlu_bothub(self):
-        self.login(self.admin)  
+        self.login(self.admin)
         self.org.refresh_from_db()
 
         response = self.client.get(reverse('flows.flow_nlu'))
