@@ -496,8 +496,9 @@ class Trigger(SmartModel):
                 nlu_data['repositories'].append(intent.get('repository_uuid'))
                 sufix = ', ' if counter + 1 < len(intents) else ''
 
-                repository = repositories[intent.get('repository_uuid')]
-                nlu_data['intents_replaced'] += '{} - {}{}'.format(intent.get('intent'), repository.get('name'), sufix)
+                if intent.get('repository_uuid') in repositories.keys():
+                    repository = repositories[intent.get('repository_uuid')]
+                    nlu_data['intents_replaced'] += '{} - {}{}'.format(intent.get('intent'), repository.get('name'), sufix)
 
             if 'repositories' in nlu_data:
                 nlu_data['repositories'] = set(nlu_data['repositories'])
@@ -536,3 +537,14 @@ class Trigger(SmartModel):
             return False
 
         return cls.catch_nlu_triggers(msg, [trigger], True)
+
+    @classmethod
+    def remove_triggers_nlu(cls, repository_uuid, user):
+        triggers = Trigger.get_triggers_of_type(user.get_org(), Trigger.TYPE_NLU_API)
+        for trigger in triggers:
+            nlu_data = json.loads(trigger.nlu_data)
+            intents = nlu_data.get('intents', [])
+            for intent in intents:
+                if repository_uuid == intent.get('repository_uuid'):
+                    trigger.archive(user)
+        return True

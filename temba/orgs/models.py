@@ -948,10 +948,12 @@ class Org(SmartModel):
                 self.save_nlu_config(user, json.dumps(bothub_config))
 
     def bothub_remove_repository(self, repository_uuid, user):
+        from temba.triggers.models import Trigger
         bothub_config = self.bothub_config_json()
 
         if repository_uuid in bothub_config.get('repositories', {}):
             bothub_config.get('repositories').pop(repository_uuid)
+            Trigger.remove_triggers_nlu(repository_uuid, user)
             self.save_nlu_config(user, json.dumps(bothub_config))
 
     def save_nlu_config(self, user, config):
