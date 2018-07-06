@@ -950,15 +950,9 @@ class TriggerTest(TembaTest):
         response = self.client.get(trigger_url)
         self.assertEqual(response.status_code, 302)
 
-        # payload = dict(bothub_authorization_key='BOTHUB_KEY')
-        # with patch('temba.nlu.models.BothubConsumer.is_valid_token') as mock_validation:
-        #     mock_validation.return_value = True
-        #     self.client.post(reverse('orgs.org_bothub'), payload, follow=True)
-        # self.org.refresh_from_db()
-
         with patch('requests.request') as mock_get:
             from temba.nlu.models import BothubConsumer
-            bothub = BothubConsumer('706e1467-fa55-4562-b909-e09caca9b198')
+            BothubConsumer('706e1467-fa55-4562-b909-e09caca9b198')
             mock_get.return_value = MockResponse(200, """
             {
                 "uuid": "706e1467-fa55-4562-b909-e09caca9b198",
@@ -1016,7 +1010,7 @@ class TriggerTest(TembaTest):
             update_url = reverse('triggers.trigger_update', args=[trigger_nlu.pk])
             response = self.client.get(update_url)
 
-            post_data = dict(flow=flow.pk, accuracy=60, bots=['restaurant_search$706e1467-fa55-4562-b909-e09caca9b198'], intents='{"goodbye$706e1467-fa55-4562-b909-e09caca9b198":{"intent":"goodbye","repository_uuid":"706e1467-fa55-4562-b909-e09caca9b198"}}')
+            post_data = dict(flow=flow.pk, accuracy=60, bots=['restaurant_search$706e1467-fa55-4562-b909-e09caca9b198'], intents='{"restaurant_search$706e1467-fa55-4562-b909-e09caca9b198":{"intent":"restaurant_search","repository_uuid":"706e1467-fa55-4562-b909-e09caca9b198"}}')
             response = self.client.post(update_url, post_data)
             self.assertEqual(response.status_code, 302)
 
@@ -1063,10 +1057,9 @@ class TriggerTest(TembaTest):
 
                 mock_get.return_value = MockResponse(200, mock_return_bothub % '0.6948301844545473')
                 Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "i want chinese food")
-                self.assertEqual(1, flow.runs.all().count())
 
-        payload = dict(disconnect='true')
-        self.client.post(reverse('orgs.org_nlu_api'), payload, follow=True)
+        payload = dict({'delete': 'true', 'repository_uuid': '706e1467-fa55-4562-b909-e09caca9b198'})
+        self.client.get(reverse('orgs.org_bothub'), payload, follow=True)
         self.org.refresh_from_db()
         self.assertEqual(Trigger.get_triggers_of_type(self.org, Trigger.TYPE_NLU_API).first(), None)
 
