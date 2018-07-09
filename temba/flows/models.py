@@ -7656,7 +7656,7 @@ class HasIntentTest(Test):
         repositories = sms.org.get_bothub_repositories()
         if repositories:
             test = self.as_json().get("test", None)
-            accuracy = test.get("accuracy", None)
+            accuracy = test.get("accuracy", 0)
             intent_data = test.get("intent", {})
 
             try:

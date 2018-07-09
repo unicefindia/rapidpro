@@ -6671,7 +6671,7 @@ class FlowsTest(FlowFileTest):
                 repositories = self.org.get_bothub_repositories().values()
 
                 self.assertEqual(1, len(repositories))
-                self.assertEqual(repositories[0].get("authorization_key"), authorization_key)
+                self.assertEqual(list(repositories)[0].get("authorization_key"), authorization_key)
 
     def test_completion(self):
 
