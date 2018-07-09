@@ -5720,7 +5720,7 @@ class ContactTest(TembaTest):
             created_on=timezone.now(),
         )
 
-        with self.assertNumQueries(19):
+        with self.assertNumQueries(22):
             process_message_task(dict(id=msg.id, from_mage=True, new_contact=True))
 
         self.assertCountEqual(
