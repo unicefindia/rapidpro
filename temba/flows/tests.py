@@ -2482,7 +2482,7 @@ class FlowTest(TembaTest):
                 )
                 self.assertTest(
                     True,
-                    '{"entities": {"cuisine": "Mexican", "location": "center"}, "intent": "restaurant_search"}',
+                    '{"intent": "restaurant_search", "entities": {"cuisine": "Mexican", "location": "center"}}',
                     test,
                 )
 
