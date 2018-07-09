@@ -18,12 +18,11 @@ dj-database-url
 smartmin
 
 ########################## services ##########################
-analytics-python==0.4.4
+analytics-python
 boto3
 google
 librato_bg
 nexmo==1.4.0
-plivo
 pyfcm
 python-gcm
 python-telegram-bot
@@ -32,6 +31,8 @@ stripe
 twilio==3.6.15
 twython
 uservoice
+elasticsearch
+elasticsearch_dsl
 
 ########################## file types ##########################
 geojson
@@ -45,15 +46,15 @@ python-magic
 xlutils
 
 ########################## misc ##########################
-antlr4-python2-runtime
+antlr4-python3-runtime
 celery[redis]
 colorama
-enum34
 gunicorn
 iptools
 iso-639
 iso8601
 isoweek
+jsondiff
 phonenumbers
 pycountry
 pycrypto
@@ -65,12 +66,16 @@ redis
 requests
 stop-words
 unidecode
+python-intercom
+pysocks; python_version >= "3.0"
 
 ########################## testing ##########################
+black
 coverage
 flake8
 flake8-deprecated
 flake8-print
+isort
 mock
 responses
 selenium

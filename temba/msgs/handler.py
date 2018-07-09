@@ -1,15 +1,12 @@
-from __future__ import unicode_literals
-
-import six
 
 from django.utils.module_loading import import_string
 
 
-@six.python_2_unicode_compatible
 class MessageHandler(object):  # pragma: no cover
     """
     Base class for message handlers.
     """
+
     def __init__(self, name):
         self.name = name
 
