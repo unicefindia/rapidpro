@@ -1,5 +1,4 @@
 import regex
-import six
 import json
 
 from smartmin.models import SmartModel

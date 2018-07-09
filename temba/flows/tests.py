@@ -94,6 +94,7 @@ from .models import (
     GteTest,
     GtTest,
     HasDistrictTest,
+    HasIntentTest,
     HasEmailTest,
     HasStateTest,
     HasWardTest,
