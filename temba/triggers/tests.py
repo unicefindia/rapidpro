@@ -927,9 +927,10 @@ class TriggerTest(TembaTest):
 
         self.assertFalse(trigger_nlu)
 
-        Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "Hi")
+        msg1 = Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "Hi")
         self.assertEqual(1, Msg.objects.all().count())
         self.assertEqual(0, flow.runs.all().count())
+        msg1.delete()
 
         trigger_url = reverse("triggers.trigger_bothub")
 
@@ -1016,8 +1017,9 @@ class TriggerTest(TembaTest):
 
             with patch("requests.request") as mock_get:
                 mock_get.side_effect = Exception("Fail request")
-                Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "i want chinese food")
+                msg2 = Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "i want chinese food")
                 self.assertEqual(0, flow.runs.all().count())
+                msg2.delete()
 
             with patch("requests.request") as mock_get:
                 mock_return_bothub = """
@@ -1052,11 +1054,13 @@ class TriggerTest(TembaTest):
                 }
                 """
                 mock_get.return_value = MockResponse(200, mock_return_bothub % "0.35233400021608")
-                Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "i want chinese food")
+                msg3 = Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "i want chinese food")
                 self.assertEqual(0, flow.runs.all().count())
 
                 mock_get.return_value = MockResponse(200, mock_return_bothub % "0.6948301844545473")
-                Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "i want chinese food")
+                msg4 = Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "i want chinese food")
+                msg3.delete()
+                msg4.delete()
 
         payload = dict({"delete": "true", "repository_uuid": "706e1467-fa55-4562-b909-e09caca9b198"})
         self.client.get(reverse("orgs.org_bothub"), payload, follow=True)
