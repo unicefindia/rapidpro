@@ -403,7 +403,7 @@ class Migration(migrations.Migration):
                     models.TextField(
                         help_text="Settings for Natural Language Understand API",
                         null=True,
-                        verbose_name="NLU API Configuration"
+                        verbose_name="NLU API Configuration",
                     ),
                 ),
             ],

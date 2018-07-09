@@ -824,14 +824,18 @@ class FlowCRUDL(SmartCRUDL):
             return qs
 
     class Nlu(OrgPermsMixin, SmartListView):
+
         def render_to_response(self, context, **response_kwargs):
             repositories = self.request.user.get_org().get_bothub_repositories()
             intents = []
             if repositories:
                 repositories = repositories.values()
                 for repository in repositories:
-                    bothub = BothubConsumer(repository.get('authorization_key'))
-                    intents += [dict(name=intent, bot_id=repository.get('uuid'), bot_name=repository.get('name')) for intent in bothub.get_intents()]
+                    bothub = BothubConsumer(repository.get("authorization_key"))
+                    intents += [
+                        dict(name=intent, bot_id=repository.get("uuid"), bot_name=repository.get("name"))
+                        for intent in bothub.get_intents()
+                    ]
             return JsonResponse(dict(bots_intents=intents))
 
     class Completion(OrgPermsMixin, SmartListView):
@@ -903,8 +907,10 @@ class FlowCRUDL(SmartCRUDL):
 
                     repositories = org.get_bothub_repositories()
                     if repositories is not None:
-                        flow_variables.append(dict(name='flow.%s.intent' % key, display='%s Intent' % rule_set.label))
-                        flow_variables.append(dict(name='flow.%s.entities' % key, display='%s Entities' % rule_set.label))
+                        flow_variables.append(dict(name="flow.%s.intent" % key, display="%s Intent" % rule_set.label))
+                        flow_variables.append(
+                            dict(name="flow.%s.entities" % key, display="%s Entities" % rule_set.label)
+                        )
 
             function_completions = get_function_listing()
             messages_completions = contact_variables + date_variables + flow_variables

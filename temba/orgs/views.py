@@ -2213,16 +2213,21 @@ class OrgCRUDL(SmartCRUDL):
     class Bothub(InferOrgMixin, OrgPermsMixin, SmartUpdateView):
 
         class BothubForm(forms.ModelForm):
-            bothub_authorization_key = forms.CharField(max_length=255, label=_('Bothub Repository Key'),
-                                                       required=False, help_text=_('Enter the Bothub Repository Key'))
+            bothub_authorization_key = forms.CharField(
+                max_length=255,
+                label=_("Bothub Repository Key"),
+                required=False,
+                help_text=_("Enter the Bothub Repository Key"),
+            )
 
             def clean(self):
                 super(OrgCRUDL.Bothub.BothubForm, self).clean()
-                bothub_authorization_key = self.cleaned_data.get('bothub_authorization_key')
+                bothub_authorization_key = self.cleaned_data.get("bothub_authorization_key")
 
                 if not bothub_authorization_key:
-                    raise ValidationError(_("Missing data: Bothub Authorization Key."
-                                            "Please check them again and retry"))
+                    raise ValidationError(
+                        _("Missing data: Bothub Authorization Key." "Please check them again and retry")
+                    )
                 else:
                     bothub = BothubConsumer(bothub_authorization_key)
                     if not bothub.is_valid_token():
@@ -2232,17 +2237,17 @@ class OrgCRUDL(SmartCRUDL):
 
             class Meta:
                 model = Org
-                fields = ('bothub_authorization_key',)
+                fields = ("bothub_authorization_key",)
 
-        success_message = ''
-        success_url = '@orgs.org_home'
+        success_message = ""
+        success_url = "@orgs.org_home"
         form_class = BothubForm
 
         def derive_initial(self):
             initial = super(OrgCRUDL.Bothub, self).derive_initial()
             org = self.get_object()
             config = org.bothub_config_json()
-            initial['repositories'] = config.get('repositories', None)
+            initial["repositories"] = config.get("repositories", None)
             return initial
 
         def get_context_data(self, **kwargs):
@@ -2250,7 +2255,7 @@ class OrgCRUDL(SmartCRUDL):
             repositories = self.object.get_bothub_repositories()
 
             if repositories:
-                context['repositories'] = repositories.values()
+                context["repositories"] = repositories.values()
 
             return context
 
@@ -2258,19 +2263,19 @@ class OrgCRUDL(SmartCRUDL):
             user = self.request.user
             org = user.get_org()
 
-            delete = self.request.GET.get('delete', False) == 'true'
-            repository_uuid = self.request.GET.get('repository_uuid', None)
+            delete = self.request.GET.get("delete", False) == "true"
+            repository_uuid = self.request.GET.get("repository_uuid", None)
 
             if delete and repository_uuid:
                 org.bothub_remove_repository(repository_uuid, user)
-                return HttpResponseRedirect(reverse('orgs.org_home'))
+                return HttpResponseRedirect(reverse("orgs.org_home"))
 
             return super(OrgCRUDL.Bothub, self).get(self, *args, **kwargs)
 
         def form_valid(self, form):
             user = self.request.user
             org = user.get_org()
-            bothub_authorization_key = form.cleaned_data.get('bothub_authorization_key')
+            bothub_authorization_key = form.cleaned_data.get("bothub_authorization_key")
             org.bothub_add_repository(bothub_authorization_key, user)
             return super(OrgCRUDL.Bothub, self).form_valid(form)
 
@@ -2377,9 +2382,10 @@ class OrgCRUDL(SmartCRUDL):
                         nobutton=True,
                     )
 
-            if self.has_org_perm('orgs.org_bothub'):
-                formax.add_section('bothub', reverse('orgs.org_bothub'), icon='icon-bothub',
-                                   action='redirect', nobutton=True)
+            if self.has_org_perm("orgs.org_bothub"):
+                formax.add_section(
+                    "bothub", reverse("orgs.org_bothub"), icon="icon-bothub", action="redirect", nobutton=True
+                )
 
             if self.has_org_perm("orgs.org_webhook"):
                 formax.add_section("webhook", reverse("orgs.org_webhook"), icon="icon-cloud-upload")

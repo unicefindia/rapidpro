@@ -22,16 +22,18 @@ class CatchAllHandler(MessageHandler):
 
 
 class NluApiHandler(MessageHandler):
+
     def __init__(self):
-        super(NluApiHandler, self).__init__('triggers nlu')
+        super(NluApiHandler, self).__init__("triggers nlu")
 
     def handle(self, msg):
         return Trigger.catch_nlu_triggers(msg)
 
 
 class TriggerNluHandler(MessageHandler):
+
     def __init__(self):
-        super(TriggerNluHandler, self).__init__('triggers nlu')
+        super(TriggerNluHandler, self).__init__("triggers nlu")
 
     def handle(self, msg):
         return Trigger.nlu_find_and_handle(msg)

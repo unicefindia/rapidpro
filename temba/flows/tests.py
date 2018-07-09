@@ -2373,15 +2373,24 @@ class FlowTest(TembaTest):
         self.assertTest(True, "it works", NotEmptyTest())
 
         # has intents test
-        bot = {u'intent': {u'bot_name': u'bot-slug-92', u'name': u'restaurant_search', u'bot_id': u'706e1467-fa55-4562-b909-e09caca9b198'}}
+        bot = {
+            u"intent": {
+                u"bot_name": u"bot-slug-92",
+                u"name": u"restaurant_search",
+                u"bot_id": u"706e1467-fa55-4562-b909-e09caca9b198",
+            }
+        }
         sms.text = "I want food"
         test = HasIntentTest(test=bot)
         self.assertEqual(type(HasIntentTest.from_json(self.org, test.as_json())), HasIntentTest)
 
-        with patch('requests.request') as mock_get:
+        with patch("requests.request") as mock_get:
             from temba.nlu.models import BothubConsumer
-            BothubConsumer('706e1467-fa55-4562-b909-e09caca9b198')
-            mock_get.return_value = MockResponse(200, """
+
+            BothubConsumer("706e1467-fa55-4562-b909-e09caca9b198")
+            mock_get.return_value = MockResponse(
+                200,
+                """
             {
                 "uuid": "706e1467-fa55-4562-b909-e09caca9b198",
                 "owner": 2,
@@ -2416,11 +2425,14 @@ class FlowTest(TembaTest):
                 "votes_sum": 2,
                 "created_at": "2018-06-11T22:02:42.185098Z"
             }
-            """)
-            self.org.bothub_add_repository('706e1467-fa55-4562-b909-e09caca9b198', self.user)
+            """,
+            )
+            self.org.bothub_add_repository("706e1467-fa55-4562-b909-e09caca9b198", self.user)
 
-            with patch('requests.request') as mock_get:
-                mock_get.return_value = MockResponse(200, """
+            with patch("requests.request") as mock_get:
+                mock_get.return_value = MockResponse(
+                    200,
+                    """
                 {
                     "bot_uuid": "706e1467-fa55-4562-b909-e09caca9b198",
                     "answer": {
@@ -2465,10 +2477,17 @@ class FlowTest(TembaTest):
                         }
                     }
                 }
-                """)
-                self.assertTest(True, '{"entities": {"cuisine": "Mexican", "location": "center"}, "intent": "restaurant_search"}', test)
+                """,
+                )
+                self.assertTest(
+                    True,
+                    '{"entities": {"cuisine": "Mexican", "location": "center"}, "intent": "restaurant_search"}',
+                    test,
+                )
 
-                mock_get.return_value = MockResponse(200, """
+                mock_get.return_value = MockResponse(
+                    200,
+                    """
                 {
                     "bot_uuid": "e5bf3007-2629-44e3-8cbe-4505ecb130e2",
                     "answer": {
@@ -2498,7 +2517,8 @@ class FlowTest(TembaTest):
                         }
                     }
                 }
-                """)
+                """,
+                )
                 self.assertTest(False, None, test)
 
         def perform_date_tests(sms, dayfirst):
@@ -6591,16 +6611,19 @@ class FlowsTest(FlowFileTest):
         self.login(self.admin)
         self.org.refresh_from_db()
 
-        response = self.client.get(reverse('flows.flow_nlu'))
-        self.assertEqual(response.get('intents'), None)
+        response = self.client.get(reverse("flows.flow_nlu"))
+        self.assertEqual(response.get("intents"), None)
 
         from temba.nlu.models import BothubConsumer
-        authorization_key = '673d4c5f35be4d1e9e76eaafe56704c1'
+
+        authorization_key = "673d4c5f35be4d1e9e76eaafe56704c1"
 
         with patch("temba.nlu.models.BothubConsumer.is_valid_token") as mock:
             mock.return_value = True
-            with patch('requests.request') as mock_get:
-                mock_get.return_value = MockResponse(200, """
+            with patch("requests.request") as mock_get:
+                mock_get.return_value = MockResponse(
+                    200,
+                    """
                 {
                     "uuid": "673d4c5f35be4d1e9e76eaafe56704c1",
                     "owner": 2,
@@ -6635,18 +6658,19 @@ class FlowsTest(FlowFileTest):
                     "votes_sum": 2,
                     "created_at": "2018-06-11T22:02:42.185098Z"
                 }
-                """)
+                """,
+                )
                 bothub = BothubConsumer(authorization_key)
                 self.assertEqual(bothub.is_valid_token(), True)
 
                 payload = dict(bothub_authorization_key=authorization_key)
-                response = self.client.post(reverse('orgs.org_bothub'), payload, follow=True)
+                response = self.client.post(reverse("orgs.org_bothub"), payload, follow=True)
 
                 self.org.refresh_from_db()
                 repositories = self.org.get_bothub_repositories().values()
 
                 self.assertEqual(1, len(repositories))
-                self.assertEqual(repositories[0].get('authorization_key'), authorization_key)
+                self.assertEqual(repositories[0].get("authorization_key"), authorization_key)
 
     def test_completion(self):
 
@@ -7386,11 +7410,14 @@ class FlowsTest(FlowFileTest):
         self.assertEqual("You picked 3!", self.send_message(flow, "3"))
 
     def test_has_intent(self):
-        flow = self.get_flow('rules_has_intent')
-        with patch('requests.request') as mock_get:
+        flow = self.get_flow("rules_has_intent")
+        with patch("requests.request") as mock_get:
             from temba.nlu.models import BothubConsumer
-            bothub = BothubConsumer('706e1467-fa55-4562-b909-e09caca9b198')
-            mock_get.return_value = MockResponse(200, """
+
+            bothub = BothubConsumer("706e1467-fa55-4562-b909-e09caca9b198")
+            mock_get.return_value = MockResponse(
+                200,
+                """
             {
                 "uuid": "706e1467-fa55-4562-b909-e09caca9b198",
                 "owner": 2,
@@ -7425,12 +7452,15 @@ class FlowsTest(FlowFileTest):
                 "votes_sum": 2,
                 "created_at": "2018-06-11T22:02:42.185098Z"
             }
-            """)
+            """,
+            )
             bothub.get_repository_info()
-            self.org.bothub_add_repository('706e1467-fa55-4562-b909-e09caca9b198', self.user)
+            self.org.bothub_add_repository("706e1467-fa55-4562-b909-e09caca9b198", self.user)
 
-            with patch('requests.request') as mock_get:
-                mock_get.return_value = MockResponse(200, """
+            with patch("requests.request") as mock_get:
+                mock_get.return_value = MockResponse(
+                    200,
+                    """
                             {
                                 "bot_uuid": "706e1467-fa55-4562-b909-e09caca9b198",
                                 "answer": {
@@ -7475,8 +7505,12 @@ class FlowsTest(FlowFileTest):
                                     }
                                 }
                             }
-                            """)
-                self.assertEqual("restaurant_search", self.send_message(flow, "I am looking for a Mexican restaurant in the center of town"))
+                            """,
+                )
+                self.assertEqual(
+                    "restaurant_search",
+                    self.send_message(flow, "I am looking for a Mexican restaurant in the center of town"),
+                )
 
     def test_rules_first(self):
         flow = self.get_flow("rules_first")

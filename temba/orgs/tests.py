@@ -471,7 +471,7 @@ class OrgTest(TembaTest):
             "administrators": [self.admin.id],
             "surveyors": [self.surveyor.id],
             "surveyor_password": None,
-            'nlu_api_config': "{}"
+            "nlu_api_config": "{}",
         }
 
         response = self.client.post(update_url, post_data)
@@ -1564,9 +1564,9 @@ class OrgTest(TembaTest):
         self.assertEqual(None, self.org.get_bothub_repositories())
         self.assertEqual(dict(), self.org.bothub_config_json())
 
-        bothub_url = reverse('orgs.org_bothub')
+        bothub_url = reverse("orgs.org_bothub")
         response = self.client.get(bothub_url)
-        self.assertContains(response, 'Bothub')
+        self.assertContains(response, "Bothub")
 
         # Bothub.it test connect
         # Without api_key
@@ -1576,9 +1576,11 @@ class OrgTest(TembaTest):
 
         with patch("temba.nlu.models.BothubConsumer.is_valid_token") as mock:
             mock.return_value = True
-            payload.update(dict(bothub_authorization_key='673d4c5f35be4d1e9e76eaafe56704c1'))
-            with patch('requests.request') as mock_get:
-                mock_get.return_value = MockResponse(200, """
+            payload.update(dict(bothub_authorization_key="673d4c5f35be4d1e9e76eaafe56704c1"))
+            with patch("requests.request") as mock_get:
+                mock_get.return_value = MockResponse(
+                    200,
+                    """
                 {
                     "uuid": "706e1467-fa55-4562-b909-e09caca9b198",
                     "owner": 2,
@@ -1613,16 +1615,28 @@ class OrgTest(TembaTest):
                     "votes_sum": 2,
                     "created_at": "2018-06-11T22:02:42.185098Z"
                 }
-                """)
+                """,
+                )
                 response = self.client.post(bothub_url, payload, follow=True)
-                self.assertNotContains(response, "Missing data: Bothub Authorization Key.Please check them again and retry")
+                self.assertNotContains(
+                    response, "Missing data: Bothub Authorization Key.Please check them again and retry"
+                )
 
                 self.org.refresh_from_db()
 
-                self.assertEqual({'706e1467-fa55-4562-b909-e09caca9b198': {'authorization_key': '673d4c5f35be4d1e9e76eaafe56704c1', 'name': 'Binary Answers', 'uuid': '706e1467-fa55-4562-b909-e09caca9b198'}}, self.org.get_bothub_repositories())
+                self.assertEqual(
+                    {
+                        "706e1467-fa55-4562-b909-e09caca9b198": {
+                            "authorization_key": "673d4c5f35be4d1e9e76eaafe56704c1",
+                            "name": "Binary Answers",
+                            "uuid": "706e1467-fa55-4562-b909-e09caca9b198",
+                        }
+                    },
+                    self.org.get_bothub_repositories(),
+                )
 
         # Bothub.it test disconnect
-        payload.update({'delete': 'true', 'repository_uuid': '706e1467-fa55-4562-b909-e09caca9b198'})
+        payload.update({"delete": "true", "repository_uuid": "706e1467-fa55-4562-b909-e09caca9b198"})
         response = self.client.get(bothub_url, payload, follow=True)
         self.org.refresh_from_db()
         self.assertEqual(dict(), self.org.get_bothub_repositories())

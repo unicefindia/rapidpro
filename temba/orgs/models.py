@@ -295,8 +295,9 @@ class Org(SmartModel):
 
     parent = models.ForeignKey("orgs.Org", null=True, blank=True, help_text=_("The parent org that manages this org"))
 
-    nlu_api_config = models.TextField(null=True, verbose_name=_("NLU API Configuration"),
-                                      help_text=_('Settings for Natural Language Understand API'))
+    nlu_api_config = models.TextField(
+        null=True, verbose_name=_("NLU API Configuration"), help_text=_("Settings for Natural Language Understand API")
+    )
 
     @classmethod
     def get_unique_slug(cls, name):
@@ -1023,29 +1024,32 @@ class Org(SmartModel):
     def bothub_add_repository(self, authorization_key, user):
         bothub_config = self.bothub_config_json()
 
-        if 'repositories' not in bothub_config.keys():
-            bothub_config.update({'repositories': dict()})
+        if "repositories" not in bothub_config.keys():
+            bothub_config.update({"repositories": dict()})
 
         bothub = BothubConsumer(authorization_key)
         if bothub.is_valid_token():
             repository = bothub.get_repository_info()
 
-            if repository.get('uuid') not in bothub_config.get('repositories'):
-                bothub_config.get('repositories').update({
-                    repository.get('uuid'): {
-                        'name': repository.get('name'),
-                        'authorization_key': authorization_key,
-                        'uuid': repository.get('uuid'),
+            if repository.get("uuid") not in bothub_config.get("repositories"):
+                bothub_config.get("repositories").update(
+                    {
+                        repository.get("uuid"): {
+                            "name": repository.get("name"),
+                            "authorization_key": authorization_key,
+                            "uuid": repository.get("uuid"),
+                        }
                     }
-                })
+                )
                 self.save_nlu_config(user, json.dumps(bothub_config))
 
     def bothub_remove_repository(self, repository_uuid, user):
         from temba.triggers.models import Trigger
+
         bothub_config = self.bothub_config_json()
 
-        if repository_uuid in bothub_config.get('repositories', {}):
-            bothub_config.get('repositories').pop(repository_uuid)
+        if repository_uuid in bothub_config.get("repositories", {}):
+            bothub_config.get("repositories").pop(repository_uuid)
             Trigger.remove_triggers_nlu(repository_uuid, user)
             self.save_nlu_config(user, json.dumps(bothub_config))
 
@@ -1057,7 +1061,7 @@ class Org(SmartModel):
     def get_bothub_repositories(self):
         bothub_config = self.bothub_config_json()
         if bothub_config:
-            return bothub_config.get('repositories')
+            return bothub_config.get("repositories")
         return None
 
     def get_verboice_client(self):  # pragma: needs cover

@@ -417,22 +417,28 @@ class BothubTriggerForm(GroupBasedTriggerForm):
     """
     For for catch NLU triggers
     """
-    accuracy_choice = tuple(((n * 10, '{0}%'.format(n * 10)) for n in range(1, 11)))
-    accuracy = forms.ChoiceField(accuracy_choice, initial=60, required=True, label=_("Accuracy Rate"),
-                                 help_text=_("The minimum accuracy rate between 10 and 100"))
-    bots = forms.MultipleChoiceField(label=_("Bot Interpreter"), required=True,
-                                     help_text=_("Bot that will intepreter words and return intents"))
-    intents = forms.CharField(widget=forms.HiddenInput(attrs={'id': 'bothub_trigger_intents'}), required=True)
+    accuracy_choice = tuple(((n * 10, "{0}%".format(n * 10)) for n in range(1, 11)))
+    accuracy = forms.ChoiceField(
+        accuracy_choice,
+        initial=60,
+        required=True,
+        label=_("Accuracy Rate"),
+        help_text=_("The minimum accuracy rate between 10 and 100"),
+    )
+    bots = forms.MultipleChoiceField(
+        label=_("Bot Interpreter"), required=True, help_text=_("Bot that will intepreter words and return intents")
+    )
+    intents = forms.CharField(widget=forms.HiddenInput(attrs={"id": "bothub_trigger_intents"}), required=True)
 
     def __init__(self, user, *args, **kwargs):
         org = user.get_org()
         flows = Flow.objects.filter(org=org, is_active=True, is_archived=False, flow_type__in=[Flow.FLOW])
         super(BothubTriggerForm, self).__init__(user, flows, *args, **kwargs)
-        self.fields['bots'].choices = BothubTriggerForm.get_repositories_by_org(org)
+        self.fields["bots"].choices = BothubTriggerForm.get_repositories_by_org(org)
 
     def clean(self):
         cleaned_data = super(BaseTriggerForm, self).clean()
-        cleaned_data['accuracy'] = int(cleaned_data['accuracy'])
+        cleaned_data["accuracy"] = int(cleaned_data["accuracy"])
         return cleaned_data
 
     @staticmethod
@@ -444,21 +450,21 @@ class BothubTriggerForm(GroupBasedTriggerForm):
             repositories = repositories.values()
 
             for repository in repositories:
-                bothub = BothubConsumer(repository.get('authorization_key'))
+                bothub = BothubConsumer(repository.get("authorization_key"))
                 intents = bothub.get_intents()
 
                 for intent in intents:
-                    repository_name = repository.get('name')
+                    repository_name = repository.get("name")
                     if repository_name not in intents_items.keys():
                         intents_items[repository_name] = ()
 
                     if intent:
-                        intents_items[repository_name] += (('{}${}'.format(intent, repository.get('uuid')), intent),)
+                        intents_items[repository_name] += (("{}${}".format(intent, repository.get("uuid")), intent),)
 
         return intents_items.items()
 
     class Meta(BaseTriggerForm.Meta):
-        fields = ('flow', 'groups', 'accuracy')
+        fields = ("flow", "groups", "accuracy")
 
 
 class TriggerActionForm(BaseActionForm):
@@ -545,7 +551,7 @@ class TriggerCRUDL(SmartCRUDL):
             add_section("trigger-catchall", "triggers.trigger_catchall", "icon-bubble")
 
             if self.org.get_bothub_repositories():
-                add_section('trigger-nlu-api', 'triggers.trigger_bothub', 'icon-bothub')
+                add_section("trigger-nlu-api", "triggers.trigger_bothub", "icon-bothub")
 
     class Update(ModalMixin, OrgMixin, SmartUpdateView):
         success_message = ""
@@ -569,17 +575,19 @@ class TriggerCRUDL(SmartCRUDL):
         def get_context_data(self, **kwargs):
             context = super().get_context_data(**kwargs)
             if self.get_object().schedule:
-                context['days'] = self.get_object().schedule.explode_bitmask()
+                context["days"] = self.get_object().schedule.explode_bitmask()
 
-            context['user_tz'] = get_current_timezone_name()
-            context['user_tz_offset'] = int(timezone.localtime(timezone.now()).utcoffset().total_seconds() / 60)
+            context["user_tz"] = get_current_timezone_name()
+            context["user_tz_offset"] = int(timezone.localtime(timezone.now()).utcoffset().total_seconds() / 60)
 
             if self.get_object().nlu_data:
                 nlu_data = self.get_object().get_nlu_data()
-                intents_items = ['{}${}'.format(intent['intent'], intent['repository_uuid']) for intent in nlu_data.get('intents')]
+                intents_items = [
+                    "{}${}".format(intent["intent"], intent["repository_uuid"]) for intent in nlu_data.get("intents")
+                ]
 
-                context['intents'] = json.dumps(intents_items)
-                context['accuracy'] = nlu_data.get('accuracy')
+                context["intents"] = json.dumps(intents_items)
+                context["accuracy"] = nlu_data.get("accuracy")
             return context
 
         def form_invalid(self, form):
@@ -662,10 +670,12 @@ class TriggerCRUDL(SmartCRUDL):
                     on_transaction_commit(lambda: check_schedule_task.delay(trigger.schedule.pk))
 
             if trigger_type == Trigger.TYPE_NLU_API:
-                trigger.nlu_data = json.dumps({
-                    'intents': list(json.loads(form.cleaned_data['intents']).values()),
-                    'accuracy': form.cleaned_data['accuracy']
-                })
+                trigger.nlu_data = json.dumps(
+                    {
+                        "intents": list(json.loads(form.cleaned_data["intents"]).values()),
+                        "accuracy": form.cleaned_data["accuracy"],
+                    }
+                )
 
             response = super().form_valid(form)
             response["REDIRECT"] = self.get_success_url()
@@ -1086,27 +1096,28 @@ class TriggerCRUDL(SmartCRUDL):
             user = self.request.user
             org = user.get_org()
 
-            groups = form.cleaned_data['groups']
-            intents = form.cleaned_data['intents']
+            groups = form.cleaned_data["groups"]
+            intents = form.cleaned_data["intents"]
             nlu_data = dict()
 
             if intents:
-                nlu_data.update({
-                    'intents': list(json.loads(intents).values()),
-                    'accuracy': form.cleaned_data['accuracy']
-                })
+                nlu_data.update(
+                    {"intents": list(json.loads(intents).values()), "accuracy": form.cleaned_data["accuracy"]}
+                )
 
-            self.object = Trigger.create(org, user, Trigger.TYPE_NLU_API, form.cleaned_data['flow'], nlu_data=json.dumps(nlu_data))
+            self.object = Trigger.create(
+                org, user, Trigger.TYPE_NLU_API, form.cleaned_data["flow"], nlu_data=json.dumps(nlu_data)
+            )
 
             for group in groups:
                 self.object.groups.add(group)
 
-            analytics.track(self.request.user.username, 'temba.trigger_created_bothub')
+            analytics.track(self.request.user.username, "temba.trigger_created_bothub")
             response = self.render_to_response(self.get_context_data(form=form))
-            response['REDIRECT'] = self.get_success_url()
+            response["REDIRECT"] = self.get_success_url()
             return response
 
         def get_form_kwargs(self):
             kwargs = super(TriggerCRUDL.Bothub, self).get_form_kwargs()
-            kwargs['auto_id'] = "id_nlu_api_%s"
+            kwargs["auto_id"] = "id_nlu_api_%s"
             return kwargs

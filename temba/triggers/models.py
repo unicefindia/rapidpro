@@ -131,8 +131,11 @@ class Trigger(SmartModel):
         Channel, verbose_name=_("Channel"), null=True, related_name="triggers", help_text=_("The associated channel")
     )
 
-    nlu_data = models.TextField(null=True, verbose_name=_("NLU Data"),
-                                help_text=_('Intents, accuracy, bots, somethings that will be used to nlu'))
+    nlu_data = models.TextField(
+        null=True,
+        verbose_name=_("NLU Data"),
+        help_text=_("Intents, accuracy, bots, somethings that will be used to nlu"),
+    )
 
     @classmethod
     def create(cls, org, user, trigger_type, flow, channel=None, **kwargs):
@@ -533,54 +536,63 @@ class Trigger(SmartModel):
             nlu_data = trigger.get_nlu_data()
             repositories = entity.org.get_bothub_repositories()
 
-            if repositories and nlu_data and nlu_data.get('intents', None):
+            if repositories and nlu_data and nlu_data.get("intents", None):
                 responses = {}
-                for nlu_bot in nlu_data.get('intents'):
-                    repository_uuid = nlu_bot.get('repository_uuid')
+                for nlu_bot in nlu_data.get("intents"):
+                    repository_uuid = nlu_bot.get("repository_uuid")
                     try:
                         if repository_uuid not in responses.keys():
-                            bothub = BothubConsumer(repositories[repository_uuid].get('authorization_key'))
+                            bothub = BothubConsumer(repositories[repository_uuid].get("authorization_key"))
                             responses[repository_uuid] = bothub.predict(entity, entity.contact.language)
                     except Exception:  # pragma: needs cover
                         return False
 
                     intent, accuracy, entities = responses[repository_uuid]
-                    if intent in nlu_bot.get('intent') and accuracy * 100 >= nlu_data.get('accuracy'):
+                    if intent in nlu_bot.get("intent") and accuracy * 100 >= nlu_data.get("accuracy"):
                         contact = entity.contact
                         if ensure_contact:
                             contact.ensure_unstopped()
 
-                        trigger.flow.start([], [contact],
-                                           start_msg=entity,
-                                           restart_participants=True,
-                                           extra=dict(intent=intent, entities=entities))
+                        trigger.flow.start(
+                            [],
+                            [contact],
+                            start_msg=entity,
+                            restart_participants=True,
+                            extra=dict(intent=intent, entities=entities),
+                        )
                         return True
         return False
 
     def get_nlu_data(self):
         nlu_data = json.loads(self.nlu_data) if self.nlu_data else {}
         repositories = self.org.get_bothub_repositories()
-        intents = nlu_data.get('intents', [])
+        intents = nlu_data.get("intents", [])
 
         if repositories:
             for counter, intent in enumerate(intents):
-                if 'intents_replaced' not in nlu_data:
-                    nlu_data['intents_replaced'] = ''
+                if "intents_replaced" not in nlu_data:
+                    nlu_data["intents_replaced"] = ""
 
-                if 'repositories' not in nlu_data:
-                    nlu_data['repositories'] = []
+                if "repositories" not in nlu_data:
+                    nlu_data["repositories"] = []
 
-                nlu_data['repositories'].append(intent.get('repository_uuid'))
-                sufix = ', ' if counter + 1 < len(intents) else ''
+                nlu_data["repositories"].append(intent.get("repository_uuid"))
+                sufix = ", " if counter + 1 < len(intents) else ""
 
-                if intent.get('repository_uuid') in repositories.keys():
-                    repository = repositories[intent.get('repository_uuid')]
-                    nlu_data['intents_replaced'] += '{} - {}{}'.format(intent.get('intent'), repository.get('name'), sufix)
+                if intent.get("repository_uuid") in repositories.keys():
+                    repository = repositories[intent.get("repository_uuid")]
+                    nlu_data["intents_replaced"] += "{} - {}{}".format(
+                        intent.get("intent"), repository.get("name"), sufix
+                    )
 
-            if 'repositories' in nlu_data:
-                nlu_data['repositories'] = set(nlu_data['repositories'])
-                for repository in nlu_data['repositories']:
-                    nlu_data[repository] = [intent.get('intent') for intent in nlu_data.get('intents') if repository == intent.get('repository_uuid')]
+            if "repositories" in nlu_data:
+                nlu_data["repositories"] = set(nlu_data["repositories"])
+                for repository in nlu_data["repositories"]:
+                    nlu_data[repository] = [
+                        intent.get("intent")
+                        for intent in nlu_data.get("intents")
+                        if repository == intent.get("repository_uuid")
+                    ]
 
         return nlu_data
 
@@ -593,8 +605,9 @@ class Trigger(SmartModel):
             return False
 
         # skip if message contact is currently active in a flow
-        active_run_qs = FlowRun.objects.filter(is_active=True, contact=msg.contact,
-                                               flow__is_active=True, flow__is_archived=False)
+        active_run_qs = FlowRun.objects.filter(
+            is_active=True, contact=msg.contact, flow__is_active=True, flow__is_archived=False
+        )
         active_run = active_run_qs.order_by("-created_on", "-pk").first()
 
         if active_run and active_run.flow.ignore_triggers and not active_run.is_completed():
@@ -613,7 +626,7 @@ class Trigger(SmartModel):
         # trigger needs to match the contact's groups or be non-group specific
         trigger = trigger.filter(Q(groups__in=msg.contact.user_groups.all()) | Q(groups=None))
 
-        trigger = trigger.prefetch_related('groups', 'groups__contacts').order_by('groups__name').first()
+        trigger = trigger.prefetch_related("groups", "groups__contacts").order_by("groups__name").first()
 
         # if no trigger for contact groups find there is a no group trigger
         if not trigger:
@@ -626,8 +639,8 @@ class Trigger(SmartModel):
         triggers = Trigger.get_triggers_of_type(user.get_org(), Trigger.TYPE_NLU_API)
         for trigger in triggers:
             nlu_data = json.loads(trigger.nlu_data)
-            intents = nlu_data.get('intents', [])
+            intents = nlu_data.get("intents", [])
             for intent in intents:
-                if repository_uuid == intent.get('repository_uuid'):
+                if repository_uuid == intent.get("repository_uuid"):
                     trigger.archive(user)
         return True

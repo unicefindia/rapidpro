@@ -7,14 +7,16 @@ from django.db import migrations, models
 
 class Migration(migrations.Migration):
 
-    dependencies = [
-        ('triggers', '0011_auto_20171010_1718'),
-    ]
+    dependencies = [("triggers", "0011_auto_20171010_1718")]
 
     operations = [
         migrations.AddField(
-            model_name='trigger',
-            name='nlu_data',
-            field=models.TextField(help_text='Intents, accuracy, bots, somethings that will be used to nlu', null=True, verbose_name='NLU Data'),
-        ),
+            model_name="trigger",
+            name="nlu_data",
+            field=models.TextField(
+                help_text="Intents, accuracy, bots, somethings that will be used to nlu",
+                null=True,
+                verbose_name="NLU Data",
+            ),
+        )
     ]

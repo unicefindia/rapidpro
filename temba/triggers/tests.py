@@ -920,7 +920,7 @@ class TriggerTest(TembaTest):
     def test_catch_nlu_trigger_bothub(self):
         self.login(self.admin)
         trigger_nlu = Trigger.get_triggers_of_type(self.org, Trigger.TYPE_NLU_API).first()
-        flow = self.get_flow('color')
+        flow = self.get_flow("color")
 
         contact = self.create_contact("Ali", "250788739305")
 
@@ -935,10 +935,13 @@ class TriggerTest(TembaTest):
         response = self.client.get(trigger_url)
         self.assertEqual(response.status_code, 302)
 
-        with patch('requests.request') as mock_get:
+        with patch("requests.request") as mock_get:
             from temba.nlu.models import BothubConsumer
-            BothubConsumer('706e1467-fa55-4562-b909-e09caca9b198')
-            mock_get.return_value = MockResponse(200, """
+
+            BothubConsumer("706e1467-fa55-4562-b909-e09caca9b198")
+            mock_get.return_value = MockResponse(
+                200,
+                """
             {
                 "uuid": "706e1467-fa55-4562-b909-e09caca9b198",
                 "owner": 2,
@@ -978,33 +981,44 @@ class TriggerTest(TembaTest):
                 "votes_sum": 2,
                 "created_at": "2018-06-11T22:02:42.185098Z"
             }
-            """)
-            self.org.bothub_add_repository('706e1467-fa55-4562-b909-e09caca9b198', self.user)
+            """,
+            )
+            self.org.bothub_add_repository("706e1467-fa55-4562-b909-e09caca9b198", self.user)
 
-            response = self.client.get(reverse('triggers.trigger_create'))
+            response = self.client.get(reverse("triggers.trigger_create"))
             self.assertContains(response, "NLU")
 
             response = self.client.get(trigger_url)
             self.assertEqual(response.status_code, 200)
 
-            post_data = dict(flow=flow.pk, accuracy=70, bots=["restaurant_search$706e1467-fa55-4562-b909-e09caca9b198"], intents='{"greet$706e1467-fa55-4562-b909-e09caca9b198":{"intent":"greet","repository_uuid":"706e1467-fa55-4562-b909-e09caca9b198"}}')
+            post_data = dict(
+                flow=flow.pk,
+                accuracy=70,
+                bots=["restaurant_search$706e1467-fa55-4562-b909-e09caca9b198"],
+                intents='{"greet$706e1467-fa55-4562-b909-e09caca9b198":{"intent":"greet","repository_uuid":"706e1467-fa55-4562-b909-e09caca9b198"}}',
+            )
             response = self.client.post(trigger_url, post_data)
 
             trigger_nlu = Trigger.get_triggers_of_type(self.org, Trigger.TYPE_NLU_API).first()
 
-            update_url = reverse('triggers.trigger_update', args=[trigger_nlu.pk])
+            update_url = reverse("triggers.trigger_update", args=[trigger_nlu.pk])
             response = self.client.get(update_url)
 
-            post_data = dict(flow=flow.pk, accuracy=60, bots=['restaurant_search$706e1467-fa55-4562-b909-e09caca9b198'], intents='{"restaurant_search$706e1467-fa55-4562-b909-e09caca9b198":{"intent":"restaurant_search","repository_uuid":"706e1467-fa55-4562-b909-e09caca9b198"}}')
+            post_data = dict(
+                flow=flow.pk,
+                accuracy=60,
+                bots=["restaurant_search$706e1467-fa55-4562-b909-e09caca9b198"],
+                intents='{"restaurant_search$706e1467-fa55-4562-b909-e09caca9b198":{"intent":"restaurant_search","repository_uuid":"706e1467-fa55-4562-b909-e09caca9b198"}}',
+            )
             response = self.client.post(update_url, post_data)
             self.assertEqual(response.status_code, 302)
 
-            with patch('requests.request') as mock_get:
-                mock_get.side_effect = Exception('Fail request')
+            with patch("requests.request") as mock_get:
+                mock_get.side_effect = Exception("Fail request")
                 Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "i want chinese food")
                 self.assertEqual(0, flow.runs.all().count())
 
-            with patch('requests.request') as mock_get:
+            with patch("requests.request") as mock_get:
                 mock_return_bothub = """
                 {
                     "bot_uuid": "706e1467-fa55-4562-b909-e09caca9b198",
@@ -1036,15 +1050,15 @@ class TriggerTest(TembaTest):
                     }
                 }
                 """
-                mock_get.return_value = MockResponse(200, mock_return_bothub % '0.35233400021608')
+                mock_get.return_value = MockResponse(200, mock_return_bothub % "0.35233400021608")
                 Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "i want chinese food")
                 self.assertEqual(0, flow.runs.all().count())
 
-                mock_get.return_value = MockResponse(200, mock_return_bothub % '0.6948301844545473')
+                mock_get.return_value = MockResponse(200, mock_return_bothub % "0.6948301844545473")
                 Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "i want chinese food")
 
-        payload = dict({'delete': 'true', 'repository_uuid': '706e1467-fa55-4562-b909-e09caca9b198'})
-        self.client.get(reverse('orgs.org_bothub'), payload, follow=True)
+        payload = dict({"delete": "true", "repository_uuid": "706e1467-fa55-4562-b909-e09caca9b198"})
+        self.client.get(reverse("orgs.org_bothub"), payload, follow=True)
         self.org.refresh_from_db()
         self.assertEqual(Trigger.get_triggers_of_type(self.org, Trigger.TYPE_NLU_API).first(), None)
 

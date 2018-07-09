@@ -458,8 +458,9 @@ class Flow(TembaModel):
         default=FLOW_DEFAULT_EXPIRES_AFTER, help_text=_("Minutes of inactivity that will cause expiration from flow")
     )
 
-    ignore_triggers = models.BooleanField(default=False,
-                                          help_text=_("Ignore keyword and NLU triggers while in this flow"))
+    ignore_triggers = models.BooleanField(
+        default=False, help_text=_("Ignore keyword and NLU triggers while in this flow")
+    )
 
     saved_on = models.DateTimeField(auto_now_add=True, help_text=_("When this item was saved"))
 
@@ -7638,8 +7639,8 @@ class HasIntentTest(Test):
         }
     }
     """
-    TEST = 'test'
-    TYPE = 'has_intent'
+    TEST = "test"
+    TYPE = "has_intent"
 
     def __init__(self, test):
         self.test = test
@@ -7654,19 +7655,19 @@ class HasIntentTest(Test):
     def evaluate(self, run, sms, context, text):
         repositories = sms.org.get_bothub_repositories()
         if repositories:
-            test = self.as_json().get('test', None)
-            accuracy = test.get('accuracy', None)
-            intent_data = test.get('intent', {})
+            test = self.as_json().get("test", None)
+            accuracy = test.get("accuracy", None)
+            intent_data = test.get("intent", {})
 
             try:
-                repository_uuid = intent_data.get('bot_id', None)
+                repository_uuid = intent_data.get("bot_id", None)
                 repository = repositories[repository_uuid]
-                bothub = BothubConsumer(repository.get('authorization_key'))
+                bothub = BothubConsumer(repository.get("authorization_key"))
                 predicted_intent, predicted_accuracy, entities = bothub.predict(text)
             except Exception:  # pragma: needs cover
                 return 0, None
 
-            if predicted_intent == intent_data.get('name') and predicted_accuracy * 100 >= accuracy:
+            if predicted_intent == intent_data.get("name") and predicted_accuracy * 100 >= accuracy:
                 return 1, json.dumps(dict(intent=predicted_intent, entities=entities))
 
         return 0, None
