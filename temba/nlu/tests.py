@@ -58,7 +58,9 @@ class NluTest(TembaTest):
                 )
                 self.client.post(reverse("orgs.org_bothub"), payload, follow=True)
                 self.org.refresh_from_db()
+
                 bothub = BothubConsumer("673d4c5f35be4d1e9e76eaafe56704c1")
+                self.assertEqual(str(bothub), "673d4c5f35be4d1e9e76eaafe56704c1")
 
                 with patch("requests.request") as mock_get:
                     mock_get.return_value = MockResponse(
@@ -102,10 +104,21 @@ class NluTest(TembaTest):
 
                 with patch("requests.request") as mock_get:
                     mock_get.return_value = MockResponse(
+                        500,
+                        ""
+                    )
+                    intent, accuracy, entities = bothub.predict("i want chinese food", "en")
+                    self.assertEqual(intent, None)
+                    self.assertEqual(accuracy, 0)
+                    self.assertEqual(entities, None)
+
+                with patch("requests.request") as mock_get:
+                    mock_get.return_value = MockResponse(
                         200,
                         """
                     {
-                        "bot_uuid": "673d4c5f35be4d1e9e76eaafe56704c1",
+                        "text": "I am looking for a Mexican restaurant in the center of town",
+                        "language": "en",
                         "answer": {
                             "text": "I am looking for a Mexican restaurant in the center of town",
                             "entities": [
@@ -150,7 +163,7 @@ class NluTest(TembaTest):
                     }
                     """,
                     )
-                    intent, accuracy, entities = bothub.predict("i want chinese food")
+                    intent, accuracy, entities = bothub.predict("i want chinese food", "en")
                     self.assertEqual(intent, "restaurant_search")
                     self.assertEqual(accuracy, 0.731929302865667)
                     self.assertEqual(type(entities), dict)
