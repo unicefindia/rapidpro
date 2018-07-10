@@ -1574,6 +1574,12 @@ class OrgTest(TembaTest):
         response = self.client.post(bothub_url, payload, follow=True)
         self.assertContains(response, "Missing data: Bothub Authorization Key.Please check them again and retry")
 
+        with patch("requests.request") as mock_get:
+            payload.update(dict(bothub_authorization_key="673d4c5f35be4d1e9e76eaafe56704c1"))
+            mock_get.return_value = MockResponse(500, "")
+            response = self.client.post(bothub_url, payload, follow=True)
+            self.assertContains(response, "Incorrect data. Please check Bothub Authorization Key.")
+
         with patch("temba.nlu.models.BothubConsumer.is_valid_token") as mock:
             mock.return_value = True
             payload.update(dict(bothub_authorization_key="673d4c5f35be4d1e9e76eaafe56704c1"))
