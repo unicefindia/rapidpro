@@ -930,6 +930,7 @@ class TriggerTest(TembaTest):
         msg1 = Msg.create_incoming(self.channel, six.text_type(contact.get_urn()), "Hi")
         self.assertEqual(1, Msg.objects.all().count())
         self.assertEqual(0, flow.runs.all().count())
+        self.assertFalse(Trigger.nlu_find_and_handle(msg1))
         msg1.delete()
 
         trigger_url = reverse("triggers.trigger_bothub")
