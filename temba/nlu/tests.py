@@ -103,10 +103,7 @@ class NluTest(TembaTest):
                 self.assertEqual(entities, None)
 
                 with patch("requests.request") as mock_get:
-                    mock_get.return_value = MockResponse(
-                        500,
-                        ""
-                    )
+                    mock_get.return_value = MockResponse(500, "")
                     intent, accuracy, entities = bothub.predict("i want chinese food", "en")
                     self.assertEqual(intent, None)
                     self.assertEqual(accuracy, 0)
