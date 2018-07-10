@@ -6673,6 +6673,18 @@ class FlowsTest(FlowFileTest):
                 self.assertEqual(1, len(repositories))
                 self.assertEqual(list(repositories)[0].get("authorization_key"), authorization_key)
 
+                data = [
+                    {
+                        "name": "restaurant_search",
+                        "bot_id": "673d4c5f35be4d1e9e76eaafe56704c1",
+                        "bot_name": "Binary Answers",
+                    },
+                    {"name": "goodbye", "bot_id": "673d4c5f35be4d1e9e76eaafe56704c1", "bot_name": "Binary Answers"},
+                    {"name": "greet", "bot_id": "673d4c5f35be4d1e9e76eaafe56704c1", "bot_name": "Binary Answers"},
+                ]
+                response = self.client.get(reverse("flows.flow_nlu"))
+                self.assertEqual(response.json().get("bots_intents"), data)
+
     def test_completion(self):
 
         flow = self.get_flow("favorites")
