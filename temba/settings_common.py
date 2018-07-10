@@ -409,6 +409,7 @@ PERMISSIONS = {
         "export_results",
         "filter",
         "json",
+        "nlu",
         "recent_messages",
         "results",
         "revisions",
