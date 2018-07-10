@@ -993,11 +993,14 @@ class TriggerTest(TembaTest):
             response = self.client.get(trigger_url)
             self.assertEqual(response.status_code, 200)
 
+            group = self.create_group("Trigger Group Bothub", [])
+
             post_data = dict(
                 flow=flow.pk,
                 accuracy=70,
                 bots=["restaurant_search$706e1467-fa55-4562-b909-e09caca9b198"],
                 intents='{"greet$706e1467-fa55-4562-b909-e09caca9b198":{"intent":"greet","repository_uuid":"706e1467-fa55-4562-b909-e09caca9b198"}}',
+                groups=[group.pk],
             )
             response = self.client.post(trigger_url, post_data)
 
@@ -1011,9 +1014,13 @@ class TriggerTest(TembaTest):
                 accuracy=60,
                 bots=["restaurant_search$706e1467-fa55-4562-b909-e09caca9b198"],
                 intents='{"restaurant_search$706e1467-fa55-4562-b909-e09caca9b198":{"intent":"restaurant_search","repository_uuid":"706e1467-fa55-4562-b909-e09caca9b198"}}',
+                groups=[],
             )
             response = self.client.post(update_url, post_data)
             self.assertEqual(response.status_code, 302)
+
+            # delete the group
+            group.release()
 
             with patch("requests.request") as mock_get:
                 mock_get.side_effect = Exception("Fail request")
