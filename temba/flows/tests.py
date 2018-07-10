@@ -6713,6 +6713,98 @@ class FlowsTest(FlowFileTest):
 
         assert_in_response(response, "message_completions", "contact.twitter")
 
+        # Bothub Consumer
+        with patch("temba.nlu.models.BothubConsumer.is_valid_token") as mock:
+            mock.return_value = True
+            with patch("requests.request") as mock_get:
+                mock_get.return_value = MockResponse(
+                    200,
+                    """
+                {
+                    "uuid": "673d4c5f35be4d1e9e76eaafe56704c1",
+                    "owner": 2,
+                    "owner__nickname": "bob",
+                    "name": "Favorites Colors",
+                    "slug": "favorites-colors",
+                    "language": "en",
+                    "available_languages": [
+                        "pt",
+                        "en"
+                    ],
+                    "categories": [
+                        3
+                    ],
+                    "categories_list": [
+                        {
+                            "id": 3,
+                            "name": "Tools"
+                        }
+                    ],
+                    "description": "",
+                    "is_private": false,
+                    "intents": [
+                        "color",
+                        "vehicle"
+                    ],
+                    "entities": [],
+                    "examples__count": 23,
+                    "authorization": null,
+                    "ready_for_train": false,
+                    "votes_sum": 2,
+                    "created_at": "2018-06-11T22:02:42.185098Z"
+                }
+                """,
+                )
+                self.org.bothub_add_repository("673d4c5f35be4d1e9e76eaafe56704c1", self.admin)
+                with patch("requests.request") as mock_get:
+                    mock_get.return_value = MockResponse(
+                        200,
+                        """
+                    {
+                        "text": "My car is blue",
+                        "language": "en",
+                        "answer": {
+                            "text": "My car is blue",
+                            "entities": [
+                                {
+                                    "start": 19,
+                                    "value": "blue",
+                                    "end": 26,
+                                    "entity": "color",
+                                    "extractor": "ner_crf"
+                                },
+                                {
+                                    "start": 45,
+                                    "value": "car",
+                                    "end": 51,
+                                    "entity": "vehicle",
+                                    "extractor": "ner_crf"
+                                }
+                            ],
+                            "intent_ranking": [
+                                {
+                                    "confidence": 0.731929302865667,
+                                    "name": "color"
+                                },
+                                {
+                                    "confidence": 0.07863577626166107,
+                                    "name": "vehicle"
+                                }
+                            ],
+                            "intent": {
+                                "confidence": 0.731929302865667,
+                                "name": "color"
+                            }
+                        }
+                    }
+                    """,
+                    )
+                    response = self.client.get("%s?flow=%d" % (reverse("flows.flow_completion"), flow.pk))
+                    response = response.json()
+
+                    assert_in_response(response, "message_completions", "flow.color.intent")
+                    assert_in_response(response, "message_completions", "flow.color.entities")
+
     def test_bulk_exit(self):
         flow = self.get_flow("favorites")
         color = RuleSet.objects.get(label="Color", flow=flow)
