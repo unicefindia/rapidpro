@@ -1333,6 +1333,7 @@ NodeEditorController = ($rootScope, $scope, $modalInstance, $timeout, $log, Flow
     # only auto name things if our flag is set
     # we don't want to update categories if they've been set
     if not rule.category._autoName and rule._config.type != 'has_intent'
+      delete rule.test._base
       return
     categoryName = $scope.getDefaultCategory(rule)
 
