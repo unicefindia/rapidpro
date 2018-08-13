@@ -1,3 +1,13 @@
+v3.0.1000
+----------
+ * fix display of archives formax on home page
+
+v3.0.999
+----------
+ * Fix chatbase font icon name
+ * Add encoding config to EX channel type
+ * Show archive link and information on org page
+
 v3.0.449
 ----------
  * Improve error message when saving surveyor run fails
