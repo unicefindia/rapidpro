@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-from __future__ import absolute_import, division, print_function, unicode_literals
 
 from redis.lock import Lock
 
@@ -28,6 +26,7 @@ class NonBlockingLock(Lock):
             .
             .
     """
+
     acquired = False
 
     def __enter__(self):
