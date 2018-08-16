@@ -70,7 +70,7 @@ def serialize_broadcast(bcast, flow, contact):
 
 
 def exit_uuid_for_step(step, prev_used, action_set_objs, cache):
-    if step.step_type == "R":
+    if step.step_type == "R" and step.rule_uuid:
         return step.rule_uuid
 
     exit_uuid = prev_used.get(step.step_uuid)
