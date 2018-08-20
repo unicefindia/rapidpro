@@ -16,7 +16,7 @@ from rest_framework.reverse import reverse
 from smartmin.views import SmartFormView
 from temba.api.models import APIToken
 from temba.contacts.models import Contact, ContactField, ContactGroup, TEL_SCHEME
-from temba.flows.models import Flow, FlowRun, FlowStep, RuleSet
+from temba.flows.models import Flow, FlowRun
 from temba.locations.models import AdminBoundary, BoundaryAlias
 from temba.utils import splitting_getlist, str_to_bool
 from temba.utils.dates import json_date_to_datetime
