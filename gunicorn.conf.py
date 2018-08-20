@@ -10,7 +10,7 @@ env = 'DJANGO_SETTINGS_MODULE=temba.settings'
 proc_name = 'rapidpro'
 default_proc_name = proc_name
 chdir = current_path
-loglevel = 'info'
-accesslog = '/dev/stdout'
-errorlog = '/dev/stderr'
+loglevel = 'debug'
+accesslog = 'gunicorn.access'
+errorlog = 'gunicorn.error'
 timeout = 120
