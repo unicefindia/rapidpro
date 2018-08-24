@@ -1,6 +1,8 @@
 FROM ilha/rapidpro-base:base
 
-RUN apt-get install varnish wget -y
+RUN apt-get install varnish wget python3.6 python3.6-dev python3.6-minimal -y
+
+RUN curl https://bootstrap.pypa.io/get-pip.py | python3.6
 
 RUN wget http://s3.amazonaws.com/rds-downloads/rds-combined-ca-bundle.pem \
     -O /usr/local/share/ca-certificates/rds.crt
