@@ -92,6 +92,7 @@ def process_message(msg, new_message=False, new_contact=False):
     """
     Processes the passed in message dealing with new contacts or mage messages appropriately.
     """
+
     # if message was created in Mage...
     if new_message:
         handle_new_message(msg.org, msg)
