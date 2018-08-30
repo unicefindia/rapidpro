@@ -13,6 +13,7 @@ attrs==18.1.0             # via black
 beautifulsoup4==4.6.0     # via google
 billiard==3.5.0.2         # via celery
 black==18.6b1
+boto==2.49.0
 boto3==1.4.4
 botocore==1.5.71          # via boto3, s3transfer
 celery[redis]==4.0.2
