@@ -22,8 +22,8 @@ COPY . .
 
 COPY settings.py.pre temba/settings.py
 
-RUN python manage.py collectstatic --noinput
-RUN python manage.py compress --extension=.haml,.html
+RUN python3.6 manage.py collectstatic --noinput
+RUN python3.6 manage.py compress --extension=.haml,.html
 
 EXPOSE 8000
 EXPOSE 8080
