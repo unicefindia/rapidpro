@@ -13,9 +13,8 @@ from ...models import Channel
 
 
 class FacebookTypeTest(TembaTest):
-
     def setUp(self):
-        super(FacebookTypeTest, self).setUp()
+        super().setUp()
 
         self.channel = Channel.create(
             self.org,

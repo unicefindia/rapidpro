@@ -9,7 +9,6 @@ from ...views import ClaimViewMixin
 
 
 class ClaimView(ClaimViewMixin, SmartFormView):
-
     class Form(ClaimViewMixin.Form):
         page_access_token = forms.CharField(
             min_length=32, required=True, help_text=_("The Page Access Token for your Application")
@@ -34,4 +33,4 @@ class ClaimView(ClaimViewMixin, SmartFormView):
             org, self.request.user, None, self.channel_type, name=name, address=page_id, config=config
         )
 
-        return super(ClaimView, self).form_valid(form)
+        return super().form_valid(form)

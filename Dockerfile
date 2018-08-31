@@ -1,8 +1,10 @@
 FROM ilha/rapidpro-base:base
 
-RUN apt-get install varnish wget -y
+RUN apt-get install varnish wget python3.6 python3.6-dev python3.6-minimal -y
 
-RUN wget http://s3.amazonaws.com/rds-downloads/rds-combined-ca-bundle.pem \
+RUN curl https://bootstrap.pypa.io/get-pip.py | python3.6
+
+RUN wget https://s3.amazonaws.com/rds-downloads/rds-combined-ca-bundle.pem \
     -O /usr/local/share/ca-certificates/rds.crt
 RUN update-ca-certificates
 
@@ -20,8 +22,8 @@ COPY . .
 
 COPY settings.py.pre temba/settings.py
 
-RUN python manage.py collectstatic --noinput
-RUN python manage.py compress --extension=.haml,.html
+RUN python3.6 manage.py collectstatic --noinput
+RUN python3.6 manage.py compress --extension=.haml,.html
 
 EXPOSE 8000
 EXPOSE 8080
