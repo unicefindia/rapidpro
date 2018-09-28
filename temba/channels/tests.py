@@ -18,10 +18,10 @@ from django.conf import settings
 from django.contrib.auth.models import User
 from django.core import mail
 from django.core.cache import cache
-from django.core.urlresolvers import reverse
 from django.template import loader
 from django.test import RequestFactory
 from django.test.utils import override_settings
+from django.urls import reverse
 from django.utils import timezone
 from django.utils.encoding import force_bytes, force_text
 
@@ -3555,6 +3555,20 @@ class FacebookTest(TembaTest):
             created_by=self.admin,
             modified_by=self.admin,
         )
+
+        event = ChannelEvent.objects.create(
+            org=self.org,
+            channel=self.channel,
+            contact=self.contact,
+            event_type=ChannelEvent.TYPE_REFERRAL,
+            extra={"ad_id": "6798564483757", "source": "ADS", "type": "OPEN_THREAD"},
+            occurred_on=timezone.now(),
+        )
+        event.handle()
+
+        # check that the flow was not started
+        self.assertEqual(0, favorites.runs.all().count())
+
         Trigger.objects.create(
             org=self.org,
             trigger_type=Trigger.TYPE_REFERRAL,
@@ -3585,6 +3599,20 @@ class FacebookTest(TembaTest):
         # check that the user started the flow
         contact1 = Contact.objects.get(org=self.org, urns__path="1122")
         self.assertEqual("What is your favorite color?", contact1.msgs.order_by("id").last().text)
+
+        event = ChannelEvent.objects.create(
+            org=self.org,
+            channel=self.channel,
+            contact=self.contact,
+            event_type=ChannelEvent.TYPE_REFERRAL,
+            extra={"ad_id": "6798564483757", "source": "ADS", "type": "OPEN_THREAD"},
+            occurred_on=timezone.now(),
+        )
+        event.handle()
+
+        # check that the user started the flow
+        contact1 = Contact.objects.get(org=self.org, urns__path="1122")
+        self.assertEqual("Pick a number between 1-10.", contact1.msgs.order_by("id").last().text)
 
         event = ChannelEvent.objects.create(
             org=self.org,
