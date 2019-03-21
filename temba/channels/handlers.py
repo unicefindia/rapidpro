@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 
 import pytz
+import xml.etree.ElementTree as et
 from twilio.twiml.voice_response import VoiceResponse
 
 from django.db.models import Q
@@ -497,3 +498,66 @@ class CourierHandler(View):
             "%s courier handler called in RapidPro with URL: %s" % (self.channel_name, request.get_full_path())
         )
         return HttpResponse("%s handling only implemented in Courier" % self.channel_name, status=404)
+
+
+class ImiMobileCallHandler(BaseChannelHandler):  # pragma: needs cover
+
+    handler_url = r"^imimobile/(?P<uuid>[a-z0-9\-]+)/?$"
+    handler_name = "handlers.imimobile_call_handler"
+
+    @csrf_exempt
+    def dispatch(self, request, *args, **kwargs):
+        return super(BaseChannelHandler, self).dispatch(request, *args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        return HttpResponse("Must be called as a POST", status=400)
+
+    def post(self, request, *args, **kwargs):
+        from temba.ivr.models import IVRCall
+
+        request_body = force_text(request.body)
+        request_path = request.get_full_path()
+        request_method = request.method
+
+        if not request_body:
+            return HttpResponse("")
+
+        request_uuid = kwargs["uuid"]
+        channel = Channel.objects.filter(uuid=request_uuid, is_active=True, channel_type="IMI").first()
+
+        if not channel:
+            return HttpResponse("Channel not found for id: %s" % request_uuid, status=400)
+
+        xml_root = et.fromstring(request_body)
+        status = xml_root.find("./evt-id").text
+        call_uuid = xml_root.find("./evt-info/correlationid").text
+
+        if call_uuid is None:
+            return HttpResponse("Missing uuid parameter, ignoring")
+
+        call = IVRCall.objects.filter(external_id=call_uuid).first()
+
+        if not call:
+            response = dict(message="Call not found for %s" % call_uuid)
+            return JsonResponse(response)
+
+        channel = call.channel
+        channel_type = channel.channel_type
+        call.update_status(status, None, channel_type)
+        call.save()
+
+        response = dict(
+            description="Updated call status", call=dict(status=call.get_status_display(), duration=call.duration)
+        )
+
+        event = HttpEvent(request_method, request_path, request_body, 200, json.dumps(response))
+        ChannelLog.log_ivr_interaction(call, "Updated call status", event)
+
+        if call.status == IVRCall.COMPLETED:
+            # if our call is completed, hangup
+            runs = FlowRun.objects.filter(connection=call)
+            for run in runs:
+                if not run.is_completed():
+                    run.set_completed(exit_uuid=None)
+
+        return JsonResponse(response)

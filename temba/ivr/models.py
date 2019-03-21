@@ -193,6 +193,8 @@ class IVRCall(ChannelConnection):
             self.status = self.derive_ivr_status_twiml(status, previous_status)
         elif ivr_protocol == ChannelType.IVRProtocol.IVR_PROTOCOL_NCCO:
             self.status = self.derive_ivr_status_nexmo(status, previous_status)
+        elif ivr_protocol == ChannelType.IVRProtocol.IVR_PROTOCOL_IMI:  # pragma: no cover
+            self.status = self.derive_ivr_status_imi(status, previous_status)
         else:  # pragma: no cover
             raise ValueError(f"Unhandled IVR protocol: {ivr_protocol}")
 
@@ -284,6 +286,19 @@ class IVRCall(ChannelConnection):
             new_status = IVRCall.BUSY
         elif status in ("unanswered", "timeout", "cancelled"):
             new_status = IVRCall.NO_ANSWER
+        else:
+            raise ValueError(f"Unhandled IVR call status: {status}")
+
+        return new_status
+
+    @staticmethod  # pragma: no cover
+    def derive_ivr_status_imi(status: str, previous_status: str) -> str:
+        if status == "offer":
+            new_status = IVRCall.RINGING
+        elif status in ("accept", "answer"):
+            new_status = IVRCall.IN_PROGRESS
+        elif status in ("release", "drop", "disconnect"):
+            new_status = IVRCall.COMPLETED
         else:
             raise ValueError(f"Unhandled IVR call status: {status}")
 
