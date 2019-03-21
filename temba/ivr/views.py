@@ -17,7 +17,7 @@ class CallHandler(View):
         return super().dispatch(*args, **kwargs)
 
     def get(self, request, *args, **kwargs):
-        try:
+        try:  # pragma: no cover
             call = IVRCall.objects.get(pk=kwargs["pk"])
 
             if (
