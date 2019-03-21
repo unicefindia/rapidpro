@@ -37,7 +37,7 @@ class ImiMobileResponse(object):  # pragma: needs cover
         return self
 
     def say(self, text, **kwargs):
-        result = '<prompt bargein="false">' + text + '</prompt>'
+        result = '<prompt bargein="false">' + text + "</prompt>"
         self.document += result
         return self
 
@@ -47,7 +47,7 @@ class ImiMobileResponse(object):  # pragma: needs cover
 
         result = ""
         if digits:
-            result += '<block><prompt bargein="false">' + digits + '</prompt></block>'
+            result += '<block><prompt bargein="false">' + digits + "</prompt></block>"
 
         if url:
             result += '<block><prompt bargein="false"><audio src="' + url + '" /></prompt></block>'
@@ -84,33 +84,39 @@ class ImiMobileResponse(object):  # pragma: needs cover
         result = '<field name="Digits" type="digits'
 
         if kwargs.get("num_digits", False):
-            result += '?length=1'
+            result += "?length=1"
         else:
-            result += '?length=30'
+            result += "?length=30"
 
         result += '">'
 
         if kwargs.get("action", False):
             method = kwargs.get("method", "post")
-            result += '<filled>'
+            result += "<filled>"
             result += '<log> Digits Value:: <value expr="Digits" /> </log>'
             result += '<assign name="recieveddtmf" expr="Digits" />'
             result += '<log> recieveddtmf ::  <value expr="recieveddtmf" /> </log>'
-            result += '<data name="RespJSON" src="' + kwargs.get("action") + '"  namelist="recieveddtmf" method="' + method + '" enctype="application/json" />'
+            result += (
+                '<data name="RespJSON" src="'
+                + kwargs.get("action")
+                + '"  namelist="recieveddtmf" method="'
+                + method
+                + '" enctype="application/json" />'
+            )
             result += '<log>ExecuteVXML ::<value expr="RespJSON" /></log>'
 
             result += '<assign expr="JSON.parse(RespJSON).result" name="nResultCode" />'
             result += '<log>Response Code: <value expr="nResultCode" /></log>'
 
-            result += '<if cond="nResultCode === \'1\'">'
-            result += '<log>This is get method API</log>'
-            result += '<log>Success Response Code Received. Moving to Next VXML</log>'
+            result += "<if cond=\"nResultCode === '1'\">"
+            result += "<log>This is get method API</log>"
+            result += "<log>Success Response Code Received. Moving to Next VXML</log>"
             result += '<goto next="' + kwargs.get("action") + '" />'
-            result += '<else>'
+            result += "<else>"
             result += '<log>Invalid Response Code Received ::<value expr="nResultCode" /></log>'
-            result += '</else>'
-            result += '</if>'
-            result += '</filled>'
+            result += "</else>"
+            result += "</if>"
+            result += "</filled>"
 
         result += "</field>"
         self.document += result
@@ -125,7 +131,9 @@ class ImiMobileResponse(object):  # pragma: needs cover
 
         if kwargs.get("action", False):
             method = kwargs.get("method", "post")
-            result += '<filled><log>Input received</log><data src="' + kwargs.get("action") + '" method="' + method + '" '
+            result += (
+                '<filled><log>Input received</log><data src="' + kwargs.get("action") + '" method="' + method + '" '
+            )
             result += 'enctype="application/xml" /><goto next="#ExecuteVXML"/></filled>'
 
         result += "</record>"
