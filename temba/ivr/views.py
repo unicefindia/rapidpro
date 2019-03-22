@@ -157,6 +157,9 @@ class CallHandler(View):
                         return JsonResponse(json.loads(str(response)), safe=False)
 
                     ChannelLog.log_ivr_interaction(call, "Incoming request for call", event)
+                    # return HttpResponse(str(response), content_type="{}; charset=utf-8".format(application_type))
+                    if ivr_protocol == ChannelType.IVRProtocol.IVR_PROTOCOL_IMI and text:
+                        return JsonResponse(dict(result="1"), safe=False)
                     return HttpResponse(str(response), content_type="{}; charset=utf-8".format(application_type))
             else:
 
@@ -185,3 +188,4 @@ class CallHandler(View):
             raise ValidationError(error)
 
         return JsonResponse(dict(message="Unhandled"))  # pragma: no cover
+if call.is_ivr():
