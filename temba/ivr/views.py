@@ -147,7 +147,7 @@ class CallHandler(View):
 
             elif ivr_protocol == ChannelType.IVRProtocol.IVR_PROTOCOL_IMI:  # pragma: no cover
                 hangup = "hangup" == request.META.get("HTTP_RECIEVEDDTMF", None)
-                text = request.GET.get('recieveddtmf', None)
+                text = request.GET.get("recieveddtmf", None)
                 resume = 0
                 application_type = "application/xml"
 
