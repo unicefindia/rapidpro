@@ -10,6 +10,8 @@ from temba.ivr.models import IVRCall
 from temba.utils import json
 from temba.utils.http import HttpEvent
 
+from django_redis import get_redis_connection
+
 
 class CallHandler(View):
     @csrf_exempt
@@ -24,6 +26,11 @@ class CallHandler(View):
                 Channel.get_type_from_code(call.channel.channel_type).ivr_protocol
                 == ChannelType.IVRProtocol.IVR_PROTOCOL_IMI
             ):
+                r = get_redis_connection()
+                vxml_response = r.get("imimobile_call_{}".format(call.id))
+                if vxml_response:
+                    return HttpResponse(vxml_response, content_type="application/xml; charset=utf-8")
+
                 return self.post(request, *args, **kwargs)
             else:
                 raise ValueError("IVR callback handler does not support GET request method")
@@ -140,7 +147,7 @@ class CallHandler(View):
 
             elif ivr_protocol == ChannelType.IVRProtocol.IVR_PROTOCOL_IMI:  # pragma: no cover
                 hangup = "hangup" == request.META.get("HTTP_RECIEVEDDTMF", None)
-                text = request.GET.get("recieveddtmf", None)
+                text = request.GET.get('recieveddtmf', None)
                 resume = 0
                 application_type = "application/xml"
 
@@ -157,8 +164,14 @@ class CallHandler(View):
                         return JsonResponse(json.loads(str(response)), safe=False)
 
                     ChannelLog.log_ivr_interaction(call, "Incoming request for call", event)
-                    if ivr_protocol == ChannelType.IVRProtocol.IVR_PROTOCOL_IMI and text:
-                        return JsonResponse(dict(result="1"), safe=False)
+
+                    if ivr_protocol == ChannelType.IVRProtocol.IVR_PROTOCOL_IMI:  # pragma: no cover
+                        r = get_redis_connection()
+                        r.set("imimobile_call_{}".format(call.id), str(response), timeout=5)
+
+                        if text:
+                            return JsonResponse(dict(result="1"), safe=False)
+
                     return HttpResponse(str(response), content_type="{}; charset=utf-8".format(application_type))
             else:
 
