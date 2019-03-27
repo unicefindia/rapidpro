@@ -1033,6 +1033,14 @@ class Org(SmartModel):
 
         return None
 
+    def get_imimobile_client(self):  # pragma: no cover
+        from temba.ivr.clients import ImiMobileClient
+
+        channel = self.get_call_channel()
+        if channel.channel_type == "IMI":
+            return ImiMobileClient(channel, org=self)
+        return None
+
     def clear_channel_caches(self):
         """
         Clears any cached configurations we have for any of our channels.

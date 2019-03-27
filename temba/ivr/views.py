@@ -1,7 +1,6 @@
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
 from django.http import HttpResponse, JsonResponse
-from django.utils.encoding import force_text
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import View
 
@@ -11,6 +10,8 @@ from temba.ivr.models import IVRCall
 from temba.utils import json
 from temba.utils.http import HttpEvent
 
+from django_redis import get_redis_connection
+
 
 class CallHandler(View):
     @csrf_exempt
@@ -18,7 +19,23 @@ class CallHandler(View):
         return super().dispatch(*args, **kwargs)
 
     def get(self, request, *args, **kwargs):
-        raise ValueError("IVR callback handler does not support GET request method")
+        try:  # pragma: no cover
+            call = IVRCall.objects.get(pk=kwargs["pk"])
+
+            if (
+                Channel.get_type_from_code(call.channel.channel_type).ivr_protocol
+                == ChannelType.IVRProtocol.IVR_PROTOCOL_IMI
+            ):
+                r = get_redis_connection()
+                vxml_response = r.get("imimobile_call_{}".format(call.id))
+                if vxml_response:
+                    return HttpResponse(vxml_response, content_type="application/xml; charset=utf-8")
+
+                return self.post(request, *args, **kwargs)
+            else:
+                raise ValueError("IVR callback handler does not support GET request method")
+        except IVRCall.DoesNotExist:
+            raise ValueError("IVR callback handler does not support GET request method")
 
     def post(self, request, *args, **kwargs):
         call = IVRCall.objects.filter(pk=kwargs["pk"]).first()
@@ -35,7 +52,7 @@ class CallHandler(View):
         ivr_protocol = Channel.get_type_from_code(channel_type).ivr_protocol
         client = channel.get_ivr_client()
 
-        request_body = force_text(request.body)
+        request_body = request.body
         request_method = request.method
         request_path = request.get_full_path()
 
@@ -70,14 +87,17 @@ class CallHandler(View):
                 call.update_status(status, duration, channel_type)  # update any calls we have spawned with the same
                 call.save()
 
-            resume = request.GET.get("resume", 0)
-            user_response = request.POST.copy()
+            user_response = {}
+            if ivr_protocol is not ChannelType.IVRProtocol.IVR_PROTOCOL_IMI:  # pragma: no cover
+                resume = request.GET.get("resume", 0)
+                user_response = request.POST.copy()
 
             hangup = False
             saved_media_url = None
             text = None
             media_url = None
             has_event = False
+            application_type = "text/xml"
 
             if ivr_protocol == ChannelType.IVRProtocol.IVR_PROTOCOL_TWIML:
 
@@ -125,6 +145,12 @@ class CallHandler(View):
                         ChannelLog.log_ivr_interaction(call, response_msg, event)
                         return JsonResponse(response)
 
+            elif ivr_protocol == ChannelType.IVRProtocol.IVR_PROTOCOL_IMI:  # pragma: no cover
+                hangup = "hangup" == request.GET.get("recieveddtmf", None)
+                text = request.GET.get("recieveddtmf", None)
+                resume = 0
+                application_type = "application/xml"
+
             if not has_event and call.status not in IVRCall.DONE or hangup:
                 if call.is_ivr():
                     response = Flow.handle_call(
@@ -137,8 +163,18 @@ class CallHandler(View):
                         # TODO: what's special here that this needs to be different?
                         return JsonResponse(json.loads(str(response)), safe=False)
 
+                    if ivr_protocol == ChannelType.IVRProtocol.IVR_PROTOCOL_IMI:  # pragma: no cover
+                        r = get_redis_connection()
+                        r.set("imimobile_call_{}".format(call.id), str(response), ex=int(7200))
+                        event = HttpEvent(request_method, request_path, text, 200, response)
+                        ChannelLog.log_ivr_interaction(call, "Incoming request for call", event)
+
+                        if text:
+                            return JsonResponse(dict(result="1"), safe=False)
+
                     ChannelLog.log_ivr_interaction(call, "Incoming request for call", event)
-                    return HttpResponse(str(response), content_type="text/xml; charset=utf-8")
+
+                    return HttpResponse(str(response), content_type="{}; charset=utf-8".format(application_type))
             else:
 
                 if call.status == IVRCall.COMPLETED:

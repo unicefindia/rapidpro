@@ -37,6 +37,8 @@ from temba.utils.gsm7 import calculate_num_segments
 from temba.utils.models import JSONAsTextField, SquashableModel, TembaModel, generate_uuid
 from temba.utils.nexmo import NCCOResponse
 from temba.utils.text import random_string
+from temba.utils.imimobile import ImiMobileResponse
+
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +73,7 @@ class ChannelType(metaclass=ABCMeta):
     class IVRProtocol(Enum):
         IVR_PROTOCOL_TWIML = 1
         IVR_PROTOCOL_NCCO = 2
+        IVR_PROTOCOL_IMI = 3
 
     code = None
     slug = None
@@ -819,6 +822,8 @@ class Channel(TembaModel):
             return VoiceResponse()
         if ivr_protocol == ChannelType.IVRProtocol.IVR_PROTOCOL_NCCO:
             return NCCOResponse()
+        if ivr_protocol == ChannelType.IVRProtocol.IVR_PROTOCOL_IMI:  # pragma: needs cover
+            return ImiMobileResponse()
 
     def get_ivr_client(self):
 
@@ -834,6 +839,8 @@ class Channel(TembaModel):
             return self.org.get_verboice_client()
         elif self.channel_type == "NX":
             return self.org.get_nexmo_client()
+        elif self.channel_type == "IMI":  # pragma: no cover
+            return self.org.get_imimobile_client()
 
     def get_twiml_client(self):
         from temba.ivr.clients import TwilioClient

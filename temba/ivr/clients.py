@@ -1,4 +1,5 @@
 import time
+import re
 
 import requests
 from nexmo import AuthenticationError, ClientError, ServerError
@@ -244,3 +245,52 @@ class VerboiceClient:  # pragma: needs cover
         # the call was successfully sent to the IVR provider
         call.status = IVRCall.WIRED
         call.save()
+
+
+class ImiMobileClient:  # pragma: needs cover
+    def __init__(self, channel, org):
+        self.org = org
+        self.channel = channel
+        config = self.channel.config
+
+        self.endpoint = config.get(channel.CONFIG_SEND_URL, None)
+        self.auth = (config.get(channel.CONFIG_USERNAME, None), config.get(channel.CONFIG_PASSWORD, None))
+
+    def validate(self, request):
+        return True
+
+    def start_call(self, call, to, from_, status_callback):
+        if not settings.SEND_CALLS:
+            raise ValueError("SEND_CALLS set to False, skipping call start")  # pragma: no cover
+
+        event_callback = "https://%s%s" % (
+            self.org.get_brand_domain(),
+            reverse("handlers.imimobile_call_handler", args=[self.channel.uuid]),
+        )
+
+        payload = {
+            "TransId": call.pk,
+            "To": re.sub(r"[^0-9]+", "", to),
+            "From": re.sub(r"[^0-9]+", "", from_),
+            "VXMLUrl": status_callback,
+            "EventUrl": event_callback,
+        }
+
+        response = requests.post(self.endpoint, data=payload, auth=self.auth).json()
+
+        if not response.get("obdtransid"):
+            message = "IMIMobile Error: %s" % response.get("description")
+            event = HttpEvent("POST", self.endpoint, json.dumps(payload), response_body=message)
+            ChannelLog.log_ivr_interaction(call, "Call start failed", event, is_error=True)
+
+            call.status = IVRCall.FAILED
+            call.save()
+
+            raise IVRException(message)
+
+        call.external_id = response["obdtransid"]
+        call.status = IVRCall.WIRED
+        call.save()
+
+    def download_media(self, media_file):
+        return None
