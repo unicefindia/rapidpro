@@ -146,7 +146,7 @@ class CallHandler(View):
                         return JsonResponse(response)
 
             elif ivr_protocol == ChannelType.IVRProtocol.IVR_PROTOCOL_IMI:  # pragma: no cover
-                hangup = "hangup" == request.META.get("HTTP_RECIEVEDDTMF", None)
+                hangup = "hangup" == request.GET.get("recieveddtmf", None)
                 text = request.GET.get("recieveddtmf", None)
                 resume = 0
                 application_type = "application/xml"
@@ -163,14 +163,16 @@ class CallHandler(View):
                         # TODO: what's special here that this needs to be different?
                         return JsonResponse(json.loads(str(response)), safe=False)
 
-                    ChannelLog.log_ivr_interaction(call, "Incoming request for call", event)
-
                     if ivr_protocol == ChannelType.IVRProtocol.IVR_PROTOCOL_IMI:  # pragma: no cover
                         r = get_redis_connection()
-                        r.set("imimobile_call_{}".format(call.id), str(response), timeout=5)
+                        r.set("imimobile_call_{}".format(call.id), str(response), ex=int(7200))
+                        event = HttpEvent(request_method, request_path, text, 200, response)
+                        ChannelLog.log_ivr_interaction(call, "Incoming request for call", event)
 
                         if text:
                             return JsonResponse(dict(result="1"), safe=False)
+
+                    ChannelLog.log_ivr_interaction(call, "Incoming request for call", event)
 
                     return HttpResponse(str(response), content_type="{}; charset=utf-8".format(application_type))
             else:
