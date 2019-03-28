@@ -166,7 +166,8 @@ class CallHandler(View):
                     if ivr_protocol == ChannelType.IVRProtocol.IVR_PROTOCOL_IMI:  # pragma: no cover
                         r = get_redis_connection()
                         r.set("imimobile_call_{}".format(call.id), str(response), ex=int(7200))
-                        event = HttpEvent(request_method, request_path, text, 200, response)
+                        event = HttpEvent(request_method, request.build_absolute_uri(), text, 200, response)
+
                         ChannelLog.log_ivr_interaction(call, "Incoming request for call", event)
 
                         if text:
