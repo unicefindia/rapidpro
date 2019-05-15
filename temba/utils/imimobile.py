@@ -37,7 +37,7 @@ class ImiMobileResponse(object):  # pragma: needs cover
         return self
 
     def say(self, text, **kwargs):
-        result = '<prompt bargein="false">' + text + "</prompt>"
+        result = '<prompt bargein="true">' + text + "</prompt>"
         self.document += result
         return self
 
@@ -47,16 +47,16 @@ class ImiMobileResponse(object):  # pragma: needs cover
 
         result = ""
         if digits:
-            result += '<block><prompt bargein="false">' + digits + "</prompt></block>"
+            result += '<block><prompt bargein="true">' + digits + "</prompt></block>"
 
         if url:
-            result += '<block><prompt bargein="false"><audio src="' + url + '" /></prompt></block>'
+            result += '<block><prompt bargein="true"><audio src="' + url + '" /></prompt></block>'
 
         self.document += result
         return self
 
     def pause(self, **kwargs):
-        result = '<block><prompt bargein="false"><break '
+        result = '<block><prompt bargein="true"><break '
         if kwargs.get("length", False):
             result += 'time="' + str(kwargs.get("length")) + 's"'
 
