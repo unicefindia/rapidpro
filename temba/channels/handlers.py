@@ -1,6 +1,5 @@
 import logging
 
-import pytz
 import xml.etree.ElementTree as et
 from twilio.twiml.voice_response import VoiceResponse
 
