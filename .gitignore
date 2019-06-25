@@ -31,18 +31,10 @@ temba/settings.py
 temba/smartmin
 temba.db
 smartmin
-
-# Extra
-celerybeat-schedule
-temba/contacts/migrations/0022_auto_20151030_1420.py
-temba/contacts/migrations/0028_merge.py
-temba/flows/migrations/0041_auto_20151201_1931.py
-temba/msgs/migrations/0030_auto_20151030_1420.py
-temba/msgs/migrations/0037_merge.py
-test-data/brazil-extracts.zip
-venv_rapidpro/
+mailroom_test.dump
 
 # Exclude media folder except files used for import testing
+media/apks
 media/contacts
 media/csv_imports
 media/flow
@@ -107,7 +99,6 @@ coverage.xml
 js-coverage/
 
 # Translations
-*.mo
 *.pot
 
 # Django stuff:
