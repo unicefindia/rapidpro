@@ -9,7 +9,7 @@ ENV GDAL_LIBRARY_PATH /usr/lib/libgdal.so
 
 RUN apt-get update && \
     # Development dependencies(necessary )
-    apt-get install -y software-properties-common \
+    apt-get install -y software-properties-common supervisor \
     build-essential libpq-dev python-dev \
     python-minimal python-pip libgeos-dev libgdal-dev libssl-dev \
     # Production dependencies
