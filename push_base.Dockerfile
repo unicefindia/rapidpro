@@ -19,6 +19,6 @@ RUN apt-get update && \
     # If we have any kind of problem with gdal, we can try to fix using this repo
     # add-apt-repository ppa:ubuntugis/ubuntugis-unstable
     # Node
-    curl -sL https://deb.nodesource.com/setup_8.x | bash - && apt-get install -y nodejs
+    curl -sL https://deb.nodesource.com/setup_10.x | bash - && apt-get install -y nodejs
 
-RUN npm install -g coffeescript less
+RUN npm install -g coffeescript less yarn
