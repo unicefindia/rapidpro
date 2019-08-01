@@ -3,6 +3,7 @@ from collections import OrderedDict
 from decimal import Decimal
 from functools import reduce
 
+import pytz
 import regex
 from antlr4 import CommonTokenStream, InputStream, ParseTreeVisitor
 from antlr4.error.Errors import NoViableAltException, ParseCancellationException
@@ -13,7 +14,7 @@ from django.utils.encoding import force_text
 from django.utils.translation import gettext as _
 
 from temba.contacts.models import URN_SCHEME_CONFIG, Contact, ContactField
-from temba.utils.dates import date_to_utc_range, str_to_datetime
+from temba.utils.dates import date_to_day_range_utc, str_to_date, str_to_datetime
 from temba.utils.es import ModelESSearch
 from temba.values.constants import Value
 
@@ -63,7 +64,7 @@ class ContactQuery(object):
 
         return self.root.as_elasticsearch(org, prop_map)
 
-    def get_prop_map(self, org):
+    def get_prop_map(self, org, validate=True):
         """
         Recursively collects all property names from this query and tries to match them to fields, searchable attributes
         and URN schemes.
@@ -89,9 +90,10 @@ class ContactQuery(object):
             if scheme in prop_map.keys():
                 prop_map[scheme] = (self.PROP_SCHEME, scheme)
 
-        for prop, prop_obj in prop_map.items():
-            if not prop_obj:
-                raise SearchException(_(f"Unrecognized field: '{prop}'"))
+        if validate:
+            for prop, prop_obj in prop_map.items():
+                if not prop_obj:
+                    raise SearchException(_(f"Unrecognized field: '{prop}'"))
 
         return prop_map
 
@@ -166,25 +168,24 @@ class Condition(QueryNode):
 
         if prop_type == ContactQuery.PROP_FIELD:
             field_uuid = str(field.uuid)
-            contact_fields = contact_json.get("fields")
-
-            if field_uuid not in contact_fields:
-                return False
+            contact_fields = contact_json.get("fields", {})
 
             if field.value_type == Value.TYPE_TEXT:
                 query_value = self.value.upper()
-                contact_value = contact_fields.get(field_uuid).get("text").upper()
+                contact_value = contact_fields.get(field_uuid, {"text": ""}).get("text").upper()
 
                 if self.comparator == "=":
                     return contact_value == query_value
+                elif self.comparator == "!=":
+                    return contact_value != query_value
                 else:
                     raise SearchException(_(f"Unknown text comparator: '{self.comparator}'"))
 
             elif field.value_type == Value.TYPE_NUMBER:
                 query_value = self._parse_number(self.value)
 
-                number_value = contact_fields.get(field_uuid).get(
-                    "number", contact_fields.get(field_uuid).get("decimal")
+                number_value = contact_fields.get(field_uuid, {"number": None}).get(
+                    "number", contact_fields.get(field_uuid, {"decimal": None}).get("decimal")
                 )
                 if number_value is None:
                     return False
@@ -205,30 +206,30 @@ class Condition(QueryNode):
                     raise SearchException(_(f"Unknown number comparator: '{self.comparator}'"))
 
             elif field.value_type == Value.TYPE_DATETIME:
-                query_value = str_to_datetime(
-                    self.value, field.org.timezone, field.org.get_dayfirst(), fill_time=False
-                )
+                query_value = str_to_date(self.value, field.org.get_dayfirst())
                 if not query_value:
                     raise SearchException(_(f"Unable to parse the date '{self.value}'"))
 
-                datetime_value = contact_fields.get(field_uuid).get("datetime")
-                if datetime_value is None:
+                lower_bound, upper_bound = date_to_day_range_utc(query_value, org)
+
+                contact_datetime_value = contact_fields.get(field_uuid, {"datetime": None}).get("datetime")
+                if contact_datetime_value is None:
                     return False
 
-                contact_value = str_to_datetime(datetime_value, field.org.timezone)
-
-                utc_range = calculate_utc_range(org, self.value)
+                # datetime contact values are serialized as ISO8601 timestamps in local time
+                contact_value = str_to_datetime(contact_datetime_value, pytz.UTC, field.org.get_dayfirst())
+                contact_value_utc = contact_value.astimezone(pytz.UTC)
 
                 if self.comparator == "=":
-                    return contact_value >= utc_range[0] and contact_value < utc_range[1]
+                    return contact_value_utc >= lower_bound and contact_value_utc < upper_bound
                 elif self.comparator == ">":
-                    return contact_value >= utc_range[1]
+                    return contact_value_utc >= upper_bound
                 elif self.comparator == ">=":
-                    return contact_value >= utc_range[0]
+                    return contact_value_utc >= lower_bound
                 elif self.comparator == "<":
-                    return contact_value < utc_range[0]
+                    return contact_value_utc < lower_bound
                 elif self.comparator == "<=":
-                    return contact_value < utc_range[1]
+                    return contact_value_utc < upper_bound
                 else:
                     raise SearchException(_(f"Unknown datetime comparator: '{self.comparator}'"))
 
@@ -236,21 +237,15 @@ class Condition(QueryNode):
                 query_value = self.value.upper()
 
                 if field.value_type == Value.TYPE_WARD:
-                    ward_value = contact_fields.get(field_uuid).get("ward")
-                    if ward_value is None:
-                        ward_value = ""
+                    ward_value = contact_fields.get(field_uuid, {"ward": ""}).get("ward", "")
 
                     contact_value = ward_value.upper().split(" > ")[-1]
                 elif field.value_type == Value.TYPE_DISTRICT:
-                    district_value = contact_fields.get(field_uuid).get("district")
-                    if district_value is None:
-                        district_value = ""
+                    district_value = contact_fields.get(field_uuid, {"district": ""}).get("district", "")
 
                     contact_value = district_value.upper().split(" > ")[-1]
                 elif field.value_type == Value.TYPE_STATE:
-                    state_value = contact_fields.get(field_uuid).get("state")
-                    if state_value is None:
-                        state_value = ""
+                    state_value = contact_fields.get(field_uuid, {"state": ""}).get("state", "")
 
                     contact_value = state_value.upper().split(" > ")[-1]
                 else:  # pragma: no cover
@@ -258,6 +253,8 @@ class Condition(QueryNode):
 
                 if self.comparator == "=":
                     return contact_value == query_value
+                elif self.comparator == "!=":
+                    return contact_value != query_value
                 else:
                     raise SearchException(_(f"Unsupported comparator '{self.comparator}' for location field"))
 
@@ -288,41 +285,55 @@ class Condition(QueryNode):
                 query_value = self.value.upper()
                 raw_contact_value = contact_json.get("language")
                 if raw_contact_value is None:
-                    return False
+                    contact_value = ""
                 else:
                     contact_value = raw_contact_value.upper()
-                if self.comparator == "=":
-                    return contact_value == query_value
-                else:
-                    raise SearchException(_(f"Unknown language comparator: '{self.comparator}'"))
-            elif field_key == "created_on":
-                datetime_value = contact_json.get("created_on")
-                contact_value = str_to_datetime(datetime_value, org.timezone)
-                utc_range = calculate_utc_range(org, self.value)
 
                 if self.comparator == "=":
-                    return contact_value >= utc_range[0] and contact_value < utc_range[1]
+                    return contact_value == query_value
+                elif self.comparator == "!=":
+                    return contact_value != query_value
+                else:
+                    raise SearchException(_(f"Unknown language comparator: '{self.comparator}'"))
+
+            elif field_key == "created_on":
+                query_value = str_to_date(self.value, field.org.get_dayfirst())
+                if not query_value:
+                    raise SearchException(_(f"Unable to parse the date '{self.value}'"))
+
+                lower_bound, upper_bound = date_to_day_range_utc(query_value, org)
+
+                # contact created_on is serialized as ISO8601 timestamp in utc time
+                contact_value = str_to_datetime(contact_json.get("created_on"), pytz.UTC, field.org.get_dayfirst())
+                contact_value_utc = contact_value.astimezone(pytz.UTC)
+
+                if self.comparator == "=":
+                    return contact_value_utc >= lower_bound and contact_value_utc < upper_bound
                 elif self.comparator == ">":
-                    return contact_value >= utc_range[1]
+                    return contact_value_utc >= upper_bound
                 elif self.comparator == ">=":
-                    return contact_value >= utc_range[0]
+                    return contact_value_utc >= lower_bound
                 elif self.comparator == "<":
-                    return contact_value < utc_range[0]
+                    return contact_value_utc < lower_bound
                 elif self.comparator == "<=":
-                    return contact_value < utc_range[1]
+                    return contact_value_utc < upper_bound
                 else:
                     raise SearchException(_(f"Unknown created_on comparator: '{self.comparator}'"))
+
             elif field_key == "name":
                 query_value = self.value.upper()
                 raw_contact_value = contact_json.get("name")
                 if raw_contact_value is None:
-                    return False
+                    contact_value = ""
                 else:
                     contact_value = raw_contact_value.upper()
+
                 if self.comparator == "=":
                     return contact_value == query_value
                 elif self.comparator == "~":
                     return query_value in contact_value
+                elif self.comparator == "!=":
+                    return contact_value != query_value
                 else:  # pragma: no cover
                     raise SearchException(_(f"Unknown name comparator: '{self.comparator}'"))
             else:
@@ -342,6 +353,12 @@ class Condition(QueryNode):
 
                 if self.comparator == "=":
                     es_query &= es_Q("term", **{"fields.text": query_value})
+                elif self.comparator == "!=":
+                    es_query &= es_Q("term", **{"fields.text": query_value})
+                    es_query &= es_Q("exists", **{"field": "fields.text"})
+
+                    # search for the inverse of what was specified
+                    return ~es_Q("nested", path="fields", query=es_query)
 
                 else:
                     raise SearchException(_(f"Unknown text comparator: '{self.comparator}'"))
@@ -363,21 +380,26 @@ class Condition(QueryNode):
                     raise SearchException(_(f"Unknown number comparator: '{self.comparator}'"))
 
             elif field.value_type == Value.TYPE_DATETIME:
-                utc_range = calculate_utc_range(org, self.value)
+                query_value = str_to_date(self.value, field.org.get_dayfirst())
+
+                if not query_value:
+                    raise SearchException(_(f"Unable to parse the date '{self.value}'"))
+
+                # datetime contact values are serialized as ISO8601 timestamps in local time on ElasticSearch
+                lower_bound, upper_bound = date_to_day_range_utc(query_value, org)
 
                 if self.comparator == "=":
                     es_query &= es_Q(
-                        "range",
-                        **{"fields.datetime": {"gte": utc_range[0].isoformat(), "lt": utc_range[1].isoformat()}},
+                        "range", **{"fields.datetime": {"gte": lower_bound.isoformat(), "lt": upper_bound.isoformat()}}
                     )
                 elif self.comparator == ">":
-                    es_query &= es_Q("range", **{"fields.datetime": {"gte": utc_range[1].isoformat()}})
+                    es_query &= es_Q("range", **{"fields.datetime": {"gte": upper_bound.isoformat()}})
                 elif self.comparator == ">=":
-                    es_query &= es_Q("range", **{"fields.datetime": {"gte": utc_range[0].isoformat()}})
+                    es_query &= es_Q("range", **{"fields.datetime": {"gte": lower_bound.isoformat()}})
                 elif self.comparator == "<":
-                    es_query &= es_Q("range", **{"fields.datetime": {"lt": utc_range[0].isoformat()}})
+                    es_query &= es_Q("range", **{"fields.datetime": {"lt": lower_bound.isoformat()}})
                 elif self.comparator == "<=":
-                    es_query &= es_Q("range", **{"fields.datetime": {"lt": utc_range[1].isoformat()}})
+                    es_query &= es_Q("range", **{"fields.datetime": {"lt": upper_bound.isoformat()}})
                 else:
                     raise SearchException(_(f"Unknown datetime comparator: '{self.comparator}'"))
 
@@ -396,6 +418,13 @@ class Condition(QueryNode):
                 if self.comparator == "=":
                     field_name += "_keyword"
                     es_query &= es_Q("term", **{field_name: query_value})
+                elif self.comparator == "!=":
+                    field_name += "_keyword"
+                    es_query &= es_Q("term", **{field_name: query_value})
+                    es_query &= es_Q("exists", **{"field": field_name})
+
+                    return ~es_Q("nested", path="fields", query=es_query)
+
                 else:
                     raise SearchException(_(f"Unsupported comparator '{self.comparator}' for location field"))
 
@@ -416,6 +445,9 @@ class Condition(QueryNode):
                 elif self.comparator == "~":
                     field_name = "name"
                     es_query = es_Q("match", **{field_name: query_value})
+                elif self.comparator == "!=":
+                    field_name = "name.keyword"
+                    es_query = ~es_Q("term", **{field_name: query_value})
                 else:
                     raise SearchException(_(f"Unknown attribute comparator: '{self.comparator}'"))
             elif field_key == "id":
@@ -424,22 +456,32 @@ class Condition(QueryNode):
                 if self.comparator == "=":
                     field_name = "language"
                     es_query = es_Q("term", **{field_name: query_value})
+                elif self.comparator == "!=":
+                    field_name = "language"
+                    es_query = ~es_Q("term", **{field_name: query_value})
                 else:
                     raise SearchException(_(f"Unknown attribute comparator: '{self.comparator}'"))
             elif field_key == "created_on":
-                utc_range = calculate_utc_range(org, self.value)
+                query_value = str_to_date(self.value, field.org.get_dayfirst())
+
+                if not query_value:
+                    raise SearchException(_(f"Unable to parse the date '{self.value}'"))
+
+                # contact created_on is serialized as ISO8601 timestamp in utc time on ElasticSearch
+                lower_bound, upper_bound = date_to_day_range_utc(query_value, org)
+
                 if self.comparator == "=":
                     es_query = es_Q(
-                        "range", **{"created_on": {"gte": utc_range[0].isoformat(), "lt": utc_range[1].isoformat()}}
+                        "range", **{"created_on": {"gte": lower_bound.isoformat(), "lt": upper_bound.isoformat()}}
                     )
                 elif self.comparator == ">":
-                    es_query = es_Q("range", **{"created_on": {"gte": utc_range[1].isoformat()}})
+                    es_query = es_Q("range", **{"created_on": {"gte": upper_bound.isoformat()}})
                 elif self.comparator == ">=":
-                    es_query = es_Q("range", **{"created_on": {"gte": utc_range[0].isoformat()}})
+                    es_query = es_Q("range", **{"created_on": {"gte": lower_bound.isoformat()}})
                 elif self.comparator == "<":
-                    es_query = es_Q("range", **{"created_on": {"lt": utc_range[0].isoformat()}})
+                    es_query = es_Q("range", **{"created_on": {"lt": lower_bound.isoformat()}})
                 elif self.comparator == "<=":
-                    es_query = es_Q("range", **{"created_on": {"lt": utc_range[1].isoformat()}})
+                    es_query = es_Q("range", **{"created_on": {"lt": upper_bound.isoformat()}})
                 else:
                     raise SearchException(_(f"Unknown created_on comparator: '{self.comparator}'"))
             else:  # pragma: no cover
@@ -542,7 +584,7 @@ class IsSetCondition(Condition):
                             return True
 
                 elif field.value_type == Value.TYPE_DATETIME:
-                    contact_value = str_to_datetime(contact_field.get("datetime"), field.org.timezone)
+                    contact_value = str_to_date(contact_field.get("datetime"), field.org.get_dayfirst())
                     if is_set:
                         if contact_value is not None:
                             return True
@@ -1017,13 +1059,3 @@ def is_phonenumber(text):
         return True, CLEAN_SPECIAL_CHARS_REGEX.sub("", text)
     else:
         return False, None
-
-
-def calculate_utc_range(org, input_value):
-    """
-    Calculates datetime range in UTC, we use it to check date containment
-    """
-    query_value = str_to_datetime(input_value, org.timezone, org.get_dayfirst(), fill_time=False)
-    if not query_value:
-        raise SearchException(_(f"Unable to parse the date '{input_value}'"))
-    return date_to_utc_range(query_value.date(), org)

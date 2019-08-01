@@ -27,7 +27,8 @@ from temba.flows.models import ActionSet, Flow, FlowLabel, FlowRun, FlowStart, R
 from temba.locations.models import BoundaryAlias
 from temba.msgs.models import Broadcast, Label, Msg
 from temba.orgs.models import Language
-from temba.tests import AnonymousOrg, ESMockWithScroll, TembaTest
+from temba.templates.models import TemplateTranslation
+from temba.tests import AnonymousOrg, ESMockWithScroll, TembaTest, matchers
 from temba.triggers.models import Trigger
 from temba.utils import json
 from temba.values.constants import Value
@@ -44,7 +45,6 @@ class APITest(TembaTest):
 
         self.joe = self.create_contact("Joe Blow", "0788123123")
         self.frank = self.create_contact("Frank", twitter="franky")
-        self.test_contact = Contact.get_test_contact(self.user)
 
         self.twitter = Channel.create(
             self.org, self.user, None, "TT", name="Twitter Channel", address="billy_bob", role="SR"
@@ -52,6 +52,8 @@ class APITest(TembaTest):
 
         self.create_secondary_org()
         self.hans = self.create_contact("Hans Gruber", "+4921551511", org=self.org2)
+
+        self.org2channel = Channel.create(self.org2, self.user, "RW", "A", name="Org2Channel")
 
         self.maxDiff = None
 
@@ -624,6 +626,7 @@ class APITest(TembaTest):
                 "contacts": [{"uuid": self.joe.uuid, "name": self.joe.name}],
                 "groups": [{"uuid": reporters.uuid, "name": reporters.name}],
                 "text": {"base": "Hello 4"},
+                "status": "failed",
                 "created_on": format_datetime(bcast4.created_on),
             },
         )
@@ -941,7 +944,7 @@ class APITest(TembaTest):
         # create our contact and set a registration date
         contact = self.create_contact("Joe", "+12065551515")
         reporters.contacts.add(contact)
-        contact.set_field(self.admin, "registration", timezone.now())
+        contact.set_field(self.admin, "registration", self.org.format_datetime(timezone.now()))
 
         campaign1 = Campaign.create(self.org, self.admin, "Reminders", reporters)
         event1 = CampaignEvent.create_message_event(
@@ -1904,14 +1907,14 @@ class APITest(TembaTest):
 
         self.assertEqual(resp_json["fields"]["tag_activated_at"], "2017-11-11T13:12:13+02:00")
 
-        # update contact with invalid ISO8601 timestamp value, 'T' replaced with space
+        # update contact with valid ISO8601 timestamp value, 'T' replaced with space
         response = self.postJSON(
             url, "uuid=%s" % self.joe.uuid, {"fields": {"tag_activated_at": "2017-11-11 11:12:13Z"}}
         )
         self.assertEqual(response.status_code, 200)
         resp_json = response.json()
 
-        self.assertEqual(resp_json["fields"]["tag_activated_at"], "2011-11-11T11:12:00+02:00")
+        self.assertEqual(resp_json["fields"]["tag_activated_at"], "2017-11-11T13:12:13+02:00")
 
         # update contact with invalid ISO8601 timestamp value without timezone
         response = self.postJSON(
@@ -2002,7 +2005,6 @@ class APITest(TembaTest):
         contact5 = self.create_contact("Eve", "+250788000005")  # a deleted contact
         contact4.block(self.user)
         contact5.release(self.user)
-        test_contact = Contact.get_test_contact(self.user)
 
         group = self.create_group("Testers")
         self.create_field("isdeveloper", "Is developer")
@@ -2030,14 +2032,7 @@ class APITest(TembaTest):
             url,
             None,
             {
-                "contacts": [
-                    contact1.uuid,
-                    "tel:+250788000002",
-                    contact3.uuid,
-                    contact4.uuid,
-                    contact5.uuid,
-                    test_contact.uuid,
-                ],
+                "contacts": [contact1.uuid, "tel:+250788000002", contact3.uuid, contact4.uuid, contact5.uuid],
                 "action": "add",
                 "group": "Testers",
             },
@@ -2102,18 +2097,7 @@ class APITest(TembaTest):
         response = self.postJSON(url, None, {"contacts": [contact1.uuid], "action": "add", "group": ""})
         self.assertResponseError(response, "group", "This field may not be null.")
 
-        # try to block all contacts
-        response = self.postJSON(
-            url,
-            None,
-            {
-                "contacts": [contact1.uuid, contact2.uuid, contact3.uuid, contact4.uuid, test_contact.uuid],
-                "action": "block",
-            },
-        )
-        self.assertResponseError(response, "contacts", "No such object: %s" % test_contact.uuid)
-
-        # block all valid contacts
+        # block all contacts
         response = self.postJSON(
             url, None, {"contacts": [contact1.uuid, contact2.uuid, contact3.uuid, contact4.uuid], "action": "block"}
         )
@@ -2123,7 +2107,7 @@ class APITest(TembaTest):
         # unblock contact 1
         response = self.postJSON(url, None, {"contacts": [contact1.uuid], "action": "unblock"})
         self.assertEqual(response.status_code, 204)
-        self.assertEqual(set(Contact.objects.filter(is_blocked=False)), {contact1, contact5, test_contact})
+        self.assertEqual(set(Contact.objects.filter(is_blocked=False)), {contact1, contact5})
         self.assertEqual(set(Contact.objects.filter(is_blocked=True)), {contact2, contact3, contact4})
 
         # interrupt any active runs of contacts 1 and 2
@@ -2148,7 +2132,7 @@ class APITest(TembaTest):
         response = self.postJSON(url, None, {"contacts": [contact1.uuid, contact2.uuid], "action": "delete"})
         self.assertEqual(response.status_code, 204)
         self.assertEqual(set(Contact.objects.filter(is_active=False)), {contact1, contact2, contact5})
-        self.assertEqual(set(Contact.objects.filter(is_active=True)), {contact3, contact4, test_contact})
+        self.assertEqual(set(Contact.objects.filter(is_active=True)), {contact3, contact4})
         self.assertFalse(Msg.objects.filter(contact__in=[contact1, contact2]).exclude(visibility="D").exists())
         self.assertTrue(Msg.objects.filter(contact=contact3).exclude(visibility="D").exists())
 
@@ -2159,6 +2143,21 @@ class APITest(TembaTest):
         # try to invoke an invalid action
         response = self.postJSON(url, None, {"contacts": [contact3.uuid], "action": "like"})
         self.assertResponseError(response, "action", '"like" is not a valid choice.')
+
+    def test_definitions_with_non_legacy_flow(self):
+        url = reverse("api.v2.definitions")
+
+        self.login(self.admin)
+
+        self.import_file("favorites_v13")
+
+        flow = Flow.objects.filter(name="Favorites").first()
+
+        response = self.fetchJSON(url, "flow=%s" % flow.uuid)
+
+        self.assertEqual(len(response.json()["flows"]), 1)
+        self.assertEqual(len(response.json()["flows"][0]["nodes"]), 9)
+        self.assertEqual(response.json()["flows"][0]["spec_version"], "13.0.0")
 
     def test_definitions(self):
         url = reverse("api.v2.definitions")
@@ -2370,6 +2369,26 @@ class APITest(TembaTest):
                     "labels": [],
                     "expires": 720,
                     "runs": {"active": 0, "completed": 0, "interrupted": 0, "expired": 0},
+                    "results": [
+                        {
+                            "key": "color",
+                            "name": "Color",
+                            "categories": ["Red", "Green", "Blue", "Cyan", "Other"],
+                            "node_uuids": [matchers.UUID4String()],
+                        },
+                        {
+                            "key": "beer",
+                            "name": "Beer",
+                            "categories": ["Mutzig", "Primus", "Turbo King", "Skol", "Other"],
+                            "node_uuids": [matchers.UUID4String()],
+                        },
+                        {
+                            "key": "name",
+                            "name": "Name",
+                            "categories": ["All Responses"],
+                            "node_uuids": [matchers.UUID4String()],
+                        },
+                    ],
                     "created_on": format_datetime(archived.created_on),
                     "modified_on": format_datetime(archived.modified_on),
                 },
@@ -2381,6 +2400,14 @@ class APITest(TembaTest):
                     "labels": [{"uuid": reporting.uuid, "name": "Reporting"}],
                     "expires": 720,
                     "runs": {"active": 0, "completed": 1, "interrupted": 0, "expired": 0},
+                    "results": [
+                        {
+                            "key": "color",
+                            "name": "color",
+                            "categories": ["Orange", "Blue", "Other", "Nothing"],
+                            "node_uuids": [matchers.UUID4String()],
+                        }
+                    ],
                     "created_on": format_datetime(color.created_on),
                     "modified_on": format_datetime(color.modified_on),
                 },
@@ -2392,6 +2419,32 @@ class APITest(TembaTest):
                     "labels": [],
                     "expires": 10080,
                     "runs": {"active": 0, "completed": 0, "interrupted": 0, "expired": 0},
+                    "results": [
+                        {
+                            "key": "name",
+                            "name": "Name",
+                            "categories": ["All Responses"],
+                            "node_uuids": [matchers.UUID4String()],
+                        },
+                        {
+                            "key": "photo",
+                            "name": "Photo",
+                            "categories": ["All Responses"],
+                            "node_uuids": [matchers.UUID4String()],
+                        },
+                        {
+                            "key": "location",
+                            "name": "Location",
+                            "categories": ["All Responses"],
+                            "node_uuids": [matchers.UUID4String()],
+                        },
+                        {
+                            "key": "video",
+                            "name": "Video",
+                            "categories": ["All Responses"],
+                            "node_uuids": [matchers.UUID4String()],
+                        },
+                    ],
                     "created_on": format_datetime(survey.created_on),
                     "modified_on": format_datetime(survey.modified_on),
                 },
@@ -2446,10 +2499,13 @@ class APITest(TembaTest):
             developers = self.create_group("Developers", query="isdeveloper = YES")
 
             # a group which is being re-evaluated
-            unready = self.create_group("Big Group", query="isdeveloper=NO")
+            dynamic = self.create_group("Big Group", query="isdeveloper=NO")
 
-        unready.status = ContactGroup.STATUS_EVALUATING
-        unready.save(update_fields=("status",))
+        dynamic.status = ContactGroup.STATUS_EVALUATING
+        dynamic.save(update_fields=("status",))
+
+        # an initializing group
+        ContactGroup.create_static(self.org, self.admin, "Initializing", status=ContactGroup.STATUS_INITIALIZING)
 
         # group belong to other org
         spammers = ContactGroup.get_or_create(self.org2, self.admin2, "Spammers")
@@ -2465,7 +2521,7 @@ class APITest(TembaTest):
             resp_json["results"],
             [
                 {
-                    "uuid": unready.uuid,
+                    "uuid": dynamic.uuid,
                     "name": "Big Group",
                     "query": 'isdeveloper = "NO"',
                     "status": "evaluating",
@@ -2800,9 +2856,6 @@ class APITest(TembaTest):
         # add a deleted message
         deleted_msg = self.create_msg(direction="I", msg_type="I", text="!@$!%", contact=self.frank, visibility="D")
 
-        # add a test contact message
-        self.create_msg(direction="I", msg_type="F", text="Hello", contact=self.test_contact)
-
         # add message in other org
         self.create_msg(direction="I", msg_type="I", text="Guten tag!", contact=self.hans, org=self.org2)
 
@@ -2824,7 +2877,7 @@ class APITest(TembaTest):
         )
 
         # filter by inbox
-        with self.assertNumQueries(NUM_BASE_REQUEST_QUERIES + 6):
+        with self.assertNumQueries(NUM_BASE_REQUEST_QUERIES + 5):
             response = self.fetchJSON(url, "folder=INBOX")
 
         resp_json = response.json()
@@ -2836,7 +2889,7 @@ class APITest(TembaTest):
         )
 
         # filter by incoming, should get deleted messages too
-        with self.assertNumQueries(NUM_BASE_REQUEST_QUERIES + 6):
+        with self.assertNumQueries(NUM_BASE_REQUEST_QUERIES + 5):
             response = self.fetchJSON(url, "folder=incoming")
 
         resp_json = response.json()
@@ -3048,11 +3101,6 @@ class APITest(TembaTest):
         frank_run2, = flow1.start([], [self.frank], restart_participants=True)
         joe_run3, = flow2.start([], [self.joe], restart_participants=True)
 
-        # add a test contact run
-        Contact.set_simulation(True)
-        flow2.start([], [self.test_contact])
-        Contact.set_simulation(False)
-
         # add a run for another org
         flow3 = self.create_flow(org=self.org2, user=self.admin2)
         flow3.start([], [self.hans])
@@ -3064,7 +3112,7 @@ class APITest(TembaTest):
         frank_run2.refresh_from_db()
 
         # no filtering
-        with self.assertNumQueries(NUM_BASE_REQUEST_QUERIES + 5):
+        with self.assertNumQueries(NUM_BASE_REQUEST_QUERIES + 4):
             response = self.fetchJSON(url)
 
         self.assertEqual(response.status_code, 200)
@@ -3212,6 +3260,43 @@ class APITest(TembaTest):
         response = self.fetchJSON(url, "contact=%s&flow=%s" % (self.joe.uuid, flow1.uuid))
         self.assertResponseError(response, None, "You may only specify one of the contact, flow parameters")
 
+    def test_runs_with_action_results(self):
+        """
+        Runs from save_run_result actions may have some fields missing
+        """
+
+        url = reverse("api.v2.runs")
+        self.assertEndpointAccess(url)
+
+        flow = self.get_flow("color")
+        run = FlowRun.create(flow, self.frank)
+        run.results = {
+            "manual": {
+                "created_on": "2019-06-28T06:37:02.628152471Z",
+                "name": "Manual",
+                "node_uuid": "6edeb849-1f65-4038-95dc-4d99d7dde6b8",
+                "value": "",
+            }
+        }
+        run.save(update_fields=("results",))
+
+        response = self.fetchJSON(url)
+
+        resp_json = response.json()
+        self.assertEqual(
+            resp_json["results"][0]["values"],
+            {
+                "manual": {
+                    "name": "Manual",
+                    "value": "",
+                    "input": None,
+                    "category": None,
+                    "node": "6edeb849-1f65-4038-95dc-4d99d7dde6b8",
+                    "time": "2019-06-28T06:37:02.628152Z",
+                }
+            },
+        )
+
     def test_message_actions(self):
         url = reverse("api.v2.message_actions")
         self.assertEndpointAccess(url, fetch_returns=405)
@@ -3304,9 +3389,13 @@ class APITest(TembaTest):
         self.assertEqual(set(Msg.objects.filter(visibility=Msg.VISIBILITY_ARCHIVED)), {msg3})
         self.assertFalse(Msg.objects.filter(id=msg2.id).exists())
 
-        # try to act on a deleted message
-        response = self.postJSON(url, None, {"messages": [msg2.id], "action": "restore"})
-        self.assertResponseError(response, "messages", "No such object: %d" % msg2.id)
+        # try to act on a a valid message and a deleted message
+        response = self.postJSON(url, None, {"messages": [msg2.id, msg3.id], "action": "restore"})
+
+        # should get a partial success
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"failures": [msg2.id]})
+        self.assertEqual(set(Msg.objects.filter(visibility=Msg.VISIBILITY_VISIBLE)), {msg1, msg3})
 
         # try to act on an outgoing message
         msg4 = Msg.create_outgoing(self.org, self.user, self.joe, "Hi Joe")
@@ -3449,16 +3538,12 @@ class APITest(TembaTest):
             resthook=resthook1,
             event="F",
             data=dict(event="new mother", values=dict(name="Greg"), steps=dict(uuid="abcde")),
-            created_by=self.admin,
-            modified_by=self.admin,
         )
         event2 = WebHookEvent.objects.create(
             org=self.org,
             resthook=resthook2,
             event="F",
             data=dict(event="new father", values=dict(name="Yo"), steps=dict(uuid="12345")),
-            created_by=self.admin,
-            modified_by=self.admin,
         )
 
         # no filtering
@@ -3647,3 +3732,58 @@ class APITest(TembaTest):
         # check filtering by id (deprecated)
         response = self.fetchJSON(url, "id=%d" % start2.id)
         self.assertResultsById(response, [start2])
+
+    def test_templates(self):
+        url = reverse("api.v2.templates")
+        self.assertEndpointAccess(url)
+
+        # create some templates
+        TemplateTranslation.get_or_create(
+            self.channel, "hello", "eng", "Hi {{1}}", 1, TemplateTranslation.STATUS_APPROVED, "1234"
+        )
+        tt = TemplateTranslation.get_or_create(
+            self.channel, "hello", "fra", "Bonjour {{1}}", 1, TemplateTranslation.STATUS_PENDING, "5678"
+        )
+
+        # templates on other org to test filtering
+        TemplateTranslation.get_or_create(
+            self.org2channel, "goodbye", "eng", "Goodbye {{1}}", 1, TemplateTranslation.STATUS_APPROVED, "1234"
+        )
+        TemplateTranslation.get_or_create(
+            self.org2channel, "goodbye", "fra", "Salut {{1}}", 1, TemplateTranslation.STATUS_PENDING, "5678"
+        )
+
+        # no filtering
+        with self.assertNumQueries(NUM_BASE_REQUEST_QUERIES + 3):
+            response = self.fetchJSON(url)
+
+        resp_json = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(resp_json["next"], None)
+        self.assertEqual(
+            resp_json["results"],
+            [
+                {
+                    "name": "hello",
+                    "uuid": str(tt.template.uuid),
+                    "translations": [
+                        {
+                            "language": "eng",
+                            "content": "Hi {{1}}",
+                            "variable_count": 1,
+                            "status": "approved",
+                            "channel": {"name": self.channel.name, "uuid": self.channel.uuid},
+                        },
+                        {
+                            "language": "fra",
+                            "content": "Bonjour {{1}}",
+                            "variable_count": 1,
+                            "status": "pending",
+                            "channel": {"name": self.channel.name, "uuid": self.channel.uuid},
+                        },
+                    ],
+                    "created_on": format_datetime(tt.template.created_on),
+                    "modified_on": format_datetime(tt.template.modified_on),
+                }
+            ],
+        )

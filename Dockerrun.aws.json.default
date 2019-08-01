@@ -1,0 +1,14 @@
+{
+  "AWSEBDockerrunVersion": "1",
+  "Image": {
+    "Name": "REPOSITORY:BUILD_NUMBER",
+    "Update": "true"
+  },
+  "Ports": [
+      {
+        "ContainerPort": "8000"
+      }
+    ]
+}
+
+

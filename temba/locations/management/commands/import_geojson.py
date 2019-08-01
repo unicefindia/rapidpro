@@ -217,7 +217,7 @@ SELECT
 from adminboundary_set abs
 WHERE NOT (abs.osm_id = ANY(%s)))
                 """,
-                    (country.id, list(updated_osm_ids)),
+                    (country.id, [str(i) for i in updated_osm_ids]),
                 )
                 self.stdout.write(self.style.SUCCESS(f"Other unseen boundaries removed: {cursor.rowcount}"))
 
