@@ -59,6 +59,7 @@ class ChannelType(metaclass=ABCMeta):
     class IVRProtocol(Enum):
         IVR_PROTOCOL_TWIML = 1
         IVR_PROTOCOL_NCCO = 2
+        IVR_PROTOCOL_IMI = 3
 
     code = None
     slug = None
