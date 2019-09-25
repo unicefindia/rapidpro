@@ -28,12 +28,10 @@ from django.urls import reverse
 from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
 
-from celery import current_app
-
 from temba import mailroom
 from temba.airtime.models import AirtimeTransfer
 from temba.assets.models import register_asset_store
-from temba.channels.models import Channel, ChannelConnection
+from temba.channels.models import Channel, ChannelConnection, ChannelLog
 from temba.contacts.models import (
     NEW_CONTACT_VARIABLE,
     TEL_SCHEME,
@@ -50,6 +48,7 @@ from temba.utils import analytics, chunk_list, json, on_transaction_commit
 from temba.utils.dates import str_to_datetime
 from temba.utils.email import is_valid_address
 from temba.utils.export import BaseExportAssetStore, BaseExportTask
+from temba.utils.http import HttpEvent
 from temba.utils.models import (
     JSONAsTextField,
     JSONField,
@@ -65,9 +64,6 @@ from . import legacy
 from .server.serialize import serialize_message
 
 logger = logging.getLogger(__name__)
-
-FLOW_DEFAULT_EXPIRES_AFTER = 60 * 12
-START_FLOW_BATCH_SIZE = 500
 
 
 class Events(Enum):
@@ -121,10 +117,6 @@ FLOW_LOCK_KEY = "org:%d:lock:flow:%d:%s"
 
 FLOW_PROP_CACHE_KEY = "org:%d:cache:flow:%d:%s"
 FLOW_PROP_CACHE_TTL = 24 * 60 * 60 * 7  # 1 week
-
-UNREAD_FLOW_RESPONSES = "unread_flow_responses"
-
-FLOW_BATCH = "flow_batch"
 
 
 class FlowLock(Enum):
@@ -256,6 +248,8 @@ class Flow(TembaModel):
     FINAL_LEGACY_VERSION = VERSIONS[-1]
     GOFLOW_VERSION = "13.0.0"
 
+    DEFAULT_EXPIRES_AFTER = 60 * 12
+
     name = models.CharField(max_length=64, help_text=_("The name for this flow"))
 
     labels = models.ManyToManyField(
@@ -282,7 +276,7 @@ class Flow(TembaModel):
     metadata = JSONAsTextField(null=True, default=dict)
 
     expires_after_minutes = models.IntegerField(
-        default=FLOW_DEFAULT_EXPIRES_AFTER, help_text=_("Minutes of inactivity that will cause expiration from flow")
+        default=DEFAULT_EXPIRES_AFTER, help_text=_("Minutes of inactivity that will cause expiration from flow")
     )
 
     ignore_triggers = models.BooleanField(default=False, help_text=_("Ignore keyword triggers while in this flow"))
@@ -329,9 +323,6 @@ class Flow(TembaModel):
 
     label_dependencies = models.ManyToManyField(Label, related_name="dependent_flows")
 
-    # TODO remove once mailroom and courier stop reading it
-    flow_server_enabled = models.BooleanField(default=True)
-
     @classmethod
     def create(
         cls,
@@ -339,7 +330,7 @@ class Flow(TembaModel):
         user,
         name,
         flow_type=TYPE_MESSAGE,
-        expires_after_minutes=FLOW_DEFAULT_EXPIRES_AFTER,
+        expires_after_minutes=DEFAULT_EXPIRES_AFTER,
         base_language=None,
         create_revision=False,
         use_new_editor=False,
@@ -482,7 +473,7 @@ class Flow(TembaModel):
                 flow_type = flow_def.get("flow_type", Flow.TYPE_MESSAGE)
                 flow_uuid = flow_metadata["uuid"]
                 flow_name = flow_metadata["name"]
-                flow_expires = flow_metadata.get(Flow.METADATA_EXPIRES, FLOW_DEFAULT_EXPIRES_AFTER)
+                flow_expires = flow_metadata.get(Flow.METADATA_EXPIRES, Flow.DEFAULT_EXPIRES_AFTER)
 
                 FlowRevision.validate_legacy_definition(flow_def)
             else:
@@ -490,7 +481,7 @@ class Flow(TembaModel):
                 flow_type = db_types[flow_def[Flow.DEFINITION_TYPE]]
                 flow_uuid = flow_def[Flow.DEFINITION_UUID]
                 flow_name = flow_def[Flow.DEFINITION_NAME]
-                flow_expires = flow_def.get(Flow.DEFINITION_EXPIRE_AFTER_MINUTES, FLOW_DEFAULT_EXPIRES_AFTER)
+                flow_expires = flow_def.get(Flow.DEFINITION_EXPIRE_AFTER_MINUTES, Flow.DEFAULT_EXPIRES_AFTER)
 
             flow = None
             flow_name = flow_name[:64].strip()
@@ -1524,7 +1515,7 @@ class Flow(TembaModel):
                         context["parent"]["contact"] = parent_contact.build_expressions_context()
                     else:
                         # contact may have since been deleted
-                        context["parent"]["contact"] = {"uuid": parent_contact_uuid}
+                        context["parent"]["contact"] = {"uuid": parent_contact_uuid}  # pragma: no cover
                 else:
                     context["parent"]["contact"] = contact_context
 
@@ -1577,6 +1568,9 @@ class Flow(TembaModel):
         """
         Starts a flow for the passed in groups and contacts.
         """
+
+        if not getattr(settings, "USES_LEGACY_ENGINE", False):
+            raise ValueError("Use of legacy engine when USES_LEGACY_ENGINE not set")  # pragma: no cover
 
         # build up querysets of our groups for memory efficiency
         if isinstance(groups, QuerySet):  # pragma: no cover
@@ -1666,11 +1660,11 @@ class Flow(TembaModel):
             return []
 
         if self.flow_type == Flow.TYPE_VOICE:
-            return self.start_call_flow(
+            return self._start_call_flow(
                 all_contact_ids, start_msg=start_msg, extra=extra, flow_start=flow_start, parent_run=parent_run
             )
         else:
-            return self.start_msg_flow(
+            return self._start_msg_flow(
                 all_contact_ids,
                 started_flows=started_flows,
                 start_msg=start_msg,
@@ -1679,7 +1673,7 @@ class Flow(TembaModel):
                 parent_run=parent_run,
             )
 
-    def start_call_flow(self, all_contact_ids, start_msg=None, extra=None, flow_start=None, parent_run=None):
+    def _start_call_flow(self, all_contact_ids, start_msg=None, extra=None, flow_start=None, parent_run=None):
         from temba.ivr.models import IVRCall
 
         there_are_calls_to_start = False
@@ -1734,17 +1728,47 @@ class Flow(TembaModel):
 
         # eagerly enqueue calls
         if there_are_calls_to_start:
-            current_app.send_task("task_enqueue_call_events", args=[], kwargs={})
+
+            r = get_redis_connection()
+
+            pending_call_events = (
+                IVRCall.objects.filter(status=IVRCall.PENDING)
+                .filter(direction=IVRCall.OUTGOING)
+                .filter(channel__is_active=True)
+                .filter(modified_on__gt=timezone.now() - timedelta(days=IVRCall.IGNORE_PENDING_CALLS_OLDER_THAN_DAYS))
+                .select_related("channel")
+                .order_by("modified_on")[:1000]
+            )
+
+            for call in pending_call_events:
+
+                # are we handling a call on a throttled channel ?
+                max_concurrent_events = call.channel.config.get(Channel.CONFIG_MAX_CONCURRENT_EVENTS)
+
+                if max_concurrent_events:
+                    channel_key = Channel.redis_active_events_key(call.channel_id)
+                    current_active_events = r.get(channel_key)
+
+                    # skip this call if are on the limit
+                    if current_active_events and int(current_active_events) >= max_concurrent_events:
+                        continue
+                    else:
+                        # we can start a new call event
+                        call.register_active_event()
+
+                # enqueue the call
+                ChannelLog.log_ivr_interaction(call, "Call queued internally", HttpEvent(method="INTERNAL", url=None))
+
+                call.status = IVRCall.QUEUED
+                call.save(update_fields=("status",))
+
+                call.do_start_call()
 
         return runs
 
-    def start_msg_flow(
+    def _start_msg_flow(
         self, contact_ids, started_flows=None, start_msg=None, extra=None, flow_start=None, parent_run=None
     ):
-
-        if started_flows is None:
-            started_flows = []
-
         if parent_run:
             parent_context = parent_run.build_expressions_context(contact_context=str(parent_run.contact.uuid))
         else:
@@ -4709,7 +4733,7 @@ class ActionLog(models.Model):
     created_on = models.DateTimeField(help_text=_("When this log event occurred"))
 
 
-class FlowStart(SmartModel):
+class FlowStart(models.Model):
     STATUS_PENDING = "P"
     STATUS_STARTING = "S"
     STATUS_COMPLETE = "C"
@@ -4722,59 +4746,57 @@ class FlowStart(SmartModel):
         (STATUS_FAILED, "Failed"),
     )
 
+    # the uuid of this start
     uuid = models.UUIDField(unique=True, default=uuid4)
 
-    flow = models.ForeignKey(
-        Flow, on_delete=models.PROTECT, related_name="starts", help_text=_("The flow that is being started")
-    )
+    # the flow that should be started
+    flow = models.ForeignKey(Flow, on_delete=models.PROTECT, related_name="starts")
 
-    groups = models.ManyToManyField(ContactGroup, help_text=_("Groups that will start the flow"))
+    # the groups that should be considered for start in this flow
+    groups = models.ManyToManyField(ContactGroup)
 
-    contacts = models.ManyToManyField(Contact, help_text=_("Contacts that will start the flow"))
+    # the individual contacts that should be considered for start in this flow
+    contacts = models.ManyToManyField(Contact)
 
-    restart_participants = models.BooleanField(
-        default=True, help_text=_("Whether to restart any participants already in this flow")
-    )
+    # whether to restart contacts that have already participated in this flow
+    restart_participants = models.BooleanField(default=True)
 
-    include_active = models.BooleanField(default=True, help_text=_("Include contacts currently active in flows"))
+    # whether to start contacts in this flow that are active in other flows
+    include_active = models.BooleanField(default=True)
 
+    # the campaign event that started this flow start (if any)
     campaign_event = models.ForeignKey(
-        "campaigns.CampaignEvent",
-        null=True,
-        on_delete=models.PROTECT,
-        related_name="flow_starts",
-        help_text=_("The campaign event which created this flow start"),
+        "campaigns.CampaignEvent", null=True, on_delete=models.PROTECT, related_name="flow_starts"
     )
 
-    contact_count = models.IntegerField(default=0, help_text=_("How many unique contacts were started down the flow"))
+    # any channel connections associated with this flow start
+    connections = models.ManyToManyField(ChannelConnection, related_name="starts")
 
-    connections = models.ManyToManyField(
-        ChannelConnection, related_name="starts", help_text="The channel connections created for this start"
-    )
+    # the current status of this flow start
+    status = models.CharField(max_length=1, default=STATUS_PENDING, choices=STATUS_CHOICES)
 
-    status = models.CharField(
-        max_length=1, default=STATUS_PENDING, choices=STATUS_CHOICES, help_text=_("The status of this flow start")
-    )
+    # any extra parameters that should be passed as trigger params for this flow start
+    extra = JSONAsTextField(null=True, default=dict)
 
-    extra = JSONAsTextField(
-        null=True, default=dict, help_text=_("Any extra parameters to pass to the flow start (json)")
-    )
+    # the parent flow's summary if there is one
+    parent_summary = JSONField(null=True)
 
+    # who created this flow start
     created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        on_delete=models.PROTECT,
-        related_name="%(app_label)s_%(class)s_creations",
-        help_text="The user which originally created this item",
+        settings.AUTH_USER_MODEL, null=True, on_delete=models.PROTECT, related_name="%(app_label)s_%(class)s_creations"
     )
 
-    modified_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        null=True,
-        on_delete=models.PROTECT,
-        related_name="%(app_label)s_%(class)s_modifications",
-        help_text="The user which last modified this item",
-    )
+    # when this flow start was created
+    created_on = models.DateTimeField(default=timezone.now, editable=False)
+
+    # deprecated fields
+    is_active = models.BooleanField(default=True, null=True)
+
+    modified_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.PROTECT, null=True)
+
+    modified_on = models.DateTimeField(default=timezone.now, editable=False, null=True)
+
+    contact_count = models.IntegerField(default=0, null=True)
 
     @classmethod
     def create(
@@ -4801,7 +4823,7 @@ class FlowStart(SmartModel):
             campaign_event=campaign_event,
             extra=extra,
             created_by=user,
-            modified_by=user,
+            created_on=timezone.now(),
         )
 
         for contact in contacts:
@@ -4823,8 +4845,8 @@ class FlowStart(SmartModel):
         self.save(update_fields=["status"])
 
         try:
-            groups = [g for g in self.groups.all()]
-            contacts = [c for c in self.contacts.all().only("is_test")]
+            groups = list(self.groups.all())
+            contacts = list(self.contacts.all())
 
             # load up our extra if any
             extra = self.extra if self.extra else None

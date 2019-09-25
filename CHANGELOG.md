@@ -1,3 +1,57 @@
+v5.1.10
+----------
+ * Update to flow editor 1.6.8, add completion config
+ * Add FlowStart.parent_summary, start deprecating fields
+ * Switch to bionic beaver for CI builds
+ * Add trigger params access to ivr flow
+ * Drop no longer used Broadcast.purged field
+
+v5.1.9
+----------
+ * Make Broadcast.purged nullable in preparation for dropping it
+
+v5.1.8
+----------
+ * Update floweditor to 1.6.7 and npm audit
+
+v5.1.7
+----------
+ * Remove unused IVR tasks
+ * Simplify failed IVR call handling
+
+v5.1.6
+----------
+ * Fix format_number to be able to handle decimals with more digits than current context precision
+
+v5.1.5
+----------
+ * Update to flow editor 1.6.6
+
+v5.1.4
+----------
+ * Update to flow editor 1.6.5
+ * Update Django to 2.1.10
+
+v5.1.3
+----------
+ * Update flow editor to 1.6.3
+
+v5.1.2
+----------
+ * Remove fields no longer needed by new engine
+ * Trim sync events in a separate task
+
+v5.1.1
+----------
+ * Stop writing legacy engine fields and make them nullable
+ * Remove no longer used send_broadcast_task and other unused sending code
+ * Squash migrations into previously added dummy migrations
+
+v5.1.0
+----------
+ * Populate account sid and and auth token on twilio callers when added
+ * Disable legacy IVR tasks
+
 v5.0.9
 ----------
  * Add dummy migrations for all migrations to be created by squashing
