@@ -122,3 +122,8 @@ ansible/site.retry
 
 # VS Code projects
 .vscode/
+
+push_public/
+rapidpro/
+static/brands/push
+
