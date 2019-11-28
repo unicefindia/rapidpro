@@ -28,8 +28,8 @@ from temba import mailroom
 from temba.airtime.models import AirtimeTransfer
 from temba.api.models import APIToken, Resthook, WebHookEvent, WebHookResult
 from temba.archives.models import Archive
-from temba.campaigns.models import Campaign, CampaignEvent
-from temba.channels.models import Channel
+from temba.campaigns.models import Campaign, CampaignEvent, EventFire
+from temba.channels.models import Alert, Channel, SyncEvent
 from temba.classifiers.models import Classifier
 from temba.classifiers.types.wit import WitType
 from temba.contacts.models import (
@@ -43,6 +43,7 @@ from temba.contacts.models import (
     ExportContactsTask,
 )
 from temba.flows.models import ActionSet, ExportFlowResultsTask, Flow, FlowLabel, FlowRun, FlowStart
+from temba.globals.models import Global
 from temba.locations.models import AdminBoundary
 from temba.middleware import BrandingMiddleware
 from temba.msgs.models import ExportMessagesTask, Label, Msg
@@ -55,6 +56,7 @@ from temba.tests.twilio import MockRequestValidator, MockTwilioClient
 from temba.triggers.models import Trigger
 from temba.utils import dict_to_struct, json, languages
 from temba.utils.email import link_components
+from temba.values.constants import Value
 
 from .context_processors import GroupPermWrapper
 from .models import CreditAlert, Invitation, Language, Org, TopUp, TopUpCredits
@@ -185,6 +187,16 @@ class OrgDeleteTest(TransactionTestCase, TembaTestMixin, SmartminTestMixin):
         self.setUpOrg()
         self.setUpLocations()
 
+        # set up a sync event and alert on our channel
+        SyncEvent.create(
+            self.channel,
+            dict(pending=[], retry=[], power_source="P", power_status="full", power_level="100", network_type="W"),
+            [],
+        )
+        Alert.objects.create(
+            channel=self.channel, alert_type=Alert.TYPE_SMS, created_by=self.admin, modified_by=self.admin
+        )
+
         # create a second child org
         self.child_org = Org.objects.create(
             name="Child Org",
@@ -210,6 +222,9 @@ class OrgDeleteTest(TransactionTestCase, TembaTestMixin, SmartminTestMixin):
 
         # add a classifier
         self.c1 = Classifier.create(self.org, self.admin, WitType.slug, "Booker", {}, sync=False)
+
+        # add a global
+        self.global1 = Global.get_or_create(self.org, self.admin, "org_name", "Org Name", "Acme Ltd")
 
         HTTPLog.objects.create(
             classifier=self.c1,
@@ -237,6 +252,9 @@ class OrgDeleteTest(TransactionTestCase, TembaTestMixin, SmartminTestMixin):
 
         # add some fields
         parent_field = self.create_field("age", "Parent Age", org=self.parent_org)
+        parent_datetime_field = self.create_field(
+            "planting_date", "Planting Date", value_type=Value.TYPE_DATETIME, org=self.parent_org
+        )
         child_field = self.create_field("age", "Child Age", org=self.child_org)
 
         # add some groups
@@ -274,6 +292,20 @@ class OrgDeleteTest(TransactionTestCase, TembaTestMixin, SmartminTestMixin):
         flow_label2 = FlowLabel.create(self.child_org, "Cool Child Flows")
         parent_flow.labels.add(flow_label1)
         child_flow.labels.add(flow_label2)
+
+        # add a campaign, event and fire to our parent org
+        campaign = Campaign.create(self.parent_org, self.admin, "Reminders", parent_group)
+        event1 = CampaignEvent.create_flow_event(
+            self.parent_org,
+            self.admin,
+            campaign,
+            parent_datetime_field,
+            offset=1,
+            unit="W",
+            flow=parent_flow,
+            delivery_hour="13",
+        )
+        EventFire.objects.create(event=event1, contact=parent_contact, scheduled=timezone.now())
 
         # triggers for our flows
         parent_trigger = Trigger.create(
@@ -351,6 +383,7 @@ class OrgDeleteTest(TransactionTestCase, TembaTestMixin, SmartminTestMixin):
 
             # add in some webhook results
             resthook = Resthook.get_or_create(org, "registration", self.admin)
+            resthook.subscribers.create(target_url="http://foo.bar", created_by=self.admin, modified_by=self.admin)
             WebHookEvent.objects.create(org=org, resthook=resthook, data={})
             WebHookResult.objects.create(
                 org=self.org, url="http://foo.bar", request="GET http://foo.bar", status_code=200, response="zap!"
@@ -2953,6 +2986,9 @@ class OrgCRUDLTest(TembaTest):
         self.assertEqual(topup.credits, 1000)
         self.assertEqual(topup.price, 0)
 
+        # and 3 sample flows
+        self.assertEqual(3, org.flows.count())
+
         # fake session set_org to make the test work
         user.set_org(org)
 
@@ -4101,8 +4137,11 @@ class BulkExportTest(TembaTest):
         confirm_appointment = Flow.objects.get(name="Confirm Appointment", is_active=True)
         self.assertEqual(60, confirm_appointment.expires_after_minutes)
 
-        # now delete a flow
+        # should be unarchived
         register = Flow.objects.filter(name="Register Patient").first()
+        self.assertFalse(register.is_archived)
+
+        # now delete a flow
         register.is_active = False
         register.save()
 
