@@ -12,7 +12,7 @@ from temba.contacts.models import ContactField, ContactGroup
 from temba.flows.models import Flow
 from temba.msgs.models import Msg
 from temba.orgs.views import ModalMixin, OrgObjPermsMixin, OrgPermsMixin
-from temba.utils.fields import CompletionTextarea
+from temba.utils.fields import CompletionTextarea, InputWidget, SelectWidget
 from temba.utils.views import BaseActionForm
 from temba.values.constants import Value
 
@@ -47,9 +47,8 @@ class CampaignActionMixin(SmartListView):
 class UpdateCampaignForm(forms.ModelForm):
     group = forms.ModelChoiceField(
         queryset=ContactGroup.user_groups.none(),
-        required=True,
-        label="Group",
-        help_text="Which group this campaign operates on",
+        empty_label=None,
+        widget=SelectWidget(attrs={"placeholder": _("Select a group to base the campaign on"), "searchable": True}),
     )
 
     def __init__(self, *args, **kwargs):
@@ -63,6 +62,8 @@ class UpdateCampaignForm(forms.ModelForm):
     class Meta:
         model = Campaign
         fields = ("name", "group")
+
+        widgets = {"name": InputWidget()}
 
 
 class CampaignCRUDL(SmartCRUDL):
@@ -150,7 +151,13 @@ class CampaignCRUDL(SmartCRUDL):
                     )
 
                 if self.has_org_perm("campaigns.campaign_update"):
-                    links.append(dict(title="Edit", js_class="update-campaign", href="#"))
+                    links.append(
+                        dict(
+                            title=_("Edit"),
+                            href=reverse("campaigns.campaign_update", args=[self.object.pk]),
+                            modax=_("Update Campaign"),
+                        )
+                    )
 
                 if self.has_org_perm("campaigns.campaign_archive"):
                     links.append(
@@ -175,14 +182,25 @@ class CampaignCRUDL(SmartCRUDL):
 
     class Create(OrgPermsMixin, ModalMixin, SmartCreateView):
         class CampaignForm(forms.ModelForm):
+
+            group = forms.ModelChoiceField(
+                queryset=ContactGroup.user_groups.none(),
+                required=True,
+                empty_label=None,
+                widget=SelectWidget(
+                    attrs={"placeholder": _("Select a group to base the campaign on"), "searchable": True}
+                ),
+            )
+
             def __init__(self, user, *args, **kwargs):
                 super().__init__(*args, **kwargs)
-
                 self.fields["group"].queryset = ContactGroup.get_user_groups(user.get_org()).order_by("name")
 
             class Meta:
                 model = Campaign
                 fields = ("name", "group")
+
+                widgets = {"name": InputWidget()}
 
         fields = ("name", "group")
         form_class = CampaignForm

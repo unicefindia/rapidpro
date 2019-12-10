@@ -1,3 +1,18 @@
+v5.3.16
+----------
+ * Update to flow editor v1.7.7
+
+v5.3.13
+----------
+ * Update to floweditor v1.7.5
+ * Re-add msg_console management command with new support for mailroom
+ * Cleanup somes usages of trans/blocktrans
+
+v5.3.12
+----------
+ * Add error and failure events to contact history
+ * Use form components on campaign create/update
+
 v5.3.11
 ----------
  * Migrate sample flows to new editor
