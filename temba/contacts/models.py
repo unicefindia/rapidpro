@@ -81,11 +81,13 @@ URN_SCHEME_CONFIG = (
     (FCM_SCHEME, _("Firebase Cloud Messaging identifier"), FCM_SCHEME),
     (WHATSAPP_SCHEME, _("WhatsApp identifier"), WHATSAPP_SCHEME),
     (FRESHCHAT_SCHEME, _("Freshchat identifier"), FRESHCHAT_SCHEME),
-    ('ps', _("Pushinho identifier"), 'ps')
 )
 
 
 IMPORT_HEADERS = tuple((f"URN:{c[0]}", c[0]) for c in URN_SCHEME_CONFIG)
+
+from push_public.general.contacts.models import URN_SCHEME_CONFIG
+
 
 # events from sessions to include in contact history
 HISTORY_INCLUDE_EVENTS = {
