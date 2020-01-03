@@ -381,7 +381,7 @@ class MsgTest(TembaTest):
         broadcast4.schedule = Schedule.create_schedule(self.org, self.admin, timezone.now(), Schedule.REPEAT_DAILY)
         broadcast4.save(update_fields=["schedule"])
 
-        with self.assertNumQueries(39):
+        with self.assertNumQueries(42):
             response = self.client.get(reverse("msgs.msg_outbox"))
 
         self.assertContains(response, "Outbox (5)")
@@ -1892,6 +1892,59 @@ class BroadcastTest(TembaTest):
             tc["twitter_outgoing_count"],
         )
 
+    def test_get_recipient_counts(self):
+        contact, urn_obj = Contact.get_or_create(self.channel.org, "tel:250788382382", user=self.admin)
+
+        broadcast1 = self.create_broadcast(
+            self.user, "Very old broadcast", groups=[self.joe_and_frank], contacts=[self.kevin, self.lucy]
+        )
+        self.assertEqual({"recipients": 4, "groups": 0, "contacts": 0, "urns": 0}, broadcast1.get_recipient_counts())
+
+        broadcast2 = Broadcast.create(
+            self.org,
+            self.user,
+            {"eng": "Hello everyone", "spa": "Hola a todos", "fra": "Salut à tous"},
+            base_language="eng",
+            groups=[self.joe_and_frank],
+            contacts=[],
+            schedule=Schedule.create_schedule(self.org, self.admin, timezone.now(), Schedule.REPEAT_MONTHLY),
+        )
+        self.assertEqual({"recipients": 2, "groups": 0, "contacts": 0, "urns": 0}, broadcast2.get_recipient_counts())
+
+        broadcast3 = Broadcast.create(
+            self.org,
+            self.user,
+            {"eng": "Hello everyone", "spa": "Hola a todos", "fra": "Salut à tous"},
+            base_language="eng",
+            groups=[],
+            contacts=[self.kevin, self.lucy, self.joe],
+            schedule=Schedule.create_schedule(self.org, self.admin, timezone.now(), Schedule.REPEAT_MONTHLY),
+        )
+        self.assertEqual({"recipients": 3, "groups": 0, "contacts": 0, "urns": 0}, broadcast3.get_recipient_counts())
+
+        broadcast4 = Broadcast.create(
+            self.org,
+            self.user,
+            {"eng": "Hello everyone", "spa": "Hola a todos", "fra": "Salut à tous"},
+            base_language="eng",
+            groups=[],
+            contacts=[],
+            urns=[urn_obj],
+            schedule=Schedule.create_schedule(self.org, self.admin, timezone.now(), Schedule.REPEAT_MONTHLY),
+        )
+        self.assertEqual({"recipients": 1, "groups": 0, "contacts": 0, "urns": 0}, broadcast4.get_recipient_counts())
+
+        broadcast5 = Broadcast.create(
+            self.org,
+            self.user,
+            {"eng": "Hello everyone", "spa": "Hola a todos", "fra": "Salut à tous"},
+            base_language="eng",
+            groups=[self.joe_and_frank],
+            contacts=[self.kevin, self.lucy],
+            schedule=Schedule.create_schedule(self.org, self.admin, timezone.now(), Schedule.REPEAT_MONTHLY),
+        )
+        self.assertEqual({"recipients": 0, "groups": 1, "contacts": 2, "urns": 0}, broadcast5.get_recipient_counts())
+
     def test_archive_release(self):
         self.run_msg_release_test(
             {
@@ -2193,6 +2246,7 @@ class BroadcastCRUDLTest(TembaTest):
 
         self.joe, urn_obj = Contact.get_or_create(self.org, "tel:123", user=self.user, name="Joe Blow")
         self.frank, urn_obj = Contact.get_or_create(self.org, "tel:1234", user=self.user, name="Frank Blow")
+        self.joe_and_frank = self.create_group("Joe and Frank", [self.joe, self.frank])
 
     def test_send(self):
         url = reverse("msgs.broadcast_send")
@@ -2271,16 +2325,28 @@ class BroadcastCRUDLTest(TembaTest):
 
     def test_schedule_read(self):
         self.login(self.editor)
-        self.client.post(
-            reverse("msgs.broadcast_send"), dict(omnibox="c-%s" % self.joe.uuid, text="Lunch reminder", schedule=True)
-        )
+
+        omnibox = "c-%s,g-%s" % (self.joe.uuid, self.joe_and_frank.uuid)
+        self.client.post(reverse("msgs.broadcast_send"), dict(omnibox=omnibox, text="Lunch reminder", schedule=True))
         broadcast = Broadcast.objects.get()
 
         # view with empty Send History
         response = self.client.get(reverse("msgs.broadcast_schedule_read", args=[broadcast.pk]))
         self.assertEqual(response.context["object"], broadcast)
-
         self.assertEqual(response.context["object_list"].count(), 0)
+
+    def test_missing_contacts(self):
+        self.login(self.editor)
+
+        omnibox = "c-%s,g-%s" % (self.joe.uuid, self.joe_and_frank.uuid)
+        self.client.post(reverse("msgs.broadcast_send"), dict(omnibox=omnibox, text="Lunch reminder", schedule=True))
+        broadcast = Broadcast.objects.get()
+
+        response = self.client.post(
+            reverse("msgs.broadcast_update", args=[broadcast.pk]),
+            dict(omnibox="", message="Empty contacts", schedule=True),
+        )
+        self.assertFormError(response, "form", "omnibox", "This field is required.")
 
 
 class LabelTest(TembaTest):

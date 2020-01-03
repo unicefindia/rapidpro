@@ -3,11 +3,20 @@ import { property } from 'lit-element';
 
 /**
  * FormElement is a component that appends a hidden input (outside of
- * its own shodow) with its value to be included in forms.
+ * its own shadow) with its value to be included in forms.
  */
 export default class FormElement extends RapidElement {
   private hiddenInputs: HTMLInputElement[] = [];
 
+  @property({type: String, attribute: "help_text"})
+  helpText: string;
+
+  @property({type: String})
+  label: string;
+  
+  @property({type: Array})
+  errors: string[];
+  
   @property({type: Array})
   values: any[] = [];
 
@@ -61,7 +70,7 @@ export default class FormElement extends RapidElement {
       ele.setAttribute("name", this.getAttribute("name"));
       ele.setAttribute("value", this.serializeValue(value));
       this.hiddenInputs.push(ele);
-      this.inputRoot.appendChild(ele);
+      this.inputRoot.parentElement.appendChild(ele);
     }
   }
 
