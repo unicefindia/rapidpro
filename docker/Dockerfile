@@ -43,3 +43,5 @@ RUN chown -R django /app
 USER django
 
 EXPOSE 8000
+
+ENTRYPOINT ["/start"]
