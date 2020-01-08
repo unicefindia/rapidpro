@@ -3,6 +3,7 @@ FROM python:3.6-buster
 ARG COMPRESS_ENABLED
 ARG BRANDING_ENABLED
 
+ENV settings $SETTINGS_FILE
 ENV PYTHONUNBUFFERED 1
 WORKDIR /app
 
@@ -42,4 +43,5 @@ RUN chown -R django /app
 USER django
 
 EXPOSE 8000
+
 ENTRYPOINT ["/start"]
